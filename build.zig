@@ -23,14 +23,14 @@ pub fn build(b: *std.Build) void {
     const run_step = b.step("run", "Run mmutil-zig");
     run_step.dependOn(&run_mmutil.step);
 
-    // Convert root Ambulance.wav into an embedded asset for the GBA example
+    // Convert root overworld.wav into an embedded asset for the GBA example
     const convert_sfx = b.addRunArtifact(mmutil_exe);
     convert_sfx.addArgs(&.{
-        "Ambulance.wav",
+        "overworld.wav",
         "-o",
         "examples/gba_play/sample.mmraw",
-        // Use a common GBA SFX rate
-        "--rate", "11025",
+        // Use a common GBA SFX rate for cleaner playback
+        "--rate", "16000",
         "--bps", "8",
     });
 

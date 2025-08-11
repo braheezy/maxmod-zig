@@ -40,6 +40,8 @@ var sample_pos_frames: u32 = 0; // reserved
 var frac_accum: u32 = 0; // reserved
 const FADE_IN_SAMPLES: u16 = 128;
 var fade_in_remaining: u16 = 0;
+// VBlank countdown to stop DMA cleanly at (approximate) end-of-sample
+var vblank_remaining: u32 = 0;
 
 fn le16(p: [*]const u8) u16 {
     return @as(u16, p[0]) | (@as(u16, p[1]) << 8);
@@ -127,16 +129,14 @@ pub fn play() void {
     const rate: u32 = if (hdr.sample_rate_hz != 0) hdr.sample_rate_hz else audio.mix_rate_hz;
     audio.setTimer0(rate);
 
-    if (stream_from_rom and !bits16) {
-        // Stream directly from ROM
-        regs.REG_DMA1SAD.* = @as(u32, @intCast(@intFromPtr(base_ptr)));
-        regs.REG_DMA1DAD.* = @as(u32, @intCast(regs.FIFO_A));
-        regs.REG_DMA1CNT_L.* = 4; // count ignored in FIFO mode
-        regs.REG_DMA1CNT_H.* = regs.DMA_ENABLE | regs.DMA_START_FIFO | regs.DMA_REPEAT | regs.DMA_32 | regs.DMA_SRC_INC | regs.DMA_DEST_FIXED;
-    } else {
-        // Small assets: copy to EWRAM and stream from there
+    {
+        // Stage into EWRAM for stable FIFO timing. Limit to a few seconds
+        // to avoid large ROM streaming that can cause audible artifacts.
+        // Allow up to 4 seconds or buffer size, whichever is smaller.
+        const max_samples_by_time: u32 = 4 * rate;
+        const max_samples: u32 = @min(hdr.sample_count, @min(@as(u32, @intCast(MAX_PCM_BYTES)), max_samples_by_time));
         var i: u32 = 0;
-        while (i < hdr.sample_count and i < @as(u32, @intCast(MAX_PCM_BYTES))) : (i += 1) {
+        while (i < max_samples) : (i += 1) {
             const v: u8 = if (!bits16) blk: {
                 const u: u8 = base_ptr[@as(usize, @intCast(i))];
                 const s: i8 = @as(i8, @intCast(@as(i16, u) - 128));
@@ -153,12 +153,26 @@ pub fn play() void {
             pcm_buf[@as(usize, @intCast(i))] = v;
         }
         pcm_len = i;
+
+        // Prime FIFO with a few words to avoid initial underflow
+        const fifo_ptr: *volatile u32 = @ptrFromInt(regs.FIFO_A);
+        var w: u32 = 0;
+        while (w < 16) : (w += 1) {
+            fifo_ptr.* = 0;
+        }
         regs.REG_DMA1SAD.* = @as(u32, @intCast(@intFromPtr(&pcm_buf)));
         regs.REG_DMA1DAD.* = @as(u32, @intCast(regs.FIFO_A));
         regs.REG_DMA1CNT_L.* = 4;
         regs.REG_DMA1CNT_H.* = regs.DMA_ENABLE | regs.DMA_START_FIFO | regs.DMA_REPEAT | regs.DMA_32 | regs.DMA_SRC_INC | regs.DMA_DEST_FIXED;
     }
     playing = true;
+
+    // Approximate stop time via VBlank countdown to avoid reading past buffer
+    // Number of 8-bit samples we will play (either full stream or staged length)
+    const play_samples: u32 = if (stream_from_rom and !bits16) hdr.sample_count else pcm_len;
+    // frames = ceil(samples * 60 / rate)
+    const num: u64 = @as(u64, play_samples) * 60 + (rate - 1);
+    vblank_remaining = @as(u32, @intCast(num / rate));
 }
 
 pub fn stop() void {
@@ -175,7 +189,13 @@ pub fn stop() void {
 }
 
 pub fn frame() void {
-    _ = playing;
+    if (!playing) return;
+    if (vblank_remaining > 0) {
+        vblank_remaining -= 1;
+        if (vblank_remaining == 0 and !looped) {
+            stop();
+        }
+    }
 }
 
 // To be called from the system's DMA1 interrupt handler
