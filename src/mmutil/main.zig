@@ -50,7 +50,7 @@ pub fn main() !void {
     }
 
     const out = out_path orelse return usage();
-    
+
     if (raw8) {
         if (!rate_set) return error.InvalidArgument;
         const data = try std.fs.cwd().readFileAlloc(alloc, in_path, 64 * 1024 * 1024);
@@ -75,7 +75,7 @@ pub fn main() !void {
         var peak: i32 = 1;
         var i: usize = 0;
         while (i < info.mono_frames_16.len) : (i += 1) {
-            var s: i32 = info.mono_frames_16[i] - mean;
+            var s: i32 = info.mono_frames_16[i] -% mean;
             if (s < -32768) s = -32768;
             if (s > 32767) s = 32767;
             const a: i32 = if (s < 0) -s else s;

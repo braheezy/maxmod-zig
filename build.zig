@@ -23,16 +23,25 @@ pub fn build(b: *std.Build) void {
     const run_step = b.step("run", "Run mmutil-zig");
     run_step.dependOn(&run_mmutil.step);
 
-    // Convert root overworld.wav into an embedded asset for the GBA example
+    // Parametric SFX conversion: zig build sfx -- <path-to-wav>
+    const sfx_step = b.step("sfx", "Convert WAV to .mmraw, build, and run in mGBA");
+    const sfx_args = b.args orelse &[_][]const u8{};
+    const selected_wav: []const u8 = if (sfx_args.len > 0) sfx_args[0] else "firered_00A0.wav";
+
     const convert_sfx = b.addRunArtifact(mmutil_exe);
     convert_sfx.addArgs(&.{
-        "overworld.wav",
+        selected_wav,
         "-o",
-        "examples/gba_play/sample.mmraw",
+        "examples/sfx/sample.mmraw",
         // Use a common GBA SFX rate for cleaner playback
-        "--rate", "16000",
-        "--bps", "8",
+        "--rate",
+        "16000",
+        "--bps",
+        "8",
     });
+    // Provide the selected WAV path to the ROM via build options
+    const opts = b.addOptions();
+    opts.addOption([]const u8, "sfx_name", selected_wav);
 
     // GBA runtime static library (freestanding ARM ARM7TDMI Thumb)
     const gba_thumb_target_query = blk: {
@@ -60,12 +69,17 @@ pub fn build(b: *std.Build) void {
     const ziggba_dep = b.dependency("ziggba", .{});
     const gba_mod = ziggba_dep.module("gba");
 
-    // Link our maxmod-gba-zig static library into the example
-    const example = ziggba.addGBAExecutable(b, gba_mod, "gba_play", "examples/gba_play/main.zig");
+    // Link our maxmod-gba-zig static library into the SFX example
+    const example = ziggba.addGBAExecutable(b, gba_mod, "sfx", "examples/sfx/main.zig");
     example.step.dependOn(&convert_sfx.step);
     example.linkLibrary(gba_lib);
     // Allow the example to import the runtime as a Zig module
     example.root_module.addImport("maxmod_gba", gba_mod_runtime);
-    const gba_step = b.step("gba", "Build the GBA runtime library and example ROM");
-    gba_step.dependOn(&example.step);
+    example.root_module.addOptions("build_options", opts);
+
+    // The sfx step builds the ROM
+    sfx_step.dependOn(&convert_sfx.step);
+    sfx_step.dependOn(&example.step);
+    // Also depend on the default step to ensure the ROM gets installed
+    sfx_step.dependOn(b.default_step);
 }
