@@ -63,9 +63,10 @@ pub fn build(b: *std.Build) void {
         .name = "maxmod-gba-zig",
         .root_module = gba_mod_runtime,
     });
+    // Zig-only build: do not import or link C sources
     b.installArtifact(gba_lib);
 
-    // Build example ROM using ZigGBA dependency helper
+    // Build example ROMs using ZigGBA dependency helper
     const ziggba_dep = b.dependency("ziggba", .{});
     const gba_mod = ziggba_dep.module("gba");
 
@@ -82,4 +83,14 @@ pub fn build(b: *std.Build) void {
     sfx_step.dependOn(&example.step);
     // Also depend on the default step to ensure the ROM gets installed
     sfx_step.dependOn(b.default_step);
+
+    // MOD example: Zig-only. We embed tracker assets directly (to be ported in Zig).
+    const example_mod = ziggba.addGBAExecutable(b, gba_mod, "mod", "examples/mod/main.zig");
+    example_mod.linkLibrary(gba_lib);
+    example_mod.root_module.addImport("maxmod_gba", gba_mod_runtime);
+
+    // TODO: Integrate ASM mixer when supported by toolchain (GAS). Clang IAS chokes on macros.
+
+    const mod_step = b.step("mod", "Build MOD demo ROM (Zig-only)");
+    mod_step.dependOn(&example_mod.step);
 }

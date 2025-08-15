@@ -1,5 +1,7 @@
 const audio = @import("audio.zig");
 const regs = @import("registers_gba.zig");
+const mod = @import("mod.zig");
+const mixer = @import("mixer_asm.zig");
 
 const Header = extern struct {
     magic: u32,
@@ -208,4 +210,57 @@ export fn mmgba_timer1_irq() void {
     // Not used in DMA-fed mode
     // Acknowledge Timer1 (in case enabled elsewhere)
     regs.REG_IF.* = (1 << 4);
+}
+
+// --- MOD path (Zig-only port scaffold) ---
+var mod_module: ?mod.Module = null;
+const PlayerMod = @import("player_mod.zig");
+pub var mod_player: ?PlayerMod.ModPlayer = null;
+
+pub fn isModActive() bool {
+    return mod_player != null;
+}
+
+pub fn loadModSlice(alloc: anytype, data: []const u8) !void {
+    // Stop any current PCM
+    stop();
+    // Parse module
+    const m = try mod.parse(alloc, data);
+    mod_module = m;
+    // Initialize simple MOD player state
+    mod_player = PlayerMod.ModPlayer.init(alloc, m);
+    // Generate an initial mixed buffer so play() has audio to stream
+    mixModIntoBuffer();
+}
+
+// Mix active MOD channels into pcm_buf then start DMA on play()
+fn mixModIntoBuffer() void {
+    if (mod_player == null) return;
+    // Process several initial rows to ensure buffers have non-zero data before DMA kicks
+    var i: u8 = 0;
+    while (i < 4) : (i += 1) {
+        mod_player.?.startRow();
+        mixer.mixOneSegment();
+        mod_player.?.onMixed(mixer.getMixLen());
+    }
+    // Prepare header-like runtime for playback function
+    hdr = .{
+        .magic = 0x5741524D,
+        .version = 1,
+        .flags = 0,
+        .sample_rate_hz = audio.mix_rate_hz,
+        .sample_count = 0,
+        .bits_per_sample = 8,
+        .channels = 1,
+        .reserved = 0,
+    };
+    bits16 = false;
+    looped = true;
+    pcm_len = 0;
+    playing = false;
+}
+
+// Temporary: drive ASM mixer once per frame to keep DMA buffers filled
+fn driveAsmMixerOnce() void {
+    _ = @import("mixer_asm.zig");
 }

@@ -1,0 +1,480 @@
+const std = @import("std");
+const audio = @import("audio.zig");
+const mod = @import("mod.zig");
+const mixer = @import("mixer_asm.zig");
+
+// Sine table for vibrato effect (32 entries, 7-bit depth)
+const VIBRATO_TABLE = [_]i8{
+    0,   12,  24,  37,  49,  60,  71,  81,
+    90,  98,  106, 112, 117, 122, 125, 126,
+    127, 126, 125, 122, 117, 112, 106, 98,
+    90,  81,  71,  60,  49,  37,  24,  12,
+};
+
+// Amiga PAL period table (12 notes per octave, 3 octaves)
+const PERIOD_TABLE = [_]u16{
+    // Octave 0 (C-0 to B-0)
+    856, 808, 762, 720, 678, 640, 604, 570, 538, 508, 480, 453,
+    // Octave 1 (C-1 to B-1)
+    428, 404, 381, 360, 339, 320, 302, 285, 269, 254, 240, 226,
+    // Octave 2 (C-2 to B-2)
+    214, 202, 190, 180, 170, 160, 151, 143, 135, 127, 120, 113,
+};
+
+// Convert note number (0-35) to period using the table
+fn noteToPeriod(note: u8) u16 {
+    if (note >= PERIOD_TABLE.len) return 0;
+    return PERIOD_TABLE[note];
+}
+
+// Find the closest period in the table for portamento effects
+fn findClosestPeriod(target: u16) u16 {
+    if (target == 0) return 0;
+    if (target <= 113) return 113;
+    if (target >= 856) return 856;
+
+    var closest: u16 = 856;
+    var min_diff: u16 = 856;
+
+    for (PERIOD_TABLE) |period| {
+        const diff = if (period > target) period - target else target - period;
+        if (diff < min_diff) {
+            min_diff = diff;
+            closest = period;
+        }
+    }
+    return closest;
+}
+
+pub const ChannelState = struct {
+    sample_index: u8 = 0, // 1..31
+    period: u16 = 0,
+    volume: u8 = 64,
+    porta_target: u16 = 0,
+    porta_speed: u8 = 0,
+    // Vibrato state
+    vibrato_pos: u8 = 0, // Position in sine table (0-31)
+    vibrato_depth: u8 = 0, // Depth of vibrato
+    vibrato_speed: u8 = 0, // Speed of vibrato
+    vibrato_delay: u8 = 0, // Delay before vibrato starts
+    // Pattern loop state
+    loop_start: u8 = 0, // Pattern loop start row
+    loop_count: u8 = 0, // Pattern loop counter
+    // Note delay state
+    note_delay: u8 = 0, // Ticks to delay note
+    delayed_note: u16 = 0, // Note to play after delay
+    delayed_sample: u8 = 0, // Sample to use after delay
+};
+
+pub const ModPlayer = struct {
+    module: mod.Module,
+    order_index: u8,
+    row_index: u8,
+    speed_ticks: u8, // ticks per row
+    bpm: u8,
+    samples_until_tick: u32,
+    samples_per_tick: u32,
+    tick_in_row: u8,
+
+    // Simple channel state
+    channels: []ChannelState,
+
+    pub fn init(allocator: std.mem.Allocator, m: mod.Module) ModPlayer {
+        const chans = allocator.alloc(ChannelState, m.channels) catch @panic("oom");
+        for (chans) |*c| c.* = .{};
+        var p = ModPlayer{
+            .module = m,
+            .order_index = 0,
+            .row_index = 0,
+            .speed_ticks = if (m.initial_speed == 0) 6 else m.initial_speed,
+            .bpm = if (m.initial_tempo == 0) 125 else m.initial_tempo,
+            .samples_until_tick = 0,
+            .samples_per_tick = 0,
+            .tick_in_row = 0,
+            .channels = chans,
+        };
+        p.recomputeTickLen();
+
+        // Initialize mixer with mode 3 (15768 Hz) for best quality/performance balance
+        mixer.init(3);
+
+        // Initialize classic Amiga panning across 4 channels (hard L/R)
+        var ch: usize = 0;
+        while (ch < m.channels) : (ch += 1) {
+            const pan: u8 = if ((ch % 2) == 0) 0 else 255;
+            mixer.setChannelFromPcm8(ch, &[_]u8{0}, 0, 0, pan, 0);
+        }
+        return p;
+    }
+
+    fn recomputeTickLen(self: *ModPlayer) void {
+        // tick duration = 2.5 / BPM seconds -> samples_per_tick = rate * 2.5 / BPM
+        const rate: u32 = audio.mix_rate_hz;
+        // Use rounding to minimize tempo drift
+        self.samples_per_tick = @intCast(((@as(u64, rate) * 25) + (@as(u64, self.bpm) * 5)) / (@as(u64, self.bpm) * 10));
+        self.samples_until_tick = self.samples_per_tick;
+    }
+
+    fn periodToStep(self: *const ModPlayer, period: u16, sample_idx: u8) u32 {
+        if (period == 0) return 0;
+
+        // Get finetune value (-8..+7) for the sample
+        var finetune: i8 = 0;
+        if (sample_idx > 0 and sample_idx <= self.module.samples.len) {
+            finetune = self.module.samples[sample_idx - 1].finetune;
+        }
+
+        // Apply finetune adjustment to period
+        // Each finetune step is approximately 0.0595% (log₂(2^(1/12)/2^(1/96)))
+        // We multiply period by 2^(-finetune/96) which is ~= 1 ± 0.0595% per step
+        var adjusted_period: u32 = period;
+        if (finetune != 0) {
+            // Use a lookup table for the multipliers to avoid floating point
+            const finetune_multipliers = [_]u32{
+                65536, // -8: 0.9529
+                65799, // -7: 0.9586
+                66064, // -6: 0.9644
+                66330, // -5: 0.9702
+                66598, // -4: 0.9761
+                66867, // -3: 0.9820
+                67138, // -2: 0.9879
+                67410, // -1: 0.9939
+                67684, //  0: 1.0000
+                67959, // +1: 1.0061
+                68236, // +2: 1.0123
+                68514, // +3: 1.0185
+                68793, // +4: 1.0248
+                69074, // +5: 1.0311
+                69357, // +6: 1.0375
+                69641, // +7: 1.0439
+            };
+            // Convert finetune -8..+7 to index 0..15
+            const idx = @as(usize, @intCast(finetune + 8));
+            adjusted_period = (period * finetune_multipliers[idx]) >> 16;
+        }
+
+        // freq = 7093789.2 / (2 * period) => 3546894.6 / period (PAL)
+        // mixer step is 20.12 fixed: step = round((freq << 12) / mix_rate)
+        const freq_times_4096: u64 = (@as(u64, 3546895) << 12) / adjusted_period;
+        const step: u32 = @intCast((freq_times_4096 + (audio.mix_rate_hz / 2)) / audio.mix_rate_hz);
+        return step;
+    }
+
+    pub fn onMixed(self: *ModPlayer, mixed_samples: u32) void {
+        var remaining: u32 = mixed_samples;
+        while (remaining > 0) {
+            if (self.samples_until_tick == 0) self.samples_until_tick = self.samples_per_tick;
+            if (remaining >= self.samples_until_tick) {
+                remaining -= self.samples_until_tick;
+                self.samples_until_tick = 0;
+                self.advanceTick();
+            } else {
+                self.samples_until_tick -= remaining;
+                remaining = 0;
+            }
+        }
+    }
+
+    pub fn startRow(self: *ModPlayer) void {
+        self.tick_in_row = 0;
+        self.processRow(); // tick 0
+    }
+
+    fn advanceTick(self: *ModPlayer) void {
+        // Tick advancement: tick 0 handled by processRow; ticks 1..speed-1 apply effects
+        if (self.tick_in_row == 0) {
+            // already processed
+        } else {
+            self.applyTickEffects(self.tick_in_row);
+        }
+        self.tick_in_row += 1;
+        if (self.tick_in_row >= self.speed_ticks) {
+            self.tick_in_row = 0;
+            self.row_index += 1;
+            if (self.row_index >= 64) {
+                self.row_index = 0;
+                self.order_index += 1;
+                if (self.order_index >= self.module.order_count or self.module.orders[self.order_index] >= 0xFE) {
+                    self.order_index = 0; // loop song
+                }
+            }
+            self.processRow(); // next row tick 0
+        }
+    }
+
+    fn applyTickEffects(self: *ModPlayer, tick: u8) void {
+        const pat_index: u8 = self.module.orders[self.order_index];
+        if (pat_index >= self.module.pattern_count) return;
+        const pat = self.module.patterns[pat_index];
+        var ch: u8 = 0;
+        while (ch < self.module.channels) : (ch += 1) {
+            const note = pat.getNote(self.row_index, ch);
+            var period_changed = false;
+            var period = self.channels[ch].period;
+
+            // Effect 4xy: Vibrato
+            if (note.effect == 0x04) {
+                // xy: x = speed (0-15), y = depth (0-15)
+                const speed = (note.param >> 4) & 0xF;
+                const depth = note.param & 0xF;
+                if (speed != 0) self.channels[ch].vibrato_speed = speed;
+                if (depth != 0) self.channels[ch].vibrato_depth = depth;
+
+                // Apply vibrato on non-zero ticks
+                if (tick > 0 and period > 0) {
+                    // Advance vibrato position
+                    self.channels[ch].vibrato_pos = (self.channels[ch].vibrato_pos + self.channels[ch].vibrato_speed) & 31;
+
+                    // Get sine value (-128..127) and scale by depth
+                    const sine_val = VIBRATO_TABLE[self.channels[ch].vibrato_pos];
+                    const delta = (@as(i32, sine_val) * @as(i32, self.channels[ch].vibrato_depth)) >> 7;
+
+                    // Apply vibrato to period
+                    period = @intCast(@max(@min(@as(i32, period) + delta, 856), 113));
+                    period_changed = true;
+                }
+            }
+
+            // Effect Axy: Volume slide
+            if (note.effect == 0x0A) {
+                const up = (note.param >> 4) & 0xF;
+                const down = note.param & 0xF;
+                var v: i16 = self.channels[ch].volume;
+                v = @intCast(@max(@min(@as(i16, v) + @as(i16, @intCast(up)) - @as(i16, @intCast(down)), 64), 0));
+                self.channels[ch].volume = @intCast(v);
+            }
+
+            // Effect 1xx: Portamento up
+            if (note.effect == 0x01 and period > 0) {
+                // Portamento up: decrease period (increase frequency)
+                const speed = if (note.param != 0) note.param else self.channels[ch].porta_speed;
+                var p = period;
+                if (p > speed) p -= speed;
+                period = findClosestPeriod(p);
+                period_changed = true;
+                if (note.param != 0) self.channels[ch].porta_speed = note.param;
+            }
+
+            // Effect 2xx: Portamento down
+            if (note.effect == 0x02 and period > 0) {
+                // Portamento down: increase period (decrease frequency)
+                const speed = if (note.param != 0) note.param else self.channels[ch].porta_speed;
+                var p = period;
+                p += speed;
+                period = findClosestPeriod(p);
+                period_changed = true;
+                if (note.param != 0) self.channels[ch].porta_speed = note.param;
+            }
+
+            // Effect 3xx: Tone portamento
+            if (note.effect == 0x03 and self.channels[ch].porta_target != 0) {
+                // Tone portamento: slide to target period
+                const target = findClosestPeriod(self.channels[ch].porta_target);
+                const speed = if (note.param != 0) note.param else self.channels[ch].porta_speed;
+                var p = period;
+                if (p < target) {
+                    p += speed;
+                    if (p > target) p = target;
+                } else if (p > target) {
+                    p -= speed;
+                    if (p < target) p = target;
+                }
+                period = findClosestPeriod(p);
+                period_changed = true;
+                if (note.param != 0) self.channels[ch].porta_speed = note.param;
+            }
+
+            // Update channel if period changed
+            if (period_changed) {
+                self.channels[ch].period = period;
+                const step = self.periodToStep(period, self.channels[ch].sample_index);
+                const pan: u8 = if (((@as(usize, ch)) % 2) == 0) 0 else 255;
+                const vol_scaled: u8 = @intCast(@min(@as(u16, self.channels[ch].volume) * 4, 255));
+                mixer.updateChannel(ch, vol_scaled, pan, step);
+            }
+        }
+    }
+
+    fn processRow(self: *ModPlayer) void {
+        const pat_index: u8 = self.module.orders[self.order_index];
+        if (pat_index >= self.module.pattern_count) return;
+        const pat = self.module.patterns[pat_index];
+        // Track tick0 vs ticks>0 minimal state
+        var new_instruments: [32]bool = [_]bool{false} ** 32;
+        var ch: u8 = 0;
+        while (ch < self.module.channels) : (ch += 1) {
+            const note = pat.getNote(self.row_index, ch);
+            var period_changed = false;
+            // Effect Fxx: speed/tempo
+            if (note.effect == 0x0F) {
+                if (note.param <= 0x1F and note.param != 0) self.speed_ticks = note.param;
+                if (note.param >= 0x20) {
+                    self.bpm = note.param;
+                    self.recomputeTickLen();
+                }
+            }
+            // Effect Cxx: set volume
+            if (note.effect == 0x0C) {
+                self.channels[ch].volume = if (note.param > 64) 64 else note.param;
+            }
+            // Bxx: position jump (next row)
+            if (note.effect == 0x0B) {
+                self.order_index = note.param;
+                self.row_index = 0;
+                // restart row processing with new order (simple approach)
+            }
+            // Dxx: pattern break (xx is BCD; here treat as row index)
+            if (note.effect == 0x0D) {
+                self.order_index += 1;
+                if (self.order_index >= self.module.order_count) self.order_index = 0;
+                self.row_index = (note.param % 64);
+            }
+            // E9x: note cut after x ticks (minimal)
+            // Effect Ex: Extended effects
+            if (note.effect == 0x0E) {
+                const ext_cmd = (note.param >> 4) & 0xF;
+                const ext_param = note.param & 0xF;
+
+                switch (ext_cmd) {
+                    0x1 => { // E1x: Fine portamento up
+                        if (self.tick_in_row == 0 and self.channels[ch].period > 0) {
+                            self.channels[ch].period = @intCast(@max(@as(i32, self.channels[ch].period) - @as(i32, ext_param), 113));
+                            period_changed = true;
+                        }
+                    },
+                    0x2 => { // E2x: Fine portamento down
+                        if (self.tick_in_row == 0 and self.channels[ch].period > 0) {
+                            self.channels[ch].period = @intCast(@min(@as(i32, self.channels[ch].period) + @as(i32, ext_param), 856));
+                            period_changed = true;
+                        }
+                    },
+                    0x6 => { // E6x: Pattern loop
+                        if (self.tick_in_row == 0) {
+                            if (ext_param == 0) {
+                                // Set loop start point
+                                self.channels[ch].loop_start = self.row_index;
+                            } else {
+                                // Loop x times
+                                if (self.channels[ch].loop_count == 0) {
+                                    self.channels[ch].loop_count = ext_param;
+                                    self.row_index = self.channels[ch].loop_start;
+                                } else {
+                                    self.channels[ch].loop_count -= 1;
+                                    if (self.channels[ch].loop_count > 0) {
+                                        self.row_index = self.channels[ch].loop_start;
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    0x9 => { // E9x: Note cut after x ticks
+                        const cut_tick: u8 = ext_param;
+                        if (self.tick_in_row >= cut_tick and cut_tick != 0) {
+                            self.channels[ch].volume = 0;
+                        }
+                    },
+                    0xA => { // EAx: Fine volume slide up
+                        if (self.tick_in_row == 0) {
+                            var v: i16 = self.channels[ch].volume;
+                            v = @intCast(@max(@min(@as(i16, v) + @as(i16, ext_param), 64), 0));
+                            self.channels[ch].volume = @intCast(v);
+                        }
+                    },
+                    0xB => { // EBx: Fine volume slide down
+                        if (self.tick_in_row == 0) {
+                            var v: i16 = self.channels[ch].volume;
+                            v = @intCast(@max(@min(@as(i16, v) - @as(i16, ext_param), 64), 0));
+                            self.channels[ch].volume = @intCast(v);
+                        }
+                    },
+                    0xC => { // ECx: Note cut
+                        if (self.tick_in_row == ext_param) {
+                            self.channels[ch].volume = 0;
+                        }
+                    },
+                    0xD => { // EDx: Note delay
+                        if (self.tick_in_row == 0) {
+                            if (note.period != 0) {
+                                self.channels[ch].delayed_note = note.period;
+                                self.channels[ch].delayed_sample = note.sample;
+                                self.channels[ch].note_delay = ext_param;
+                            }
+                        } else if (self.tick_in_row == ext_param) {
+                            if (self.channels[ch].delayed_note != 0) {
+                                self.channels[ch].period = self.channels[ch].delayed_note;
+                                if (self.channels[ch].delayed_sample != 0) {
+                                    const sidx: usize = (self.channels[ch].delayed_sample - 1);
+                                    if (sidx < self.module.samples.len) {
+                                        const s = self.module.samples[sidx];
+                                        self.channels[ch].sample_index = self.channels[ch].delayed_sample;
+                                        self.channels[ch].volume = s.volume;
+                                        const loop_len_bytes: u32 = @as(u32, s.repeat_len_words) * 2;
+                                        const loop_start_bytes: u32 = @as(u32, s.repeat_start_words) * 2;
+                                        var pcm: []const u8 = s.pcm8;
+                                        if (loop_start_bytes < pcm.len) pcm = pcm[loop_start_bytes..];
+                                        const pan: u8 = if (((@as(usize, ch)) % 2) == 0) 0 else 255;
+                                        const vol_scaled: u8 = @intCast(@min(@as(u16, self.channels[ch].volume) * 4, 255));
+                                        mixer.setChannelFromPcm8(ch, pcm, loop_len_bytes, vol_scaled, pan, self.periodToStep(self.channels[ch].period, self.channels[ch].sample_index));
+                                    }
+                                }
+                            }
+                            self.channels[ch].delayed_note = 0;
+                            self.channels[ch].delayed_sample = 0;
+                            self.channels[ch].note_delay = 0;
+                        }
+                    },
+                    else => {},
+                }
+            }
+            if (note.sample != 0) {
+                const sidx: usize = (note.sample - 1);
+                if (sidx < self.module.samples.len) {
+                    const s = self.module.samples[sidx];
+                    self.channels[ch].sample_index = note.sample;
+                    self.channels[ch].volume = s.volume;
+                    // Trigger note
+                    if (note.period != 0) self.channels[ch].period = note.period;
+                    const step = self.periodToStep(self.channels[ch].period, self.channels[ch].sample_index);
+                    const loop_len_bytes: u32 = @as(u32, s.repeat_len_words) * 2;
+                    const loop_start_bytes: u32 = @as(u32, s.repeat_start_words) * 2;
+                    var pcm: []const u8 = s.pcm8;
+                    if (loop_start_bytes < pcm.len) pcm = pcm[loop_start_bytes..];
+                    // Pan default: classic layout (ch 0,3 left; ch 1,2 right)
+                    const pan: u8 = if (((@as(usize, ch)) % 2) == 0) 0 else 255;
+                    const vol_scaled: u8 = @intCast(@min(@as(u16, self.channels[ch].volume) * 4, 255));
+                    mixer.setChannelFromPcm8(ch, pcm, loop_len_bytes, vol_scaled, pan, step);
+                    new_instruments[ch] = true;
+                } else {
+                    // No sample available; keep channel disabled
+                }
+            } else if (note.period != 0) {
+                // Change pitch without retrigger
+                self.channels[ch].period = note.period;
+                const step2 = self.periodToStep(self.channels[ch].period, self.channels[ch].sample_index);
+                const pan2: u8 = if (((@as(usize, ch)) % 2) == 0) 0 else 255;
+                const vol_scaled2: u8 = @intCast(@min(@as(u16, self.channels[ch].volume) * 4, 255));
+                mixer.updateChannel(ch, vol_scaled2, pan2, step2);
+            }
+        }
+        // Apply Axy (vol slide) minimally as immediate per-row step (until proper per-tick)
+        ch = 0;
+        while (ch < self.module.channels) : (ch += 1) {
+            const note = pat.getNote(self.row_index, ch);
+            if (note.effect == 0x0A) {
+                const up = (note.param >> 4) & 0xF;
+                const down = note.param & 0xF;
+                var v: i16 = self.channels[ch].volume;
+                v = @intCast(@max(@min(@as(i16, v) + @as(i16, @intCast(up)) - @as(i16, @intCast(down)), 64), 0));
+                self.channels[ch].volume = @intCast(v);
+                const step = self.periodToStep(self.channels[ch].period, self.channels[ch].sample_index);
+                const pan: u8 = if (((@as(usize, ch)) % 2) == 0) 0 else 255;
+                const vol_scaled3: u8 = @intCast(@min(@as(u16, self.channels[ch].volume) * 4, 255));
+                if (new_instruments[ch]) {
+                    // already set via setChannelFromPcm8
+                } else {
+                    mixer.updateChannel(ch, vol_scaled3, pan, step);
+                }
+            }
+        }
+    }
+};
