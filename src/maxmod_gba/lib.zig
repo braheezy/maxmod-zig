@@ -45,6 +45,7 @@ pub fn onVBlank() void {
 }
 
 // --- MOD (tracker) helpers ---
+// Arena for MOD parsing and small runtime allocations
 var mod_arena: [64 * 1024]u8 = undefined;
 var mod_fba: ?std.heap.FixedBufferAllocator = null;
 

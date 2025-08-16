@@ -13,7 +13,7 @@ pub const MixChannel = extern struct {
 
 // Exposed globals expected by mixer_asm.s
 pub export var mm_mixbuffer: u32 = 0;
-pub export var mm_mixchannels: u32 = 0;
+pub export var mm_mix_channels: u32 = 0;
 pub export var mm_mixlen: u32 = 0;
 pub export var mm_ratescale: u32 = 0;
 pub export var mp_writepos: u32 = 0;
@@ -29,16 +29,19 @@ var s_len_bytes: [8]u32 = [_]u32{0} ** 8;
 var s_loop_bytes: [8]u32 = [_]u32{0} ** 8; // MSB set => no loop
 var s_mp_mix_seg: u8 = 0;
 
-// Software mixer in Zig to replace GAS ASM path.
+// Optional external ASM mixer (from mixer_asm.o)
+extern fn mmMixerMix(samples_count: u32) callconv(.C) void;
+
+// Software mixer in Zig to replace GAS ASM path when ASM is disabled.
 // Mixes into `s_wave_buffer` interleaved halves (left block, then right block),
 // updating `mp_writepos` as the current left write position.
-pub export fn mmMixerMix(samples_count: u32) callconv(.C) void {
+fn zig_mmMixerMix(samples_count: u32) callconv(.C) void {
     if (samples_count == 0) return;
 
     // Resolve pointers/values from exported globals
     // const rate_scale: u32 = mm_ratescale; // unused in Zig mixer; freq is already 20.12 step
 
-    const channels_ptr: [*]MixChannel = @ptrFromInt(mm_mixchannels);
+    const channels_ptr: [*]MixChannel = @ptrFromInt(mm_mix_channels);
     const channels_end: [*]MixChannel = @ptrFromInt(mm_mixch_end);
 
     const base_wave_addr: usize = @intFromPtr(&s_wave_buffer);
@@ -243,7 +246,7 @@ fn setExports(mode_index: u32) void {
 
     // Export pointers
     mm_mixbuffer = @intFromPtr(&s_mix_buffer);
-    mm_mixchannels = @intFromPtr(&s_mix_channels);
+    mm_mix_channels = @intFromPtr(&s_mix_channels);
     const end_ptr: [*]MixChannel = @ptrFromInt(@intFromPtr(&s_mix_channels) + s_mix_channels.len * @sizeOf(MixChannel));
     mm_mixch_end = @intFromPtr(end_ptr);
     mp_writepos = @intFromPtr(&s_wave_buffer);
@@ -331,7 +334,16 @@ pub fn updateChannel(channel_index: usize, vol: u8, pan: u8, step_fixed_20_12: u
 pub fn mixOneSegment() void {
     // Generate next segment of length mm_mixlen
     const n: u32 = mm_mixlen;
-    mmMixerMix(n);
+    const use_asm = blk: {
+        if (@hasDecl(@import("lib_options"), "use_asm_mixer")) {
+            break :blk @import("lib_options").use_asm_mixer;
+        } else break :blk false;
+    };
+    if (use_asm) {
+        mmMixerMix(n);
+    } else {
+        zig_mmMixerMix(n);
+    }
     // Notify player state about tick timing if present
     if (@hasDecl(@import("player_mod.zig"), "ModPlayer")) {
         // Try to call into player to advance tick accounting

@@ -11,6 +11,32 @@ const VIBRATO_TABLE = [_]i8{
     90,  81,  71,  60,  49,  37,  24,  12,
 };
 
+// 16.16 finetune multipliers for 2^(k/96), k = -8..+7
+const FINETUNE_MUL_16_16 = [_]u32{
+    61847, // -8
+    62299, // -7
+    62754, // -6
+    63211, // -5
+    63671, // -4
+    64134, // -3
+    64599, // -2
+    65068, // -1
+    65536, //  0
+    66010, // +1
+    66488, // +2
+    66970, // +3
+    67455, // +4
+    67944, // +5
+    68437, // +6
+    68933, // +7
+};
+
+const MasBuf = struct {
+    data_ptr: [*]const u8 = undefined, // PCM start (12 bytes past header)
+    len_bytes: u32 = 0,
+    loop_len_bytes: u32 = 0,
+};
+
 // Amiga PAL period table (12 notes per octave, 3 octaves)
 const PERIOD_TABLE = [_]u16{
     // Octave 0 (C-0 to B-0)
@@ -78,10 +104,12 @@ pub const ModPlayer = struct {
 
     // Simple channel state
     channels: []ChannelState,
+    // No MAS buffers when using Zig mixer path
 
     pub fn init(allocator: std.mem.Allocator, m: mod.Module) ModPlayer {
         const chans = allocator.alloc(ChannelState, m.channels) catch @panic("oom");
         for (chans) |*c| c.* = .{};
+        // Zig mixer path: no MAS buffers required
         var p = ModPlayer{
             .module = m,
             .order_index = 0,
@@ -118,46 +146,24 @@ pub const ModPlayer = struct {
     fn periodToStep(self: *const ModPlayer, period: u16, sample_idx: u8) u32 {
         if (period == 0) return 0;
 
-        // Get finetune value (-8..+7) for the sample
+        // freq = 7093789.2 / (2 * period) => 3546894.6 / period (PAL)
+        // mixer step is 20.12 fixed: step = round((freq << 12) / mix_rate)
+        var base_step: u32 = blk: {
+            const freq_times_4096: u64 = (@as(u64, 3546895) << 12) / period;
+            break :blk @intCast((freq_times_4096 + (audio.mix_rate_hz / 2)) / audio.mix_rate_hz);
+        };
+
+        // Apply per-sample finetune (-8..+7) as frequency multiplier: 2^(ft/96)
         var finetune: i8 = 0;
         if (sample_idx > 0 and sample_idx <= self.module.samples.len) {
             finetune = self.module.samples[sample_idx - 1].finetune;
         }
-
-        // Apply finetune adjustment to period
-        // Each finetune step is approximately 0.0595% (log₂(2^(1/12)/2^(1/96)))
-        // We multiply period by 2^(-finetune/96) which is ~= 1 ± 0.0595% per step
-        var adjusted_period: u32 = period;
         if (finetune != 0) {
-            // Use a lookup table for the multipliers to avoid floating point
-            const finetune_multipliers = [_]u32{
-                65536, // -8: 0.9529
-                65799, // -7: 0.9586
-                66064, // -6: 0.9644
-                66330, // -5: 0.9702
-                66598, // -4: 0.9761
-                66867, // -3: 0.9820
-                67138, // -2: 0.9879
-                67410, // -1: 0.9939
-                67684, //  0: 1.0000
-                67959, // +1: 1.0061
-                68236, // +2: 1.0123
-                68514, // +3: 1.0185
-                68793, // +4: 1.0248
-                69074, // +5: 1.0311
-                69357, // +6: 1.0375
-                69641, // +7: 1.0439
-            };
-            // Convert finetune -8..+7 to index 0..15
-            const idx = @as(usize, @intCast(finetune + 8));
-            adjusted_period = (period * finetune_multipliers[idx]) >> 16;
+            const ft_index: usize = @intCast(finetune + 8);
+            const ft_mul: u32 = FINETUNE_MUL_16_16[ft_index];
+            base_step = @intCast((@as(u64, base_step) * @as(u64, ft_mul)) >> 16);
         }
-
-        // freq = 7093789.2 / (2 * period) => 3546894.6 / period (PAL)
-        // mixer step is 20.12 fixed: step = round((freq << 12) / mix_rate)
-        const freq_times_4096: u64 = (@as(u64, 3546895) << 12) / adjusted_period;
-        const step: u32 = @intCast((freq_times_4096 + (audio.mix_rate_hz / 2)) / audio.mix_rate_hz);
-        return step;
+        return base_step;
     }
 
     pub fn onMixed(self: *ModPlayer, mixed_samples: u32) void {
@@ -210,6 +216,10 @@ pub const ModPlayer = struct {
         while (ch < self.module.channels) : (ch += 1) {
             const note = pat.getNote(self.row_index, ch);
             var period_changed = false;
+            // Handle tone portamento target capture on tick 0
+            if (note.effect == 0x03 and note.period != 0) {
+                self.channels[ch].porta_target = note.period;
+            }
             var period = self.channels[ch].period;
 
             // Effect 4xy: Vibrato
@@ -323,11 +333,14 @@ pub const ModPlayer = struct {
                 self.row_index = 0;
                 // restart row processing with new order (simple approach)
             }
-            // Dxx: pattern break (xx is BCD; here treat as row index)
+            // Dxx: pattern break, xx in BCD -> row = tens*10 + ones
             if (note.effect == 0x0D) {
                 self.order_index += 1;
                 if (self.order_index >= self.module.order_count) self.order_index = 0;
-                self.row_index = (note.param % 64);
+                const tens: u8 = (note.param >> 4) & 0xF;
+                const ones: u8 = note.param & 0xF;
+                const target_row: u8 = @intCast(@min(@as(u16, tens) * 10 + ones, 63));
+                self.row_index = target_row;
             }
             // E9x: note cut after x ticks (minimal)
             // Effect Ex: Extended effects
@@ -408,8 +421,9 @@ pub const ModPlayer = struct {
                                         const s = self.module.samples[sidx];
                                         self.channels[ch].sample_index = self.channels[ch].delayed_sample;
                                         self.channels[ch].volume = s.volume;
-                                        const loop_len_bytes: u32 = @as(u32, s.repeat_len_words) * 2;
-                                        const loop_start_bytes: u32 = @as(u32, s.repeat_start_words) * 2;
+                                        var loop_len_bytes: u32 = @as(u32, s.repeat_len_words) * 2;
+                                        if (loop_len_bytes <= 2) loop_len_bytes = 0;
+                                        const loop_start_bytes: u32 = if (loop_len_bytes == 0) 0 else (@as(u32, s.repeat_start_words) * 2);
                                         var pcm: []const u8 = s.pcm8;
                                         if (loop_start_bytes < pcm.len) pcm = pcm[loop_start_bytes..];
                                         const pan: u8 = if (((@as(usize, ch)) % 2) == 0) 0 else 255;
@@ -432,18 +446,27 @@ pub const ModPlayer = struct {
                     const s = self.module.samples[sidx];
                     self.channels[ch].sample_index = note.sample;
                     self.channels[ch].volume = s.volume;
-                    // Trigger note
-                    if (note.period != 0) self.channels[ch].period = note.period;
-                    const step = self.periodToStep(self.channels[ch].period, self.channels[ch].sample_index);
-                    const loop_len_bytes: u32 = @as(u32, s.repeat_len_words) * 2;
-                    const loop_start_bytes: u32 = @as(u32, s.repeat_start_words) * 2;
-                    var pcm: []const u8 = s.pcm8;
-                    if (loop_start_bytes < pcm.len) pcm = pcm[loop_start_bytes..];
-                    // Pan default: classic layout (ch 0,3 left; ch 1,2 right)
-                    const pan: u8 = if (((@as(usize, ch)) % 2) == 0) 0 else 255;
-                    const vol_scaled: u8 = @intCast(@min(@as(u16, self.channels[ch].volume) * 4, 255));
-                    mixer.setChannelFromPcm8(ch, pcm, loop_len_bytes, vol_scaled, pan, step);
-                    new_instruments[ch] = true;
+                    // If tone-portamento (3xx) is active with a note, do not retrigger the sample.
+                    if (note.effect == 0x03 and note.period != 0) {
+                        const step_np = self.periodToStep(self.channels[ch].period, self.channels[ch].sample_index);
+                        const pan_np: u8 = if (((@as(usize, ch)) % 2) == 0) 0 else 255;
+                        const vol_np: u8 = @intCast(@min(@as(u16, self.channels[ch].volume) * 4, 255));
+                        mixer.updateChannel(ch, vol_np, pan_np, step_np);
+                    } else {
+                        // Normal note trigger
+                        if (note.period != 0) self.channels[ch].period = note.period;
+                        const step = self.periodToStep(self.channels[ch].period, self.channels[ch].sample_index);
+                        var loop_len_bytes: u32 = @as(u32, s.repeat_len_words) * 2;
+                        if (loop_len_bytes <= 2) loop_len_bytes = 0;
+                        const loop_start_bytes: u32 = if (loop_len_bytes == 0) 0 else (@as(u32, s.repeat_start_words) * 2);
+                        var pcm: []const u8 = s.pcm8;
+                        if (loop_start_bytes < pcm.len) pcm = pcm[loop_start_bytes..];
+                        // Pan default: classic layout (ch 0,3 left; ch 1,2 right)
+                        const pan: u8 = if (((@as(usize, ch)) % 2) == 0) 0 else 255;
+                        const vol_scaled: u8 = @intCast(@min(@as(u16, self.channels[ch].volume) * 4, 255));
+                        mixer.setChannelFromPcm8(ch, pcm, loop_len_bytes, vol_scaled, pan, step);
+                        new_instruments[ch] = true;
+                    }
                 } else {
                     // No sample available; keep channel disabled
                 }

@@ -59,6 +59,11 @@ pub fn build(b: *std.Build) void {
         .target = gba_target,
         .optimize = optimize,
     });
+    // Options for the runtime library (shared by executables)
+    const lib_opts = b.addOptions();
+    // Default to Zig mixer for correctness unless explicitly enabled
+    lib_opts.addOption(bool, "use_asm_mixer", false);
+    gba_mod_runtime.addOptions("lib_options", lib_opts);
     const gba_lib = b.addStaticLibrary(.{
         .name = "maxmod-gba-zig",
         .root_module = gba_mod_runtime,
@@ -77,6 +82,8 @@ pub fn build(b: *std.Build) void {
     // Allow the example to import the runtime as a Zig module
     example.root_module.addImport("maxmod_gba", gba_mod_runtime);
     example.root_module.addOptions("build_options", opts);
+    // Keep object available; we won’t call it by default
+    example.addObjectFile(b.path("mixer_asm.o"));
 
     // The sfx step builds the ROM
     sfx_step.dependOn(&convert_sfx.step);
@@ -88,6 +95,8 @@ pub fn build(b: *std.Build) void {
     const example_mod = ziggba.addGBAExecutable(b, gba_mod, "mod", "examples/mod/main.zig");
     example_mod.linkLibrary(gba_lib);
     example_mod.root_module.addImport("maxmod_gba", gba_mod_runtime);
+    // Keep the prebuilt ASM mixer object linked
+    example_mod.addObjectFile(b.path("mixer_asm.o"));
 
     // TODO: Integrate ASM mixer when supported by toolchain (GAS). Clang IAS chokes on macros.
 
