@@ -7,6 +7,8 @@ export var header linksection(".gbaheader") = gba.initHeader("MODDEMO", "MODZ", 
 
 // Embed a MOD module placed next to this example
 const mod_data: []const u8 = @embedFile("casio2.mod");
+// Embed sample bank. Prefer official Maxmod MSL soundbank.
+const gbsamp_data: []const u8 = @embedFile("soundbank.bin");
 
 pub export fn main() void {
     gba.interrupt.init();
@@ -19,7 +21,12 @@ pub export fn main() void {
     text.write("#{P:72,80}Playing: casio2.mod");
 
     maxmod.init();
-    // Minimal path: use library helper to parse and stage a preview
+    // Load soundbank for ASM mixer (MAS headers in ROM)
+    _ = maxmod.loadGbsamp(gbsamp_data) catch {};
+    // Use fast ASM mixer and mmFrame-style chunking
+    maxmod.setAsmMixer(true);
+    maxmod.enableAsmFrame(true);
+    // Parse MOD and play using ASM mixer with GBSAMP samples
     _ = maxmod.loadMod(mod_data) catch {};
     // The player will mix a small looping buffer on play
     maxmod.play();

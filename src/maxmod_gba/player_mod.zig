@@ -3,12 +3,24 @@ const audio = @import("audio.zig");
 const mod = @import("mod.zig");
 const mixer = @import("mixer_asm.zig");
 
-// Sine table for vibrato effect (32 entries, 7-bit depth)
-const VIBRATO_TABLE = [_]i8{
-    0,   12,  24,  37,  49,  60,  71,  81,
-    90,  98,  106, 112, 117, 122, 125, 126,
-    127, 126, 125, 122, 117, 112, 106, 98,
-    90,  81,  71,  60,  49,  37,  24,  12,
+// Maxmod fine sine table (256 entries), values in range [-64..64]
+const VIBRATO_FINE_SINE: [256]i8 = [_]i8{
+    0,   2,   3,   5,   6,   8,   9,   11,  12,  14,  16,  17,  19,  20,  22,  23,
+    24,  26,  27,  29,  30,  32,  33,  34,  36,  37,  38,  39,  41,  42,  43,  44,
+    45,  46,  47,  48,  49,  50,  51,  52,  53,  54,  55,  56,  56,  57,  58,  59,
+    59,  60,  60,  61,  61,  62,  62,  62,  63,  63,  63,  64,  64,  64,  64,  64,
+    64,  64,  64,  64,  64,  64,  63,  63,  63,  62,  62,  62,  61,  61,  60,  60,
+    59,  59,  58,  57,  56,  56,  55,  54,  53,  52,  51,  50,  49,  48,  47,  46,
+    45,  44,  43,  42,  41,  39,  38,  37,  36,  34,  33,  32,  30,  29,  27,  26,
+    24,  23,  22,  20,  19,  17,  16,  14,  12,  11,  9,   8,   6,   5,   3,   2,
+    0,   -2,  -3,  -5,  -6,  -8,  -9,  -11, -12, -14, -16, -17, -19, -20, -22, -23,
+    -24, -26, -27, -29, -30, -32, -33, -34, -36, -37, -38, -39, -41, -42, -43, -44,
+    -45, -46, -47, -48, -49, -50, -51, -52, -53, -54, -55, -56, -56, -57, -58, -59,
+    -59, -60, -60, -61, -61, -62, -62, -62, -63, -63, -63, -64, -64, -64, -64, -64,
+    -64, -64, -64, -64, -64, -64, -63, -63, -63, -62, -62, -62, -61, -61, -60, -60,
+    -59, -59, -58, -57, -56, -56, -55, -54, -53, -52, -51, -50, -49, -48, -47, -46,
+    -45, -44, -43, -42, -41, -39, -38, -37, -36, -34, -33, -32, -30, -29, -27, -26,
+    -24, -23, -22, -20, -19, -17, -16, -14, -12, -11, -9,  -8,  -6,  -5,  -3,  -2,
 };
 
 // 16.16 finetune multipliers for 2^(k/96), k = -8..+7
@@ -36,6 +48,62 @@ const MasBuf = struct {
     len_bytes: u32 = 0,
     loop_len_bytes: u32 = 0,
 };
+
+// Fallback MAS header+PCM cache for non-banked samples (satisfy ASM header reads at src-12)
+// Fallback pool to synthesize MAS headers + PCM copies when a GBSAMP bank
+// isn't available. Size is moderate to cover typical MODs. If this pool
+// is exhausted, we will skip triggering those notes on the ASM path to
+// avoid garbage (better silence than noise).
+// Keep fallback pool modest to fit GBA EWRAM alongside other buffers.
+// This is enough for typical short, non-looped instruments. If exhausted,
+// we skip triggering to avoid noise.
+var fb_pool: [32 * 1024]u8 align(4) = undefined;
+var fb_used: usize = 0;
+var fb_slots: [31]?MasBuf = [_]?MasBuf{null} ** 31;
+
+fn allocFallbackMas(sample: mod.ModSample, idx: usize) ?MasBuf {
+    if (idx >= fb_slots.len) return null;
+    if (fb_slots[idx]) |m| return m;
+    const total_len: usize = sample.pcm8.len;
+    if (total_len == 0) return null;
+    const loop_len_bytes_raw: u32 = @as(u32, sample.repeat_len_words) * 2;
+    const loop_start_bytes: u32 = @as(u32, sample.repeat_start_words) * 2;
+    // Effective sample length ends at loop_start + loop_len when looping, else full length
+    var effective_len: usize = total_len;
+    var loop_len_field: u32 = 0x8000_0000; // default: no loop (MSB set)
+    if (loop_len_bytes_raw > 2 and loop_start_bytes < total_len) {
+        const ll: usize = @intCast(loop_len_bytes_raw);
+        const ls: usize = @intCast(loop_start_bytes);
+        const end = @min(ls + ll, total_len);
+        effective_len = end;
+        loop_len_field = loop_len_bytes_raw; // MSB clear => loop enabled
+    }
+    const need: usize = 12 + effective_len;
+    if (fb_used + need > fb_pool.len) return null;
+    const base = fb_used;
+    fb_used += need;
+    // header: [len][loop_len][reserved]
+    const hdr0: *[4]u8 = @ptrCast(&fb_pool[base + 0]);
+    const hdr1: *[4]u8 = @ptrCast(&fb_pool[base + 4]);
+    const hdr2: *[4]u8 = @ptrCast(&fb_pool[base + 8]);
+    std.mem.writeInt(u32, hdr0, @as(u32, @intCast(effective_len)), .little);
+    std.mem.writeInt(u32, hdr1, loop_len_field, .little);
+    std.mem.writeInt(u32, hdr2, 0, .little);
+    // data: convert MOD signed 8-bit PCM (-128..127) to unsigned (0..255) expected by ASM mixer
+    var di: usize = 0;
+    while (di < effective_len) : (di += 1) {
+        const sv: i8 = @as(i8, @bitCast(sample.pcm8[di]));
+        const uv: u8 = @as(u8, @intCast(@as(i16, sv) + 128));
+        fb_pool[base + 12 + di] = uv;
+    }
+    const mas = MasBuf{
+        .data_ptr = @ptrFromInt(@intFromPtr(&fb_pool) + base + 12),
+        .len_bytes = @intCast(effective_len),
+        .loop_len_bytes = loop_len_field,
+    };
+    fb_slots[idx] = mas;
+    return mas;
+}
 
 // Amiga PAL period table (12 notes per octave, 3 octaves)
 const PERIOD_TABLE = [_]u16{
@@ -75,13 +143,20 @@ fn findClosestPeriod(target: u16) u16 {
 pub const ChannelState = struct {
     sample_index: u8 = 0, // 1..31
     period: u16 = 0,
+    base_period: u16 = 0,
     volume: u8 = 64,
     porta_target: u16 = 0,
     porta_speed: u8 = 0,
+    // Pending sample offset from 9xx (bytes)
+    sample_offset_bytes: u32 = 0,
     // Vibrato state
-    vibrato_pos: u8 = 0, // Position in sine table (0-31)
-    vibrato_depth: u8 = 0, // Depth of vibrato
-    vibrato_speed: u8 = 0, // Speed of vibrato
+    vibrato_pos: u8 = 0, // 0..255 into fine sine table
+    vibrato_depth: u8 = 0, // Depth (scaled)
+    vibrato_speed: u8 = 0, // Speed (scaled)
+    // Tremolo state
+    tremolo_pos: u8 = 0,
+    tremolo_depth: u8 = 0,
+    tremolo_speed: u8 = 0,
     vibrato_delay: u8 = 0, // Delay before vibrato starts
     // Pattern loop state
     loop_start: u8 = 0, // Pattern loop start row
@@ -126,10 +201,22 @@ pub const ModPlayer = struct {
         // Initialize mixer with mode 3 (15768 Hz) for best quality/performance balance
         mixer.init(3);
 
-        // Initialize classic Amiga panning across 4 channels (hard L/R)
+        // Initialize classic Amiga panning across 4 channels
+        // Amiga: ch0=L, ch1=R, ch2=R, ch3=L
         var ch: usize = 0;
         while (ch < m.channels) : (ch += 1) {
-            const pan: u8 = if ((ch % 2) == 0) 0 else 255;
+            var pan: u8 = 128;
+            if (m.channels == 4) {
+                pan = switch (ch) {
+                    0 => 0,
+                    1 => 255,
+                    2 => 255,
+                    3 => 0,
+                    else => 128,
+                };
+            } else {
+                pan = if ((ch % 2) == 0) 0 else 255;
+            }
             mixer.setChannelFromPcm8(ch, &[_]u8{0}, 0, 0, pan, 0);
         }
         return p;
@@ -137,23 +224,21 @@ pub const ModPlayer = struct {
 
     fn recomputeTickLen(self: *ModPlayer) void {
         // tick duration = 2.5 / BPM seconds -> samples_per_tick = rate * 2.5 / BPM
-        const rate: u32 = audio.mix_rate_hz;
+        const rate: u32 = @import("mixer_asm.zig").getMixRate();
         // Use rounding to minimize tempo drift
         self.samples_per_tick = @intCast(((@as(u64, rate) * 25) + (@as(u64, self.bpm) * 5)) / (@as(u64, self.bpm) * 10));
         self.samples_until_tick = self.samples_per_tick;
     }
 
-    fn periodToStep(self: *const ModPlayer, period: u16, sample_idx: u8) u32 {
+    // Compute mix channel freq field in the same domain Maxmod GBA expects (pre-mm_ratescale)
+    fn periodToAsmFreq(self: *const ModPlayer, period: u16, sample_idx: u8) u32 {
         if (period == 0) return 0;
-
-        // freq = 7093789.2 / (2 * period) => 3546894.6 / period (PAL)
-        // mixer step is 20.12 fixed: step = round((freq << 12) / mix_rate)
-        var base_step: u32 = blk: {
-            const freq_times_4096: u64 = (@as(u64, 3546895) << 12) / period;
-            break :blk @intCast((freq_times_4096 + (audio.mix_rate_hz / 2)) / audio.mix_rate_hz);
-        };
-
-        // Apply per-sample finetune (-8..+7) as frequency multiplier: 2^(ft/96)
+        // Amiga frequencies (match Maxmod mas.c): value = MOD_FREQ_DIVIDER_PAL / period
+        const MOD_FREQ_DIVIDER_PAL: u32 = 56_750_314; // exact constant used by Maxmod
+        // Maxmod uses a period domain with 5 fractional bits; emulate by dividing by 16.
+        // This brings the step into the correct 20.12 range for the ASM mixer.
+        var value: u32 = @intCast(MOD_FREQ_DIVIDER_PAL / (@as(u32, period) << 4));
+        // Apply per-sample finetune (-8..+7) as multiplier 2^(ft/96)
         var finetune: i8 = 0;
         if (sample_idx > 0 and sample_idx <= self.module.samples.len) {
             finetune = self.module.samples[sample_idx - 1].finetune;
@@ -161,9 +246,12 @@ pub const ModPlayer = struct {
         if (finetune != 0) {
             const ft_index: usize = @intCast(finetune + 8);
             const ft_mul: u32 = FINETUNE_MUL_16_16[ft_index];
-            base_step = @intCast((@as(u64, base_step) * @as(u64, ft_mul)) >> 16);
+            value = @intCast((@as(u64, value) * @as(u64, ft_mul)) >> 16);
         }
-        return base_step;
+        // mix_ch->freq = (scale * value) >> 16, scale: (4096*65536)/15768 (GBA path)
+        const scale: u32 = @intCast((@as(u64, 4096) * 65536) / 15768);
+        const freq_field: u32 = @intCast((@as(u64, scale) * @as(u64, value)) >> 16);
+        return freq_field;
     }
 
     pub fn onMixed(self: *ModPlayer, mixed_samples: u32) void {
@@ -208,7 +296,7 @@ pub const ModPlayer = struct {
         }
     }
 
-    fn applyTickEffects(self: *ModPlayer, tick: u8) void {
+    fn applyTickEffects(self: *ModPlayer, _: u8) void {
         const pat_index: u8 = self.module.orders[self.order_index];
         if (pat_index >= self.module.pattern_count) return;
         const pat = self.module.patterns[pat_index];
@@ -216,32 +304,34 @@ pub const ModPlayer = struct {
         while (ch < self.module.channels) : (ch += 1) {
             const note = pat.getNote(self.row_index, ch);
             var period_changed = false;
+            var temp_only: bool = false; // true for vibrato/arpeggio/tremolo
+            var temp_period: u16 = self.channels[ch].period;
             // Handle tone portamento target capture on tick 0
             if (note.effect == 0x03 and note.period != 0) {
                 self.channels[ch].porta_target = note.period;
             }
             var period = self.channels[ch].period;
 
-            // Effect 4xy: Vibrato
+            // Effect 4xy: Vibrato (Maxmod semantics)
             if (note.effect == 0x04) {
-                // xy: x = speed (0-15), y = depth (0-15)
-                const speed = (note.param >> 4) & 0xF;
-                const depth = note.param & 0xF;
-                if (speed != 0) self.channels[ch].vibrato_speed = speed;
-                if (depth != 0) self.channels[ch].vibrato_depth = depth;
+                const x = (note.param >> 4) & 0xF;
+                const y = note.param & 0xF;
+                // Speed = x * 4
+                if (x != 0) self.channels[ch].vibrato_speed = x * 4;
+                // Depth = y * 4 (oldeffects=0 for MOD)
+                if (y != 0) self.channels[ch].vibrato_depth = y * 4;
 
-                // Apply vibrato on non-zero ticks
-                if (tick > 0 and period > 0) {
-                    // Advance vibrato position
-                    self.channels[ch].vibrato_pos = (self.channels[ch].vibrato_pos + self.channels[ch].vibrato_speed) & 31;
-
-                    // Get sine value (-128..127) and scale by depth
-                    const sine_val = VIBRATO_TABLE[self.channels[ch].vibrato_pos];
-                    const delta = (@as(i32, sine_val) * @as(i32, self.channels[ch].vibrato_depth)) >> 7;
-
-                    // Apply vibrato to period
-                    period = @intCast(@max(@min(@as(i32, period) + delta, 856), 113));
-                    period_changed = true;
+                if (period > 0) {
+                    // Update on all ticks for MOD (oldeffects==0)
+                    const pos: u8 = self.channels[ch].vibrato_pos +% self.channels[ch].vibrato_speed;
+                    self.channels[ch].vibrato_pos = pos;
+                    const sine_val: i32 = VIBRATO_FINE_SINE[pos];
+                    const depth_scaled: i32 = self.channels[ch].vibrato_depth; // already scaled
+                    // value = (sine * depth) >> 8
+                    const value: i32 = (sine_val * depth_scaled) >> 8;
+                    const newp: i32 = @as(i32, period) + value;
+                    temp_period = @intCast(@max(@min(newp, 856), 113));
+                    temp_only = true;
                 }
             }
 
@@ -252,6 +342,51 @@ pub const ModPlayer = struct {
                 var v: i16 = self.channels[ch].volume;
                 v = @intCast(@max(@min(@as(i16, v) + @as(i16, @intCast(up)) - @as(i16, @intCast(down)), 64), 0));
                 self.channels[ch].volume = @intCast(v);
+            }
+
+            // Effect 6xy: Vibrato + Volume slide (like 4xy + Axy, tick-based)
+            if (note.effect == 0x06) {
+                // Apply vibrato with last latched speed/depth
+                if (period > 0) {
+                    const pos: u8 = self.channels[ch].vibrato_pos +% self.channels[ch].vibrato_speed;
+                    self.channels[ch].vibrato_pos = pos;
+                    const sine_val: i32 = VIBRATO_FINE_SINE[pos];
+                    const depth_scaled: i32 = self.channels[ch].vibrato_depth;
+                    const value: i32 = (sine_val * depth_scaled) >> 8;
+                    const newp: i32 = @as(i32, period) + value;
+                    temp_period = @intCast(@max(@min(newp, 856), 113));
+                    temp_only = true;
+                }
+                // Apply volume slide
+                const up = (note.param >> 4) & 0xF;
+                const down = note.param & 0xF;
+                var v: i16 = self.channels[ch].volume;
+                v = @intCast(@max(@min(@as(i16, v) + @as(i16, @intCast(up)) - @as(i16, @intCast(down)), 64), 0));
+                self.channels[ch].volume = @intCast(v);
+            }
+
+            // Effect 7xy: Tremolo (MOD)
+            if (note.effect == 0x07) {
+                const x = (note.param >> 4) & 0xF;
+                const y = note.param & 0xF;
+                if (x != 0) self.channels[ch].tremolo_speed = x * 4;
+                if (y != 0) self.channels[ch].tremolo_depth = y; // depth 0..15
+                // Compute volume addition
+                const pos: u8 = self.channels[ch].tremolo_pos +% self.channels[ch].tremolo_speed;
+                self.channels[ch].tremolo_pos = pos;
+                const sine = VIBRATO_FINE_SINE[pos];
+                const add: i32 = (sine * @as(i32, self.channels[ch].tremolo_depth)) >> 6; // per mas.c
+                // Apply to volume temporarily
+                var v: i32 = self.channels[ch].volume;
+                v += add;
+                if (v < 0) v = 0;
+                if (v > 64) v = 64;
+                // Update mixer with adjusted volume (do not persist base volume)
+                const eff_vol: u8 = @intCast(@min(@as(u16, @intCast(v)) * 4, 255));
+                const pan_t: u8 = if (((@as(usize, ch)) % 2) == 0) 0 else 255;
+                const eff_period: u16 = if (temp_only) temp_period else period;
+                const freq_t = self.periodToAsmFreq(eff_period, self.channels[ch].sample_index);
+                mixer.updateChannel(ch, eff_vol, pan_t, freq_t);
             }
 
             // Effect 1xx: Portamento up
@@ -294,12 +429,36 @@ pub const ModPlayer = struct {
                 if (note.param != 0) self.channels[ch].porta_speed = note.param;
             }
 
-            // Update channel if period changed
-            if (period_changed) {
+            // Effect Jxy: Arpeggio (MOD)
+            if (note.effect == 0x00 and note.param != 0) {
+                const tick_mod = @mod(self.tick_in_row, 3);
+                const hi: u8 = (note.param >> 4) & 0xF;
+                const lo: u8 = note.param & 0xF;
+                var semis: i8 = 0;
+                if (tick_mod == 1) semis = @as(i8, @intCast(hi));
+                if (tick_mod == 2) semis = @as(i8, @intCast(lo));
+                if (semis != 0) {
+                    // temp period = period * 2^(-semis/12)
+                    // Precompute 16.16 multipliers for +/- semitones 0..15
+                    const SEMI_MUL: [16]u32 = .{ 65536, 61707, 58254, 55056, 52105, 49388, 46890, 44599, 42500, 40583, 38834, 37244, 35799, 34491, 33311, 32245 };
+                    // Above are approximations for 2^(n/12) scaled by 65536; for down we divide
+                    const mul = SEMI_MUL[@intCast(semis & 0x0F)];
+                    temp_period = @intCast((@as(u64, period) * @as(u64, 65536)) / mul);
+                    if (temp_period < 113) temp_period = 113;
+                    if (temp_period > 856) temp_period = 856;
+                    temp_only = true;
+                }
+            }
+
+            // Update channel
+            const pan: u8 = if (((@as(usize, ch)) % 2) == 0) 0 else 255;
+            const vol_scaled: u8 = @intCast(@min(@as(u16, self.channels[ch].volume) * 4, 255));
+            if (temp_only) {
+                const step = self.periodToAsmFreq(temp_period, self.channels[ch].sample_index);
+                mixer.updateChannel(ch, vol_scaled, pan, step);
+            } else if (period_changed) {
                 self.channels[ch].period = period;
-                const step = self.periodToStep(period, self.channels[ch].sample_index);
-                const pan: u8 = if (((@as(usize, ch)) % 2) == 0) 0 else 255;
-                const vol_scaled: u8 = @intCast(@min(@as(u16, self.channels[ch].volume) * 4, 255));
+                const step = self.periodToAsmFreq(period, self.channels[ch].sample_index);
                 mixer.updateChannel(ch, vol_scaled, pan, step);
             }
         }
@@ -342,6 +501,12 @@ pub const ModPlayer = struct {
                 const target_row: u8 = @intCast(@min(@as(u16, tens) * 10 + ones, 63));
                 self.row_index = target_row;
             }
+            // 9xx: Sample offset (xx * 256 bytes), applied when note triggers this row
+            if (note.effect == 0x09) {
+                if (note.param != 0) {
+                    self.channels[ch].sample_offset_bytes = @as(u32, note.param) * 256;
+                }
+            }
             // E9x: note cut after x ticks (minimal)
             // Effect Ex: Extended effects
             if (note.effect == 0x0E) {
@@ -380,10 +545,10 @@ pub const ModPlayer = struct {
                             }
                         }
                     },
-                    0x9 => { // E9x: Note cut after x ticks
-                        const cut_tick: u8 = ext_param;
-                        if (self.tick_in_row >= cut_tick and cut_tick != 0) {
-                            self.channels[ch].volume = 0;
+                    0x9 => { // E9x: Retrigger note every x ticks (1..15)
+                        const r: u8 = ext_param & 0x0F;
+                        if (r != 0 and (self.tick_in_row % r) == 0) {
+                            mixer.retriggerChannel(ch);
                         }
                     },
                     0xA => { // EAx: Fine volume slide up
@@ -421,14 +586,34 @@ pub const ModPlayer = struct {
                                         const s = self.module.samples[sidx];
                                         self.channels[ch].sample_index = self.channels[ch].delayed_sample;
                                         self.channels[ch].volume = s.volume;
-                                        var loop_len_bytes: u32 = @as(u32, s.repeat_len_words) * 2;
-                                        if (loop_len_bytes <= 2) loop_len_bytes = 0;
-                                        const loop_start_bytes: u32 = if (loop_len_bytes == 0) 0 else (@as(u32, s.repeat_start_words) * 2);
                                         var pcm: []const u8 = s.pcm8;
-                                        if (loop_start_bytes < pcm.len) pcm = pcm[loop_start_bytes..];
+                                        var loop_len_bytes: u32 = @as(u32, s.repeat_len_words) * 2;
+                                        var have_mas: bool = false;
+                                        if (@hasDecl(@import("lib.zig"), "resolveGbsSample")) {
+                                            if (@import("lib.zig").resolveGbsSample(sidx)) |blk| {
+                                                pcm = blk.pcm;
+                                                loop_len_bytes = blk.loop_len_bytes;
+                                                have_mas = true;
+                                            } else if (allocFallbackMas(s, sidx)) |mb| {
+                                                pcm = @as([*]const u8, mb.data_ptr)[0..@as(usize, mb.len_bytes)];
+                                                loop_len_bytes = mb.loop_len_bytes;
+                                                have_mas = true;
+                                            } else {
+                                                // No MAS header: avoid triggering on ASM mixer path to prevent garbage.
+                                                continue;
+                                            }
+                                        } else if (allocFallbackMas(s, sidx)) |mb2| {
+                                            pcm = @as([*]const u8, mb2.data_ptr)[0..@as(usize, mb2.len_bytes)];
+                                            loop_len_bytes = mb2.loop_len_bytes;
+                                            have_mas = true;
+                                        } else {
+                                            continue;
+                                        }
                                         const pan: u8 = if (((@as(usize, ch)) % 2) == 0) 0 else 255;
                                         const vol_scaled: u8 = @intCast(@min(@as(u16, self.channels[ch].volume) * 4, 255));
-                                        mixer.setChannelFromPcm8(ch, pcm, loop_len_bytes, vol_scaled, pan, self.periodToStep(self.channels[ch].period, self.channels[ch].sample_index));
+                                        if (have_mas) {
+                                            mixer.setChannelFromPcm8(ch, pcm, loop_len_bytes, vol_scaled, pan, self.periodToAsmFreq(self.channels[ch].period, self.channels[ch].sample_index));
+                                        }
                                     }
                                 }
                             }
@@ -446,26 +631,56 @@ pub const ModPlayer = struct {
                     const s = self.module.samples[sidx];
                     self.channels[ch].sample_index = note.sample;
                     self.channels[ch].volume = s.volume;
+                    // Remember base period for arpeggio
+                    if (note.period != 0) self.channels[ch].base_period = note.period;
                     // If tone-portamento (3xx) is active with a note, do not retrigger the sample.
                     if (note.effect == 0x03 and note.period != 0) {
-                        const step_np = self.periodToStep(self.channels[ch].period, self.channels[ch].sample_index);
+                        const step_np = self.periodToAsmFreq(self.channels[ch].period, self.channels[ch].sample_index);
                         const pan_np: u8 = if (((@as(usize, ch)) % 2) == 0) 0 else 255;
                         const vol_np: u8 = @intCast(@min(@as(u16, self.channels[ch].volume) * 4, 255));
                         mixer.updateChannel(ch, vol_np, pan_np, step_np);
                     } else {
                         // Normal note trigger
-                        if (note.period != 0) self.channels[ch].period = note.period;
-                        const step = self.periodToStep(self.channels[ch].period, self.channels[ch].sample_index);
+                        if (note.period != 0) {
+                            var p: u16 = note.period;
+                            if (p < 113) p = 113; if (p > 856) p = 856;
+                            self.channels[ch].period = p;
+                        }
+                        const step = self.periodToAsmFreq(self.channels[ch].period, self.channels[ch].sample_index);
                         var loop_len_bytes: u32 = @as(u32, s.repeat_len_words) * 2;
-                        if (loop_len_bytes <= 2) loop_len_bytes = 0;
-                        const loop_start_bytes: u32 = if (loop_len_bytes == 0) 0 else (@as(u32, s.repeat_start_words) * 2);
                         var pcm: []const u8 = s.pcm8;
-                        if (loop_start_bytes < pcm.len) pcm = pcm[loop_start_bytes..];
+                        var have_mas: bool = false;
+                        const start_offset: u32 = self.channels[ch].sample_offset_bytes;
+                        if (@hasDecl(@import("lib.zig"), "resolveGbsSample")) {
+                            if (@import("lib.zig").resolveGbsSample(sidx)) |blk| {
+                                pcm = blk.pcm;
+                                loop_len_bytes = blk.loop_len_bytes;
+                                have_mas = true;
+                            } else if (allocFallbackMas(s, sidx)) |mb| {
+                                pcm = @as([*]const u8, mb.data_ptr)[0..@as(usize, mb.len_bytes)];
+                                loop_len_bytes = mb.loop_len_bytes;
+                                have_mas = true;
+                            }
+                        } else if (allocFallbackMas(s, sidx)) |mb2| {
+                            pcm = @as([*]const u8, mb2.data_ptr)[0..@as(usize, mb2.len_bytes)];
+                            loop_len_bytes = mb2.loop_len_bytes;
+                            have_mas = true;
+                        }
                         // Pan default: classic layout (ch 0,3 left; ch 1,2 right)
                         const pan: u8 = if (((@as(usize, ch)) % 2) == 0) 0 else 255;
                         const vol_scaled: u8 = @intCast(@min(@as(u16, self.channels[ch].volume) * 4, 255));
-                        mixer.setChannelFromPcm8(ch, pcm, loop_len_bytes, vol_scaled, pan, step);
-                        new_instruments[ch] = true;
+                        if (have_mas) {
+                            if (loop_len_bytes <= 2) loop_len_bytes = 0x8000_0000;
+                            if (start_offset != 0) {
+                                mixer.setChannelFromPcm8WithOffset(ch, pcm, loop_len_bytes, vol_scaled, pan, step, start_offset);
+                            } else {
+                                mixer.setChannelFromPcm8(ch, pcm, loop_len_bytes, vol_scaled, pan, step);
+                            }
+                            self.channels[ch].sample_offset_bytes = 0;
+                            new_instruments[ch] = true;
+                        } else {
+                            // No valid sample buffer with MAS header; skip to avoid noise
+                        }
                     }
                 } else {
                     // No sample available; keep channel disabled
@@ -473,7 +688,7 @@ pub const ModPlayer = struct {
             } else if (note.period != 0) {
                 // Change pitch without retrigger
                 self.channels[ch].period = note.period;
-                const step2 = self.periodToStep(self.channels[ch].period, self.channels[ch].sample_index);
+                const step2 = self.periodToAsmFreq(self.channels[ch].period, self.channels[ch].sample_index);
                 const pan2: u8 = if (((@as(usize, ch)) % 2) == 0) 0 else 255;
                 const vol_scaled2: u8 = @intCast(@min(@as(u16, self.channels[ch].volume) * 4, 255));
                 mixer.updateChannel(ch, vol_scaled2, pan2, step2);
@@ -489,7 +704,7 @@ pub const ModPlayer = struct {
                 var v: i16 = self.channels[ch].volume;
                 v = @intCast(@max(@min(@as(i16, v) + @as(i16, @intCast(up)) - @as(i16, @intCast(down)), 64), 0));
                 self.channels[ch].volume = @intCast(v);
-                const step = self.periodToStep(self.channels[ch].period, self.channels[ch].sample_index);
+                const step = self.periodToAsmFreq(self.channels[ch].period, self.channels[ch].sample_index);
                 const pan: u8 = if (((@as(usize, ch)) % 2) == 0) 0 else 255;
                 const vol_scaled3: u8 = @intCast(@min(@as(u16, self.channels[ch].volume) * 4, 255));
                 if (new_instruments[ch]) {

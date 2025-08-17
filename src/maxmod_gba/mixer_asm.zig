@@ -32,6 +32,9 @@ var s_mp_mix_seg: u8 = 0;
 // Optional external ASM mixer (from mixer_asm.o)
 extern fn mmMixerMix(samples_count: u32) callconv(.C) void;
 
+var s_use_asm_mixer: bool = false;
+pub fn setUseAsmMixer(on: bool) void { s_use_asm_mixer = on; }
+
 // Software mixer in Zig to replace GAS ASM path when ASM is disabled.
 // Mixes into `s_wave_buffer` interleaved halves (left block, then right block),
 // updating `mp_writepos` as the current left write position.
@@ -245,6 +248,8 @@ fn setExports(mode_index: u32) void {
     mm_ratescale = rate_scale;
 
     // Export pointers
+    // ASM mixer mixes into an intermediate 11-bit buffer, then post-processes into the wave buffer.
+    // mm_mixbuffer must point to the intermediate mix buffer, not the wave output buffer.
     mm_mixbuffer = @intFromPtr(&s_mix_buffer);
     mm_mix_channels = @intFromPtr(&s_mix_channels);
     const end_ptr: [*]MixChannel = @ptrFromInt(@intFromPtr(&s_mix_channels) + s_mix_channels.len * @sizeOf(MixChannel));
@@ -311,6 +316,7 @@ pub fn getMixRate() u32 {
 pub fn setChannelFromPcm8(channel_index: usize, pcm: []const u8, loop_len: u32, vol: u8, pan: u8, step_fixed_20_12: u32) void {
     if (channel_index >= s_mix_channels.len) return;
     const data_addr: u32 = @intCast(@intFromPtr(pcm.ptr));
+    const freq_field: u32 = step_fixed_20_12;
     s_mix_channels[channel_index] = .{
         .src = data_addr,
         .read = 0,
@@ -318,10 +324,24 @@ pub fn setChannelFromPcm8(channel_index: usize, pcm: []const u8, loop_len: u32, 
         .pan = pan,
         ._unused0 = 0,
         ._unused1 = 0,
-        .freq = step_fixed_20_12,
+        .freq = freq_field,
     };
     s_len_bytes[channel_index] = @intCast(pcm.len);
     s_loop_bytes[channel_index] = if (loop_len == 0) 0x8000_0000 else loop_len;
+}
+
+pub fn setChannelFromPcm8WithOffset(channel_index: usize, pcm: []const u8, loop_len: u32, vol: u8, pan: u8, step_fixed_20_12: u32, start_offset_bytes: u32) void {
+    setChannelFromPcm8(channel_index, pcm, loop_len, vol, pan, step_fixed_20_12);
+    if (channel_index >= s_mix_channels.len) return;
+    const lenb = s_len_bytes[channel_index];
+    var off = start_offset_bytes;
+    if (off >= lenb) off = if (lenb > 0) lenb - 1 else 0;
+    s_mix_channels[channel_index].read = off << 12;
+}
+
+pub fn retriggerChannel(channel_index: usize) void {
+    if (channel_index >= s_mix_channels.len) return;
+    s_mix_channels[channel_index].read = 0;
 }
 
 pub fn updateChannel(channel_index: usize, vol: u8, pan: u8, step_fixed_20_12: u32) void {
@@ -334,12 +354,7 @@ pub fn updateChannel(channel_index: usize, vol: u8, pan: u8, step_fixed_20_12: u
 pub fn mixOneSegment() void {
     // Generate next segment of length mm_mixlen
     const n: u32 = mm_mixlen;
-    const use_asm = blk: {
-        if (@hasDecl(@import("lib_options"), "use_asm_mixer")) {
-            break :blk @import("lib_options").use_asm_mixer;
-        } else break :blk false;
-    };
-    if (use_asm) {
+    if (s_use_asm_mixer) {
         mmMixerMix(n);
     } else {
         zig_mmMixerMix(n);
@@ -349,5 +364,14 @@ pub fn mixOneSegment() void {
         // Try to call into player to advance tick accounting
         // This is a loose coupling; player may not be loaded
         // (No-op here; player will call on its own path)
+    }
+}
+
+// Mix an arbitrary number of samples (mmFrame-style chunking)
+pub fn mixN(n: u32) void {
+    if (s_use_asm_mixer) {
+        mmMixerMix(n);
+    } else {
+        zig_mmMixerMix(n);
     }
 }
