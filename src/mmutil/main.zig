@@ -2,6 +2,7 @@ const std = @import("std");
 const wav = @import("wav_reader.zig");
 const rs = @import("resampler.zig");
 const mmw = @import("mmraw_writer.zig");
+const mod_proc = @import("mod_processor.zig");
 
 const default_rate: u32 = 0; // 0 means preserve source rate unless overridden
 
@@ -22,6 +23,7 @@ pub fn main() !void {
     var bps16 = false;
     var raw8 = false;
     var looped = false;
+    var is_mod = false;
 
     while (args.next()) |a| {
         if (std.mem.eql(u8, a, "-o")) {
@@ -44,12 +46,26 @@ pub fn main() !void {
             looped = true;
         } else if (std.mem.eql(u8, a, "--raw8")) {
             raw8 = true;
+        } else if (std.mem.eql(u8, a, "--mod")) {
+            is_mod = true;
         } else {
             return usage();
         }
     }
 
     const out = out_path orelse return usage();
+
+    if (is_mod) {
+        // Process MOD file and create soundbank
+        const mod_data = try std.fs.cwd().readFileAlloc(alloc, in_path, 64 * 1024 * 1024);
+        defer alloc.free(mod_data);
+
+        const mod_file = try mod_proc.parseModFile(alloc, mod_data);
+        try mod_proc.createSoundbank(alloc, mod_file, out);
+
+        std.debug.print("Created soundbank from MOD file: {s}\n", .{in_path});
+        return;
+    }
 
     if (raw8) {
         if (!rate_set) return error.InvalidArgument;
@@ -174,5 +190,6 @@ pub fn main() !void {
 fn usage() !void {
     const stderr = std.io.getStdErr().writer();
     try stderr.print("Usage: mmutil-zig input.wav -o output.mmraw [--rate 16000] [--bps 8|16] [--loop]\n", .{});
+    try stderr.print("       mmutil-zig input.mod --mod -o output.bin (create soundbank from MOD)\n", .{});
     return error.InvalidArgument;
 }
