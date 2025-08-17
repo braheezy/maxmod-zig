@@ -43,6 +43,25 @@ const FINETUNE_MUL_16_16 = [_]u32{
     68933, // +7
 };
 
+// Consistent panning helper for all channel updates
+fn panForChannel(total: u8, ch: u8) u8 {
+    if (total == 4) {
+        return switch (ch) {
+            0 => 0, // L
+            1 => 255, // R
+            2 => 255, // R
+            3 => 0, // L
+            else => 128,
+        };
+    }
+    return if ((@as(usize, ch) % 2) == 0) 0 else 255;
+}
+
+// Temporary debug: route logical ch 3 into mixer ch 2 to test channel mapping
+fn phys(ch: u8) u8 {
+    return if (ch == 3) 2 else ch;
+}
+
 const MasBuf = struct {
     data_ptr: [*]const u8 = undefined, // PCM start (12 bytes past header)
     len_bytes: u32 = 0,
@@ -207,19 +226,8 @@ pub const ModPlayer = struct {
         // Amiga: ch0=L, ch1=R, ch2=R, ch3=L
         var ch: usize = 0;
         while (ch < m.channels) : (ch += 1) {
-            var pan: u8 = 128;
-            if (m.channels == 4) {
-                pan = switch (ch) {
-                    0 => 0,
-                    1 => 255,
-                    2 => 255,
-                    3 => 0,
-                    else => 128,
-                };
-            } else {
-                pan = if ((ch % 2) == 0) 0 else 255;
-            }
-            mixer.setChannelFromPcm8(ch, &[_]u8{0}, 0, 0, pan, 0);
+            const pan = panForChannel(m.channels, @intCast(ch));
+            mixer.setChannelFromPcm8(phys(@intCast(ch)), &[_]u8{0}, 0, 0, pan, 0);
         }
         return p;
     }
@@ -345,6 +353,7 @@ pub const ModPlayer = struct {
             var period_changed = false;
             var temp_only: bool = false; // true for vibrato/arpeggio/tremolo
             var temp_period: u16 = self.channels[ch].period;
+            var vol_override: ?u8 = null; // volume override for tremolo
             // Handle tone portamento target capture on tick 0
             if (note.effect == 0x03 and note.period != 0) {
                 self.channels[ch].porta_target = note.period;
@@ -414,12 +423,8 @@ pub const ModPlayer = struct {
                 v += add;
                 if (v < 0) v = 0;
                 if (v > 64) v = 64;
-                // Update mixer with adjusted volume (do not persist base volume)
-                const eff_vol: u8 = @intCast(@min(@as(u16, @intCast(v)) * 4, 255));
-                const pan_t: u8 = if (((@as(usize, ch)) % 2) == 0) 0 else 255;
-                const eff_period: u16 = if (temp_only) temp_period else period;
-                const freq_t = self.periodToAsmFreq(eff_period, self.channels[ch].sample_index);
-                mixer.updateChannel(ch, eff_vol, pan_t, freq_t);
+                // Set volume override for single update at end
+                vol_override = @intCast(@min(@as(u16, @intCast(v)) * 4, 255));
             }
 
             // Effect 1xx: Portamento up (Amiga: delta = speed << 4) on ticks > 0
@@ -495,15 +500,20 @@ pub const ModPlayer = struct {
             }
 
             // Update channel
-            const pan: u8 = if (((@as(usize, ch)) % 2) == 0) 0 else 255;
-            const vol_scaled: u8 = @intCast(@min(@as(u16, self.channels[ch].volume) * 4, 255));
+            const pan = panForChannel(self.module.channels, ch);
+            const base_vol: u8 = @intCast(@min(@as(u16, self.channels[ch].volume) * 4, 255));
+            const out_vol: u8 = vol_override orelse base_vol;
+
             if (temp_only) {
                 const step = self.periodToAsmFreq(temp_period, self.channels[ch].sample_index);
-                mixer.updateChannel(ch, vol_scaled, pan, step);
+                mixer.updateChannel(phys(ch), out_vol, pan, step);
             } else if (period_changed) {
                 self.channels[ch].period = period;
                 const step = self.periodToAsmFreq(period, self.channels[ch].sample_index);
-                mixer.updateChannel(ch, vol_scaled, pan, step);
+                mixer.updateChannel(phys(ch), out_vol, pan, step);
+            } else if (vol_override != null) {
+                const step = self.periodToAsmFreq(self.channels[ch].period, self.channels[ch].sample_index);
+                mixer.updateChannel(phys(ch), out_vol, pan, step);
             }
         }
     }
@@ -662,18 +672,22 @@ pub const ModPlayer = struct {
                                         } else {
                                             continue;
                                         }
-                                        const pan: u8 = if (((@as(usize, ch)) % 2) == 0) 0 else 255;
+                                        const pan: u8 = panForChannel(self.module.channels, ch);
                                         const vol_scaled: u8 = @intCast(@min(@as(u16, self.channels[ch].volume) * 4, 255));
                                         if (have_mas) {
                                             const stepv = self.periodToAsmFreq(self.channels[ch].period, self.channels[ch].sample_index);
                                             const start_off = self.channels[ch].sample_offset_bytes;
                                             // Defensive normalize: MSB set => no loop
                                             if (loop_len_bytes == 0) loop_len_bytes = 0x8000_0000;
+                                            // Apply consistent loop logic: only enable loop if length > 2 and start < total
+                                            if (loop_len_bytes != 0x8000_0000 and loop_len_bytes <= 2) {
+                                                loop_len_bytes = 0x8000_0000; // disable short loops
+                                            }
 
                                             if (start_off != 0) {
-                                                mixer.setChannelFromPcm8WithOffset(ch, pcm, loop_len_bytes, vol_scaled, pan, stepv, start_off);
+                                                mixer.setChannelFromPcm8WithOffset(phys(ch), pcm, loop_len_bytes, vol_scaled, pan, stepv, start_off);
                                             } else {
-                                                mixer.setChannelFromPcm8(ch, pcm, loop_len_bytes, vol_scaled, pan, stepv);
+                                                mixer.setChannelFromPcm8(phys(ch), pcm, loop_len_bytes, vol_scaled, pan, stepv);
                                             }
                                             self.channels[ch].sample_offset_bytes = 0;
                                         }
@@ -705,11 +719,11 @@ pub const ModPlayer = struct {
                     // If tone-portamento (3xx) is active with a note, do not retrigger the sample.
                     if (note.effect == 0x03 and note.period != 0) {
                         const step_np = self.periodToAsmFreq(self.channels[ch].period, self.channels[ch].sample_index);
-                        const pan_np: u8 = if (((@as(usize, ch)) % 2) == 0) 0 else 255;
+                        const pan_np: u8 = panForChannel(self.module.channels, ch);
                         const vol_np: u8 = @intCast(@min(@as(u16, self.channels[ch].volume) * 4, 255));
                         // Capture target period for tone portamento and do not retrigger
                         self.channels[ch].porta_target = note.period;
-                        mixer.updateChannel(ch, vol_np, pan_np, step_np);
+                        mixer.updateChannel(phys(ch), vol_np, pan_np, step_np);
                     } else {
                         // Normal note trigger
                         if (note.period != 0) {
@@ -739,17 +753,21 @@ pub const ModPlayer = struct {
                             have_mas = true;
                         }
                         // Pan default: classic layout (ch 0,3 left; ch 1,2 right)
-                        const pan: u8 = if (((@as(usize, ch)) % 2) == 0) 0 else 255;
+                        const pan: u8 = panForChannel(self.module.channels, ch);
                         const vol_scaled: u8 = @intCast(@min(@as(u16, self.channels[ch].volume) * 4, 255));
                         if (have_mas) {
                             // Defensive normalize: MSB set => no loop (standardized contract)
                             if (loop_len_bytes == 0) loop_len_bytes = 0x8000_0000;
+                            // Apply consistent loop logic: only enable loop if length > 2 and start < total
+                            if (loop_len_bytes != 0x8000_0000 and loop_len_bytes <= 2) {
+                                loop_len_bytes = 0x8000_0000; // disable short loops
+                            }
                             // Debug for channel 3 (index 2)
 
                             if (start_offset != 0) {
-                                mixer.setChannelFromPcm8WithOffset(ch, pcm, loop_len_bytes, vol_scaled, pan, step, start_offset);
+                                mixer.setChannelFromPcm8WithOffset(phys(ch), pcm, loop_len_bytes, vol_scaled, pan, step, start_offset);
                             } else {
-                                mixer.setChannelFromPcm8(ch, pcm, loop_len_bytes, vol_scaled, pan, step);
+                                mixer.setChannelFromPcm8(phys(ch), pcm, loop_len_bytes, vol_scaled, pan, step);
                             }
                             self.channels[ch].sample_offset_bytes = 0;
                             new_instruments[ch] = true;
@@ -764,9 +782,9 @@ pub const ModPlayer = struct {
                 // Change pitch without retrigger
                 self.channels[ch].period = note.period;
                 const step2 = self.periodToAsmFreq(self.channels[ch].period, self.channels[ch].sample_index);
-                const pan2: u8 = if (((@as(usize, ch)) % 2) == 0) 0 else 255;
+                const pan2: u8 = panForChannel(self.module.channels, ch);
                 const vol_scaled2: u8 = @intCast(@min(@as(u16, self.channels[ch].volume) * 4, 255));
-                mixer.updateChannel(ch, vol_scaled2, pan2, step2);
+                mixer.updateChannel(phys(ch), vol_scaled2, pan2, step2);
             }
         }
         // Apply Axy (vol slide) minimally as immediate per-row step (until proper per-tick)
@@ -780,12 +798,12 @@ pub const ModPlayer = struct {
                 v = @intCast(@max(@min(@as(i16, v) + @as(i16, @intCast(up)) - @as(i16, @intCast(down)), 64), 0));
                 self.channels[ch].volume = @intCast(v);
                 const step = self.periodToAsmFreq(self.channels[ch].period, self.channels[ch].sample_index);
-                const pan: u8 = if (((@as(usize, ch)) % 2) == 0) 0 else 255;
+                const pan: u8 = panForChannel(self.module.channels, ch);
                 const vol_scaled3: u8 = @intCast(@min(@as(u16, self.channels[ch].volume) * 4, 255));
                 if (new_instruments[ch]) {
                     // already set via setChannelFromPcm8
                 } else {
-                    mixer.updateChannel(ch, vol_scaled3, pan, step);
+                    mixer.updateChannel(phys(ch), vol_scaled3, pan, step);
                 }
             }
         }
