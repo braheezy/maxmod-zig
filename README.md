@@ -12,6 +12,9 @@ zig build
 
 # Build and run SFX example with custom WAV
 zig build sfx -- your_audio.wav
+
+# Build and run a MOD example with a .mod file
+zig build mod -- your_mod.mod
 ```
 
 ### In Your Project
@@ -31,3 +34,9 @@ maxmod.startMusic(music_id);
 // Update audio (call in main loop)
 maxmod.update();
 ```
+
+## Showcase
+
+**SFX**
+
+**MOD**
