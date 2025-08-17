@@ -74,6 +74,7 @@ pub fn build(b: *std.Build) void {
     // Build example ROMs using ZigGBA dependency helper
     const ziggba_dep = b.dependency("ziggba", .{});
     const gba_mod = ziggba_dep.module("gba");
+    gba_mod_runtime.addImport("gba", gba_mod);
 
     // Link our maxmod-gba-zig static library into the SFX example
     const example = ziggba.addGBAExecutable(b, gba_mod, "sfx", "examples/sfx/main.zig");

@@ -2,6 +2,11 @@ const std = @import("std");
 const audio = @import("audio.zig");
 const mod = @import("mod.zig");
 const mixer = @import("mixer_asm.zig");
+const gba = @import("gba");
+const debug = gba.debug;
+const USE_GBS_FOR_MOD: bool = false;
+const DEBUG_CH3: bool = true; // gate verbose CH3 logs to avoid FIFO stalls
+const DEBUG_ROWFLOW: bool = true; // gate row/order jump logs
 
 // Maxmod fine sine table (256 entries), values in range [-64..64]
 const VIBRATO_FINE_SINE: [256]i8 = [_]i8{
@@ -59,7 +64,9 @@ fn panForChannel(total: u8, ch: u8) u8 {
 
 // Temporary debug: route logical ch 3 into mixer ch 2 to test channel mapping
 fn phys(ch: u8) u8 {
-    return if (ch == 3) 2 else ch;
+    // Map logical channel index to mixer channel index (identity mapping).
+    // Any remapping here can cause instruments to collide across channels.
+    return ch;
 }
 
 const MasBuf = struct {
@@ -89,15 +96,21 @@ fn allocFallbackMas(sample: mod.ModSample, idx: usize) ?MasBuf {
     const loop_start_bytes: u32 = @as(u32, sample.repeat_start_words) * 2;
     // Effective sample length ends at loop_start + loop_len when looping, else full length
     var effective_len: usize = total_len;
-    var loop_len_field: u32 = 0x8000_0000; // default: no loop (MSB set)
+    // For ASM mixer compatibility, encode no-loop as 0xFFFF_FFFF in the header.
+    // We'll also propagate the same value outward so Zig mixer treats MSB set as no loop.
+    var loop_len_field: u32 = 0xFFFF_FFFF; // default: no loop
     if (loop_len_bytes_raw > 2 and loop_start_bytes < total_len) {
         const ll: usize = @intCast(loop_len_bytes_raw);
         const ls: usize = @intCast(loop_start_bytes);
         const end = @min(ls + ll, total_len);
-        effective_len = end;
-        loop_len_field = loop_len_bytes_raw; // MSB clear => loop enabled
+        const actual_loop_len: usize = if (end > ls) (end - ls) else 0;
+        if (actual_loop_len > 2) {
+            effective_len = end;
+            loop_len_field = @intCast(actual_loop_len); // real loop length (bytes)
+        }
     }
-    const need: usize = 12 + effective_len;
+    const guard_bytes: usize = 8;
+    const need: usize = 12 + effective_len + guard_bytes;
     if (fb_used + need > fb_pool.len) return null;
     const base = fb_used;
     fb_used += need;
@@ -114,6 +127,11 @@ fn allocFallbackMas(sample: mod.ModSample, idx: usize) ?MasBuf {
         const sv: i8 = @as(i8, @bitCast(sample.pcm8[di]));
         const uv: u8 = @as(u8, @intCast(@as(i16, sv) + 128));
         fb_pool[base + 12 + di] = uv;
+    }
+    // Tail guard to prevent stray reads past end from causing static
+    var gi: usize = 0;
+    while (gi < guard_bytes) : (gi += 1) {
+        fb_pool[base + 12 + effective_len + gi] = 0;
     }
     const mas = MasBuf{
         .data_ptr = @ptrFromInt(@intFromPtr(&fb_pool) + base + 12),
@@ -197,6 +215,10 @@ pub const ModPlayer = struct {
     tick_in_row: u8,
     oldeffects: u8 = 0, // MOD: 0 (affects vibrato depth scaling)
     patt_delay: u8 = 0, // pattern delay (rows remaining)
+    suppress_tick0: bool = false, // when true, skip tick0 retrigger (EEx delay rows)
+    // Deferred flow control (applied at end-of-row)
+    next_order_override: ?u8 = null,
+    next_row_override: ?u8 = null,
 
     // Simple channel state
     channels: []ChannelState,
@@ -229,14 +251,19 @@ pub const ModPlayer = struct {
             const pan = panForChannel(m.channels, @intCast(ch));
             mixer.setChannelFromPcm8(phys(@intCast(ch)), &[_]u8{0}, 0, 0, pan, 0);
         }
+        // If MSL soundbank has songs, activate first song mapping
+        if (@hasDecl(@import("lib.zig"), "setActiveGbsSong")) {
+            _ = @import("lib.zig").setActiveGbsSong(0);
+        }
         return p;
     }
 
     fn recomputeTickLen(self: *ModPlayer) void {
-        // tick duration = 2.5 / BPM seconds -> samples_per_tick = rate * 2.5 / BPM
-        const rate: u32 = @import("mixer_asm.zig").getMixRate();
-        // Use rounding to minimize tempo drift
-        self.samples_per_tick = @intCast(((@as(u64, rate) * 25) + (@as(u64, self.bpm) * 5)) / (@as(u64, self.bpm) * 10));
+        // Use the actual mixer sample rate to compute tick length precisely
+        const eff_rate: u32 = @import("mixer_asm.zig").getMixRate();
+        // tick duration = 2.5 / BPM seconds -> samples_per_tick = eff_rate * 2.5 / BPM
+        self.samples_per_tick = @intCast((@as(u64, eff_rate) * 25 + (@as(u64, self.bpm) * 5)) / (@as(u64, self.bpm) * 10));
+        if (self.samples_per_tick == 0) self.samples_per_tick = 1; // safety
         self.samples_until_tick = self.samples_per_tick;
     }
 
@@ -272,28 +299,33 @@ pub const ModPlayer = struct {
         }
     }
 
-    // Compute mix channel freq field in the same domain Maxmod GBA expects (pre-mm_ratescale)
+    // Compute mix channel step in 20.12 domain (what our Zig mixer expects).
+    // Apply finetune by adjusting the period (closer to Maxmod/PT semantics) before computing step.
     fn periodToAsmFreq(self: *const ModPlayer, period: u16, sample_idx: u8) u32 {
         if (period == 0) return 0;
+        // Apply per-sample finetune (-8..+7) by adjusting period first
+        var p_eff: u32 = period;
+        if (sample_idx > 0 and sample_idx <= self.module.samples.len) {
+            const ft: i8 = self.module.samples[sample_idx - 1].finetune;
+            if (ft != 0) {
+                const ft_index: usize = @intCast(ft + 8);
+                const ft_mul: u32 = FINETUNE_MUL_16_16[ft_index];
+                // freq ∝ 1/period; applying finetune to period: p' = p * (1 / 2^(ft/96))
+                // Use reciprocal via fixed-point: p' = (p * 65536) / ft_mul
+                p_eff = @intCast((@as(u64, p_eff) * 65536) / @as(u64, ft_mul));
+                if (p_eff < 113) p_eff = 113;
+                if (p_eff > 856) p_eff = 856;
+            }
+        }
         // Amiga frequencies (match Maxmod mas.c): value = MOD_FREQ_DIVIDER_PAL / period
         const MOD_FREQ_DIVIDER_PAL: u32 = 56_750_314; // exact constant used by Maxmod
         // Maxmod uses a period domain with 5 fractional bits; emulate by dividing by 16.
-        // This brings the step into the correct 20.12 range for the ASM mixer.
-        var value: u32 = @intCast(MOD_FREQ_DIVIDER_PAL / (@as(u32, period) << 4));
-        // Apply per-sample finetune (-8..+7) as multiplier 2^(ft/96)
-        var finetune: i8 = 0;
-        if (sample_idx > 0 and sample_idx <= self.module.samples.len) {
-            finetune = self.module.samples[sample_idx - 1].finetune;
-        }
-        if (finetune != 0) {
-            const ft_index: usize = @intCast(finetune + 8);
-            const ft_mul: u32 = FINETUNE_MUL_16_16[ft_index];
-            value = @intCast((@as(u64, value) * @as(u64, ft_mul)) >> 16);
-        }
-        // mix_ch->freq = (scale * value) >> 16, scale: (4096*65536)/15768 (GBA path)
+        // This brings the step into the correct 20.12 range for the mixer.
+        const value: u32 = @intCast(MOD_FREQ_DIVIDER_PAL / (p_eff << 4));
+        // step (20.12) = (scale * value) >> 16, scale ~ (4096*65536)/rate; for mode 3 use 15768 Hz
         const scale: u32 = @intCast((@as(u64, 4096) * 65536) / 15768);
-        const freq_field: u32 = @intCast((@as(u64, scale) * @as(u64, value)) >> 16);
-        return freq_field;
+        const step_20_12: u32 = @intCast((@as(u64, scale) * @as(u64, value)) >> 16);
+        return step_20_12;
     }
 
     pub fn onMixed(self: *ModPlayer, mixed_samples: u32) void {
@@ -319,27 +351,50 @@ pub const ModPlayer = struct {
     fn advanceTick(self: *ModPlayer) void {
         // Tick advancement: tick 0 handled by processRow; ticks 1..speed-1 apply effects
         if (self.tick_in_row == 0) {
-            // already processed
+            // Normal path: tick 0 handled by processRow already.
+            // Pattern delay path: skip tick 0 retrigger and go straight to tick 1 effects.
+            if (self.suppress_tick0) {
+                self.suppress_tick0 = false;
+                self.tick_in_row = 1;
+                self.applyTickEffects(1);
+            }
         } else {
             self.applyTickEffects(self.tick_in_row);
         }
         self.tick_in_row += 1;
         if (self.tick_in_row >= self.speed_ticks) {
             self.tick_in_row = 0;
-            // Pattern delay: if active, repeat current row (do not advance)
+            // Pattern delay and deferred jumps/breaks/loops are handled here
             if (self.patt_delay > 0) {
+                // Stay on same row/order for a delayed repeat but do NOT retrigger tick 0 next time
                 self.patt_delay -= 1;
-            } else {
-                self.row_index += 1;
-            }
-            if (self.row_index >= 64) {
-                self.row_index = 0;
-                self.order_index += 1;
-                if (self.order_index >= self.module.order_count or self.module.orders[self.order_index] >= 0xFE) {
-                    self.order_index = 0; // loop song
+                self.suppress_tick0 = true;
+                // do not call processRow; we will run tick effects only on the delayed row
+            } else if (self.next_order_override != null or self.next_row_override != null) {
+                const new_order = self.next_order_override orelse self.order_index;
+                const new_row = self.next_row_override orelse 0;
+                self.order_index = if (new_order >= self.module.order_count) 0 else new_order;
+                self.row_index = if (new_row > 63) 0 else new_row;
+                if (DEBUG_ROWFLOW) {
+                    var b: [64]u8 = undefined;
+                    const msg = std.fmt.bufPrint(&b, "[ROW] jump -> ord={d} row={d}\n", .{ self.order_index, self.row_index }) catch null;
+                    if (msg) |m| debug.write(m) catch {};
                 }
+                self.next_order_override = null;
+                self.next_row_override = null;
+                self.processRow(); // next row tick 0
+            } else {
+                // Normal sequential advance
+                self.row_index += 1;
+                if (self.row_index >= 64) {
+                    self.row_index = 0;
+                    self.order_index += 1;
+                    if (self.order_index >= self.module.order_count or self.module.orders[self.order_index] >= 0xFE) {
+                        self.order_index = 0; // loop song
+                    }
+                }
+                self.processRow(); // next row tick 0
             }
-            self.processRow(); // next row tick 0
         }
     }
 
@@ -524,6 +579,14 @@ pub const ModPlayer = struct {
         const pat = self.module.patterns[pat_index];
         // Track tick0 vs ticks>0 minimal state
         var new_instruments: [32]bool = [_]bool{false} ** 32;
+        var triggered_this_row: [32]bool = [_]bool{false} ** 32;
+        // Row-flow debug summary (only emitted if any control effect is seen)
+        var saw_bxx: bool = false;
+        var val_bxx: u8 = 0;
+        var saw_dxx: bool = false;
+        var val_dxx_row: u8 = 0;
+        var saw_e6x: bool = false;
+        var val_e6x: u8 = 0;
         var ch: u8 = 0;
         while (ch < self.module.channels) : (ch += 1) {
             const note = pat.getNote(self.row_index, ch);
@@ -540,20 +603,27 @@ pub const ModPlayer = struct {
             if (note.effect == 0x0C) {
                 self.channels[ch].volume = if (note.param > 64) 64 else note.param;
             }
-            // Bxx: position jump (next row)
+            // Bxx: position jump (defer until end of row)
             if (note.effect == 0x0B) {
-                self.order_index = note.param;
-                self.row_index = 0;
-                // restart row processing with new order (simple approach)
+                self.next_order_override = note.param;
+                self.next_row_override = 0;
+                saw_bxx = true;
+                val_bxx = note.param;
             }
-            // Dxx: pattern break, xx in BCD -> row = tens*10 + ones
+            // Dxx: pattern break to row (BCD), for next order (defer)
             if (note.effect == 0x0D) {
-                self.order_index += 1;
-                if (self.order_index >= self.module.order_count) self.order_index = 0;
                 const tens: u8 = (note.param >> 4) & 0xF;
                 const ones: u8 = note.param & 0xF;
                 const target_row: u8 = @intCast(@min(@as(u16, tens) * 10 + ones, 63));
-                self.row_index = target_row;
+                self.next_row_override = target_row;
+                // If no explicit Bxx, advance to next order
+                if (self.next_order_override == null) {
+                    var next_order = self.order_index + 1;
+                    if (next_order >= self.module.order_count) next_order = 0;
+                    self.next_order_override = next_order;
+                }
+                saw_dxx = true;
+                val_dxx_row = target_row;
             }
             // 9xx: Sample offset (xx * 256 bytes), applied when note triggers this row
             if (note.effect == 0x09) {
@@ -589,29 +659,30 @@ pub const ModPlayer = struct {
                             period_changed = true;
                         }
                     },
-                    0x6 => { // E6x: Pattern loop
+                    0x6 => { // E6x: Pattern loop (defer row change until end-of-row)
                         if (self.tick_in_row == 0) {
                             if (ext_param == 0) {
-                                // Set loop start point
+                                // Set loop start marker at current row
                                 self.channels[ch].loop_start = self.row_index;
                             } else {
-                                // Loop x times
                                 if (self.channels[ch].loop_count == 0) {
                                     self.channels[ch].loop_count = ext_param;
-                                    self.row_index = self.channels[ch].loop_start;
+                                    self.next_row_override = self.channels[ch].loop_start;
                                 } else {
                                     self.channels[ch].loop_count -= 1;
                                     if (self.channels[ch].loop_count > 0) {
-                                        self.row_index = self.channels[ch].loop_start;
+                                        self.next_row_override = self.channels[ch].loop_start;
                                     }
                                 }
+                                saw_e6x = true;
+                                val_e6x = ext_param;
                             }
                         }
                     },
                     0x9 => { // E9x: Retrigger note every x ticks (1..15)
                         const r: u8 = ext_param & 0x0F;
                         if (r != 0 and (self.tick_in_row % r) == 0) {
-                            mixer.retriggerChannel(ch);
+                            mixer.retriggerChannel(phys(ch));
                         }
                     },
                     0xA => { // EAx: Fine volume slide up
@@ -631,6 +702,9 @@ pub const ModPlayer = struct {
                     0xC => { // ECx: Note cut
                         if (self.tick_in_row == ext_param) {
                             self.channels[ch].volume = 0;
+                            const pan_ec: u8 = panForChannel(self.module.channels, ch);
+                            const step_ec = self.periodToAsmFreq(self.channels[ch].period, self.channels[ch].sample_index);
+                            mixer.updateChannel(phys(ch), 0, pan_ec, step_ec);
                         }
                     },
                     0xD => { // EDx: Note delay
@@ -652,8 +726,8 @@ pub const ModPlayer = struct {
                                         var pcm: []const u8 = s.pcm8;
                                         var loop_len_bytes: u32 = @as(u32, s.repeat_len_words) * 2;
                                         var have_mas: bool = false;
-                                        if (@hasDecl(@import("lib.zig"), "resolveGbsSample")) {
-                                            if (@import("lib.zig").resolveGbsSample(sidx)) |blk| {
+                                        if (USE_GBS_FOR_MOD and @hasDecl(@import("lib.zig"), "resolveGbsSampleForMod")) {
+                                            if (@import("lib.zig").resolveGbsSampleForMod(sidx)) |blk| {
                                                 pcm = blk.pcm;
                                                 loop_len_bytes = blk.loop_len_bytes;
                                                 have_mas = true;
@@ -683,13 +757,38 @@ pub const ModPlayer = struct {
                                             if (loop_len_bytes != 0x8000_0000 and loop_len_bytes <= 2) {
                                                 loop_len_bytes = 0x8000_0000; // disable short loops
                                             }
+                                            if (DEBUG_CH3 and ch == 2) {
+                                                var buf: [96]u8 = undefined;
+                                                const ll2 = loop_len_bytes;
+                                                const no_loop2 = (ll2 & 0x8000_0000) != 0;
+                                                const msg2 = std.fmt.bufPrint(&buf, "[CH3-EDx] row={d} ord={d} samp={d} off={d} ll=0x{X:0>8} {s}\n", .{ self.row_index, self.order_index, self.channels[ch].delayed_sample, start_off, ll2, if (no_loop2) "NOLOOP" else "LOOP" }) catch null;
+                                                if (msg2) |m2| debug.write(m2) catch {};
+                                            }
+                                            if (ch == 2) {
+                                                var buf: [96]u8 = undefined;
+                                                const ll2 = loop_len_bytes;
+                                                const no_loop2 = (ll2 & 0x8000_0000) != 0;
+                                                const msg2 = std.fmt.bufPrint(&buf, "[CH3-EDx] row={d} ord={d} samp={d} off={d} ll=0x{X:0>8} {s}\n", .{ self.row_index, self.order_index, self.channels[ch].delayed_sample, start_off, ll2, if (no_loop2) "NOLOOP" else "LOOP" }) catch null;
+                                                if (msg2) |m2| debug.write(m2) catch {};
+                                            }
 
-                                            if (start_off != 0) {
-                                                mixer.setChannelFromPcm8WithOffset(phys(ch), pcm, loop_len_bytes, vol_scaled, pan, stepv, start_off);
+                                            // Clamp offset to < len; else 0
+                                            var s_off: u32 = start_off;
+                                            const len_bytes2: u32 = @intCast(pcm.len);
+                                            if (s_off >= len_bytes2) s_off = 0;
+                                            if (s_off != 0) {
+                                                mixer.setChannelFromPcm8WithOffset(phys(ch), pcm, loop_len_bytes, vol_scaled, pan, stepv, s_off);
                                             } else {
                                                 mixer.setChannelFromPcm8(phys(ch), pcm, loop_len_bytes, vol_scaled, pan, stepv);
                                             }
                                             self.channels[ch].sample_offset_bytes = 0;
+                                            if (ch == 2) {
+                                                var bb: [96]u8 = undefined;
+                                                const msgb = std.fmt.bufPrint(&bb, "[CH3 TRIG] row={d} samp={d} len={d} off={d} loop=0x{X:0>8}\n", .{
+                                                    self.row_index, self.channels[ch].delayed_sample, len_bytes2, s_off, loop_len_bytes,
+                                                }) catch null;
+                                                if (msgb) |mb| debug.write(mb) catch {};
+                                            }
                                         }
                                     }
                                 }
@@ -699,7 +798,7 @@ pub const ModPlayer = struct {
                             self.channels[ch].note_delay = 0;
                         }
                     },
-                    0xE => { // EEx: Pattern delay (add x+1 extra row delays)
+                    0xE => { // EEx: Pattern delay (add x extra row delays after this row)
                         if (self.tick_in_row == 0) {
                             const x = ext_param & 0xF;
                             if (x != 0) self.patt_delay +%= x;
@@ -737,8 +836,8 @@ pub const ModPlayer = struct {
                         var pcm: []const u8 = s.pcm8;
                         var have_mas: bool = false;
                         const start_offset: u32 = self.channels[ch].sample_offset_bytes;
-                        if (@hasDecl(@import("lib.zig"), "resolveGbsSample")) {
-                            if (@import("lib.zig").resolveGbsSample(sidx)) |blk| {
+                        if (USE_GBS_FOR_MOD and @hasDecl(@import("lib.zig"), "resolveGbsSampleForMod")) {
+                            if (@import("lib.zig").resolveGbsSampleForMod(sidx)) |blk| {
                                 pcm = blk.pcm;
                                 loop_len_bytes = blk.loop_len_bytes;
                                 have_mas = true;
@@ -756,21 +855,33 @@ pub const ModPlayer = struct {
                         const pan: u8 = panForChannel(self.module.channels, ch);
                         const vol_scaled: u8 = @intCast(@min(@as(u16, self.channels[ch].volume) * 4, 255));
                         if (have_mas) {
-                            // Defensive normalize: MSB set => no loop (standardized contract)
-                            if (loop_len_bytes == 0) loop_len_bytes = 0x8000_0000;
-                            // Apply consistent loop logic: only enable loop if length > 2 and start < total
-                            if (loop_len_bytes != 0x8000_0000 and loop_len_bytes <= 2) {
-                                loop_len_bytes = 0x8000_0000; // disable short loops
+                            if (!triggered_this_row[ch]) {
+                                // Defensive normalize: MSB set => no loop (standardized contract)
+                                if (loop_len_bytes == 0) loop_len_bytes = 0x8000_0000;
+                                // Apply consistent loop logic: only enable loop if length > 2 and start < total
+                                if (loop_len_bytes != 0x8000_0000 and loop_len_bytes <= 2) {
+                                    loop_len_bytes = 0x8000_0000; // disable short loops
+                                }
+                                // Clamp offset to < len; else 0, then trigger
+                                var s_off: u32 = start_offset;
+                                const len_bytes: u32 = @intCast(pcm.len);
+                                if (s_off >= len_bytes) s_off = 0;
+                                if (s_off != 0) {
+                                    mixer.setChannelFromPcm8WithOffset(phys(ch), pcm, loop_len_bytes, vol_scaled, pan, step, s_off);
+                                } else {
+                                    mixer.setChannelFromPcm8(phys(ch), pcm, loop_len_bytes, vol_scaled, pan, step);
+                                }
+                                self.channels[ch].sample_offset_bytes = 0;
+                                new_instruments[ch] = true;
+                                triggered_this_row[ch] = true;
+                                if (ch == 2) {
+                                    var b: [96]u8 = undefined;
+                                    const msg = std.fmt.bufPrint(&b, "[CH3 TRIG] row={d} samp={d} len={d} off={d} loop=0x{X:0>8}\n", .{
+                                        self.row_index, note.sample, len_bytes, s_off, loop_len_bytes,
+                                    }) catch null;
+                                    if (msg) |m| debug.write(m) catch {};
+                                }
                             }
-                            // Debug for channel 3 (index 2)
-
-                            if (start_offset != 0) {
-                                mixer.setChannelFromPcm8WithOffset(phys(ch), pcm, loop_len_bytes, vol_scaled, pan, step, start_offset);
-                            } else {
-                                mixer.setChannelFromPcm8(phys(ch), pcm, loop_len_bytes, vol_scaled, pan, step);
-                            }
-                            self.channels[ch].sample_offset_bytes = 0;
-                            new_instruments[ch] = true;
                         } else {
                             // No valid sample buffer with MAS header; skip to avoid noise
                         }
@@ -806,6 +917,16 @@ pub const ModPlayer = struct {
                     mixer.updateChannel(phys(ch), vol_scaled3, pan, step);
                 }
             }
+        }
+        if (DEBUG_ROWFLOW and (saw_bxx or saw_dxx or saw_e6x)) {
+            var buf: [96]u8 = undefined;
+            const msg = std.fmt.bufPrint(&buf, "[ROW] ord={d} row={d} Bxx={s}{d} Dxx={s}{d} E6x={s}{d}\n", .{
+                self.order_index, self.row_index,
+                if (saw_bxx) "" else "-", if (saw_bxx) val_bxx else 0,
+                if (saw_dxx) "" else "-", if (saw_dxx) val_dxx_row else 0,
+                if (saw_e6x) "" else "-", if (saw_e6x) val_e6x else 0,
+            }) catch null;
+            if (msg) |m| debug.write(m) catch {};
         }
     }
 };

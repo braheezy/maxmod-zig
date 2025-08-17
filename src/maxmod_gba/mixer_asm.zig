@@ -1,5 +1,9 @@
+const std = @import("std");
 const regs = @import("registers_gba.zig");
 const audio = @import("audio.zig");
+const gba = @import("gba");
+const debug = gba.debug;
+const DEBUG_AUDIO: bool = false;
 
 pub const MixChannel = extern struct {
     src: u32, // address of sample->data[0]
@@ -28,6 +32,9 @@ var s_wave_buffer: [4096]u8 align(4) = undefined; // interleaved output: left th
 var s_len_bytes: [8]u32 = [_]u32{0} ** 8;
 var s_loop_bytes: [8]u32 = [_]u32{0} ** 8; // MSB set => no loop
 var s_mp_mix_seg: u8 = 0;
+// Debug: track CH3 (index 2) active/inactive transitions across any mixer path
+var s_prev_ch3_active: bool = false;
+var s_prev_ch3_read: u32 = 0;
 
 // Optional external ASM mixer (from mixer_asm.o)
 extern fn mmMixerMix(samples_count: u32) callconv(.C) void;
@@ -101,6 +108,7 @@ fn zig_mmMixerMix(samples_count: u32) callconv(.C) void {
         len_list[active_count] = len_bytes;
         loop_list[active_count] = loop_val;
         chan_index_list[active_count] = @intCast(ch_index);
+        // per-mix logs removed; enable only if debugging audio timing
         active_count += 1;
     }
 
@@ -134,7 +142,9 @@ fn zig_mmMixerMix(samples_count: u32) callconv(.C) void {
             if (idx0 >= len_bytes) {
                 if ((loop_val & 0x8000_0000) != 0) {
                     const ch_ptr = &channels_ptr[chan_index_list[k]];
+                    ch_ptr.vol = 0;
                     ch_ptr.src = 1 << 31;
+                    // per-mix logs removed to avoid FIFO starvation
                     continue;
                 } else {
                     const over: u32 = idx0 - len_bytes;
@@ -157,7 +167,9 @@ fn zig_mmMixerMix(samples_count: u32) callconv(.C) void {
             if (idx1 >= len_bytes) {
                 if ((loop_val & 0x8000_0000) != 0) {
                     const ch_ptr = &channels_ptr[chan_index_list[k]];
+                    ch_ptr.vol = 0;
                     ch_ptr.src = 1 << 31;
+                    // per-mix logs removed to avoid FIFO starvation
                     continue;
                 } else {
                     const over2: u32 = idx1 - len_bytes;
@@ -236,6 +248,25 @@ fn zig_mmMixerMix(samples_count: u32) callconv(.C) void {
     mp_writepos = @intCast(left_write_addr);
 }
 
+fn debug_ch3_transition() void {
+    // Emit concise logs on CH3 (index 2) activation/deactivation across mix calls
+    const ch_index: usize = 2;
+    const ch: *MixChannel = &(@as([*]MixChannel, @ptrFromInt(mm_mix_channels)))[ch_index];
+    const active: bool = (ch.src & 0x8000_0000) == 0;
+    if (active != s_prev_ch3_active) {
+        if (active) {
+            // no activation log required per user request
+        } else {
+            var b2: [96]u8 = undefined;
+            const cur = s_prev_ch3_read >> 12;
+            const msg2 = std.fmt.bufPrint(&b2, "[CH3 OFF] cursor={d} len={d}\n", .{ cur, s_len_bytes[ch_index] }) catch null;
+            if (msg2) |m2| debug.write(m2) catch {};
+        }
+        s_prev_ch3_active = active;
+    }
+    s_prev_ch3_read = ch.read;
+}
+
 fn setExports(mode_index: u32) void {
     // Tables from mixer.c (mode 0..7)
     const mp_mixing_lengths = [_]u16{ 136, 176, 224, 264, 304, 352, 448, 528 };
@@ -261,6 +292,14 @@ pub fn init(mode_index: u32) void {
     // Stop any existing DMA
     audio.silenceAllDma();
 
+    // Reset mixer state to a known clean slate
+    var i: usize = 0;
+    while (i < s_mix_channels.len) : (i += 1) {
+        s_mix_channels[i] = .{ .src = 1 << 31, .read = 0, .vol = 0, .pan = 128, ._unused0 = 0, ._unused1 = 0, .freq = 0 };
+        s_len_bytes[i] = 0;
+        s_loop_bytes[i] = 0x8000_0000; // no loop
+    }
+
     setExports(mode_index);
 
     // Configure sound and DMA similar to C mmMixerInit
@@ -283,6 +322,14 @@ pub fn init(mode_index: u32) void {
     // Enable DMA [enable, fifo request, 32-bit, repeat]
     regs.REG_DMA1CNT.* = 0xB6000000;
     regs.REG_DMA2CNT.* = 0xB6000000;
+
+    // Debug DMA setup
+    debug.init();
+    var buf: [96]u8 = undefined;
+    const msg = std.fmt.bufPrint(&buf, "[MIX INIT] DAD1=0x{X:0>8} DAD2=0x{X:0>8} SAD1=0x{X:0>8} SAD2=0x{X:0>8}\n", .{
+        regs.REG_DMA1DAD.*, regs.REG_DMA2DAD.*, regs.REG_DMA1SAD.*, regs.REG_DMA2SAD.*,
+    }) catch null;
+    if (msg) |m| debug.write(m) catch {};
 
     // Timer0 to 16kHz if mode_index=3
     const mix_rates = [_]u32{ 8000, 10512, 13379, 15768, 18157, 21024, 26758, 31536 };
@@ -328,6 +375,12 @@ pub fn setChannelFromPcm8(channel_index: usize, pcm: []const u8, loop_len: u32, 
     };
     s_len_bytes[channel_index] = @intCast(pcm.len);
     s_loop_bytes[channel_index] = if (loop_len == 0) 0x8000_0000 else loop_len;
+    if (DEBUG_AUDIO and channel_index == 2) {
+        var buf: [96]u8 = undefined;
+        const ll = s_loop_bytes[channel_index];
+        const msg = std.fmt.bufPrint(&buf, "[MX CH3 set] len={d} loop=0x{X:0>8} read={d}\n", .{ s_len_bytes[channel_index], ll, s_mix_channels[channel_index].read }) catch null;
+        if (msg) |m| debug.write(m) catch {};
+    }
 }
 
 pub fn setChannelFromPcm8WithOffset(channel_index: usize, pcm: []const u8, loop_len: u32, vol: u8, pan: u8, step_fixed_20_12: u32, start_offset_bytes: u32) void {
@@ -335,7 +388,7 @@ pub fn setChannelFromPcm8WithOffset(channel_index: usize, pcm: []const u8, loop_
     if (channel_index >= s_mix_channels.len) return;
     const lenb = s_len_bytes[channel_index];
     var off = start_offset_bytes;
-    if (off >= lenb) off = if (lenb > 0) lenb - 1 else 0;
+    if (off >= lenb) off = 0;
     s_mix_channels[channel_index].read = off << 12;
 }
 
@@ -359,6 +412,7 @@ pub fn mixOneSegment() void {
     } else {
         zig_mmMixerMix(n);
     }
+    debug_ch3_transition();
     // Notify player state about tick timing if present
     if (@hasDecl(@import("player_mod.zig"), "ModPlayer")) {
         // Try to call into player to advance tick accounting
@@ -374,4 +428,5 @@ pub fn mixN(n: u32) void {
     } else {
         zig_mmMixerMix(n);
     }
+    debug_ch3_transition();
 }

@@ -81,6 +81,11 @@ fn mmFrameStyle() void {
     @import("player.zig").frame();
 }
 
+// --- Test helpers ---
+pub fn mixerTestSetChannelFromPcm8(index: usize, pcm: []const u8, loop_len: u32, vol: u8, pan: u8, step_fixed_20_12: u32) void {
+    mixer.setChannelFromPcm8(index, pcm, loop_len, vol, pan, step_fixed_20_12);
+}
+
 // --- GBSAMP (MAS bank) loader ---
 var g_gbs_base: [*]const u8 = undefined;
 var g_gbs_offsets: [32]u32 = [_]u32{0} ** 32; // sample parapointers
@@ -88,6 +93,8 @@ var g_gbs_count: u32 = 0; // number of samples
 var g_gbs_song_offsets: [8]u32 = [_]u32{0} ** 8; // optional songs (MSL)
 var g_gbs_song_count: u32 = 0;
 var g_gbs_data_off: u32 = 0; // payload offset (GBS0)
+var g_song_map: [32]u16 = [_]u16{0xFFFF} ** 32; // MOD sample(1..31)->MSL sample index
+var g_song_map_valid: bool = false;
 
 fn readU16(p: [*]const u8) u16 {
     return @as(u16, p[0]) | (@as(u16, p[1]) << 8);
@@ -177,6 +184,74 @@ pub fn resolveGbsSample(index: usize) ?struct { pcm: []const u8, loop_len_bytes:
     const pcm_ptr: [*]const u8 = sample_hdr + 12;
     const pcm = pcm_ptr[0..@as(usize, len)];
     return .{ .pcm = pcm, .loop_len_bytes = loop_len };
+}
+
+// Parse a single MSL song entry to extract sample->msl_index mapping.
+// This reads the MAS song structure written by mmutil (Write_MAS with msl_dep=true).
+pub fn setActiveGbsSong(song_index: usize) bool {
+    if (g_gbs_song_count == 0) return false;
+    if (song_index >= g_gbs_song_count) return false;
+    const song_off = g_gbs_song_offsets[song_index];
+    if (song_off == 0) return false;
+    const base = @intFromPtr(g_gbs_base);
+    var p: [*]const u8 = @ptrFromInt(base + song_off);
+    if (p[0..4].len < 4) return false;
+    const file_size: u32 = readU32(p);
+    _ = file_size;
+    p += 4; // MAS file starts after size
+    // Expect BYTESMASHER then type/version and 2 smasher bytes
+    const magic = readU32(p);
+    if (magic == 0) return false; // basic check
+    p += 4; // magic
+    p += 4; // type/version + 2x smasher
+    // MAS_OFFSET points here in writer; proceed to read counts
+    const order_count: u8 = p[0];
+    const inst_count: u8 = p[1];
+    const samp_count: u8 = p[2];
+    const patt_count: u8 = p[3];
+    _ = order_count;
+    // patt_count used below to skip pattern offsets
+    p += 9; // skip counts (4), flags(1), glob vol(1), speed(1), tempo(1), restart(1)
+    p += 3; // three BA bytes reserved
+    p += 32; // channel volumes (MAX_CHANNELS assumed 32)
+    p += 32; // channel panning
+    p += 200; // orders block padded to 200
+    // Offsets table: inst_count*4 then samp_count*4 then patt_count*4
+    // Skip instrument offsets
+    p += @as(usize, inst_count) * 4;
+    // Read sample offsets
+    if (samp_count == 0 or samp_count > 32) return false;
+    var sample_offsets: [32]u32 = [_]u32{0} ** 32;
+    var i: usize = 0;
+    while (i < samp_count) : (i += 1) {
+        sample_offsets[i] = readU32(p + i * 4);
+    }
+    p += @as(usize, samp_count) * 4;
+    // Skip pattern offsets (not needed)
+    p += @as(usize, patt_count) * 4;
+    // For each sample offset, read its msl_index from the sample struct
+    var k: usize = 0;
+    while (k < samp_count and k < g_song_map.len) : (k += 1) {
+        const soff = sample_offsets[k];
+        if (soff == 0) { g_song_map[k] = 0xFFFF; continue; }
+        const sptr: [*]const u8 = @ptrFromInt((base + song_off) + 4 + @as(usize, soff));
+        // sample struct layout in Write_Sample:
+        // default_volume(1), default_panning(1), freq_div4(2), vibtype(1), vibdepth(1),
+        // vibspeed(1), global_volume(1), vibrate(2), msl_index(2)
+        const msl_index: u16 = readU16(sptr + 10);
+        g_song_map[k] = msl_index;
+    }
+    g_song_map_valid = true;
+    return true;
+}
+
+// Resolve a MOD sample index (0-based) via active song mapping to a bank sample
+pub fn resolveGbsSampleForMod(mod_sample_index: usize) ?struct { pcm: []const u8, loop_len_bytes: u32 } {
+    if (!g_song_map_valid) return null;
+    if (mod_sample_index >= g_song_map.len) return null;
+    const idx = g_song_map[mod_sample_index];
+    if (idx == 0xFFFF) return null;
+    return resolveGbsSample(idx);
 }
 
 // --- MOD (tracker) helpers ---
