@@ -102,4 +102,19 @@ pub fn build(b: *std.Build) void {
 
     const mod_step = b.step("mod", "Build MOD demo ROM (Zig-only)");
     mod_step.dependOn(&example_mod.step);
+
+    // Host utility: compare_wav (analyze good/bad WAV differences)
+    const cmp_mod = b.createModule(.{
+        .root_source_file = b.path("tools/compare_wav.zig"),
+        .target = host_target,
+        .optimize = optimize,
+    });
+    // Provide src include path for tools module imports
+    cmp_mod.addIncludePath(b.path("."));
+    const cmp_exe = b.addExecutable(.{ .name = "compare_wav", .root_module = cmp_mod });
+    b.installArtifact(cmp_exe);
+    const cmp_run = b.addRunArtifact(cmp_exe);
+    if (b.args) |args2| cmp_run.addArgs(args2);
+    const cmp_step = b.step("compare", "Compare two WAVs: zig build compare -- good.wav bad.wav");
+    cmp_step.dependOn(&cmp_run.step);
 }

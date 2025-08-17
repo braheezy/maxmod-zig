@@ -147,7 +147,9 @@ pub fn resolveGbsSample(index: usize) ?struct { pcm: []const u8, loop_len_bytes:
         const base = @intFromPtr(g_gbs_base);
         const hdr_ptr: [*]const u8 = @ptrFromInt(base + g_gbs_data_off + off);
         const len = readU32(hdr_ptr);
-        const loop_len = readU32(hdr_ptr + 4);
+        const raw_loop = readU32(hdr_ptr + 4);
+        // Standardize contract: MSB set => no loop; else value is loop length (bytes)
+        const loop_len: u32 = if (raw_loop == 0xFFFF_FFFF) 0x8000_0000 else raw_loop;
         const pcm_ptr: [*]const u8 = hdr_ptr + 12;
         const pcm = pcm_ptr[0..@as(usize, len)];
         return .{ .pcm = pcm, .loop_len_bytes = loop_len };
@@ -170,7 +172,8 @@ pub fn resolveGbsSample(index: usize) ?struct { pcm: []const u8, loop_len_bytes:
     // sample data header starts after 4 (size) + 4 (type+ver+flags+BA)
     const sample_hdr: [*]const u8 = samp_ptr + 8;
     const len = readU32(sample_hdr + 0);
-    const loop_len = readU32(sample_hdr + 4);
+    const raw_loop = readU32(sample_hdr + 4);
+    const loop_len: u32 = if (raw_loop == 0xFFFF_FFFF) 0x8000_0000 else raw_loop;
     const pcm_ptr: [*]const u8 = sample_hdr + 12;
     const pcm = pcm_ptr[0..@as(usize, len)];
     return .{ .pcm = pcm, .loop_len_bytes = loop_len };
