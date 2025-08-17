@@ -306,9 +306,7 @@ pub fn init(mode_index: u32) void {
     regs.REG_SOUNDCNT_X.* = regs.SOUNDCNT_X_ENABLE;
     regs.REG_SNDBIAS.* = 0x0200;
 
-    // Reset direct sound
-    regs.REG_SOUNDCNT_H.* = 0;
-    // DIRECT SOUND A/B reset pulse and setup: A=left, B=right, Timer0, 100%
+    // Use the same configuration previously validated for stereo output (enables DS A/B, Timer0, 100%)
     regs.REG_SOUNDCNT_H.* = 0x9A0C;
 
     // Setup DMA sources (left/right halves) - keep sources fixed at start

@@ -782,10 +782,10 @@ pub const ModPlayer = struct {
                                                 mixer.setChannelFromPcm8(phys(ch), pcm, loop_len_bytes, vol_scaled, pan, stepv);
                                             }
                                             self.channels[ch].sample_offset_bytes = 0;
-                                            if (ch == 2) {
+                                            if (DEBUG_CH3 and ch == 2) {
                                                 var bb: [96]u8 = undefined;
-                                                const msgb = std.fmt.bufPrint(&bb, "[CH3 TRIG] row={d} samp={d} len={d} off={d} loop=0x{X:0>8}\n", .{
-                                                    self.row_index, self.channels[ch].delayed_sample, len_bytes2, s_off, loop_len_bytes,
+                                                const msgb = std.fmt.bufPrint(&bb, "[CH{d} TRIG] row={d} samp={d} len={d} off={d} loop=0x{X:0>8}\n", .{
+                                                    ch + 1, self.row_index, self.channels[ch].delayed_sample, len_bytes2, s_off, loop_len_bytes,
                                                 }) catch null;
                                                 if (msgb) |mb| debug.write(mb) catch {};
                                             }
@@ -874,10 +874,10 @@ pub const ModPlayer = struct {
                                 self.channels[ch].sample_offset_bytes = 0;
                                 new_instruments[ch] = true;
                                 triggered_this_row[ch] = true;
-                                if (ch == 2) {
+                                if (DEBUG_CH3 and ch == 2) {
                                     var b: [96]u8 = undefined;
-                                    const msg = std.fmt.bufPrint(&b, "[CH3 TRIG] row={d} samp={d} len={d} off={d} loop=0x{X:0>8}\n", .{
-                                        self.row_index, note.sample, len_bytes, s_off, loop_len_bytes,
+                                    const msg = std.fmt.bufPrint(&b, "[CH{d} TRIG] row={d} samp={d} len={d} off={d} loop=0x{X:0>8}\n", .{
+                                        ch + 1, self.row_index, note.sample, len_bytes, s_off, loop_len_bytes,
                                     }) catch null;
                                     if (msg) |m| debug.write(m) catch {};
                                 }
