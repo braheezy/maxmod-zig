@@ -25,23 +25,22 @@ pub fn build(b: *std.Build) void {
 
     // Parametric SFX conversion: zig build sfx -- <path-to-wav>
     const sfx_step = b.step("sfx", "Convert WAV to .mmraw, build, and run in mGBA");
-    const sfx_args = b.args orelse &[_][]const u8{};
-    const selected_wav: []const u8 = if (sfx_args.len > 0) sfx_args[0] else "firered_00A0.wav";
 
-    const convert_sfx = b.addRunArtifact(mmutil_exe);
-    convert_sfx.addArgs(&.{
-        selected_wav,
+    // SFX-specific WAV processing (only runs when sfx step is invoked)
+    const sfx_convert = b.addRunArtifact(mmutil_exe);
+    sfx_convert.addArgs(&.{
+        "firered_00A0.wav", // Default WAV file
         "-o",
         "examples/sfx/sample.mmraw",
-        // Use a common GBA SFX rate for cleaner playback
         "--rate",
         "16000",
         "--bps",
         "8",
     });
-    // Provide the selected WAV path to the ROM via build options
-    const opts = b.addOptions();
-    opts.addOption([]const u8, "sfx_name", selected_wav);
+
+    // Provide the default WAV path to the ROM via build options
+    const sfx_opts = b.addOptions();
+    sfx_opts.addOption([]const u8, "sfx_name", "firered_00A0.wav");
 
     // GBA runtime static library (freestanding ARM ARM7TDMI Thumb)
     const gba_thumb_target_query = blk: {
@@ -77,45 +76,64 @@ pub fn build(b: *std.Build) void {
     gba_mod_runtime.addImport("gba", gba_mod);
 
     // Link our maxmod-gba-zig static library into the SFX example
-    const example = ziggba.addGBAExecutable(b, gba_mod, "sfx", "examples/sfx/main.zig");
-    example.step.dependOn(&convert_sfx.step);
-    example.linkLibrary(gba_lib);
+    const sfx_example = ziggba.addGBAExecutable(b, gba_mod, "sfx", "examples/sfx/main.zig");
+    sfx_example.step.dependOn(&sfx_convert.step);
+    sfx_example.linkLibrary(gba_lib);
     // Allow the example to import the runtime as a Zig module
-    example.root_module.addImport("maxmod_gba", gba_mod_runtime);
-    example.root_module.addOptions("build_options", opts);
-    // Keep object available; we won’t call it by default
-    example.addObjectFile(b.path("mixer_asm.o"));
+    sfx_example.root_module.addImport("maxmod_gba", gba_mod_runtime);
+    sfx_example.root_module.addOptions("build_options", sfx_opts);
+    // Keep object available; we won't call it by default
+    sfx_example.addObjectFile(b.path("mixer_asm.o"));
 
     // The sfx step builds the ROM
-    sfx_step.dependOn(&convert_sfx.step);
-    sfx_step.dependOn(&example.step);
+    sfx_step.dependOn(&sfx_convert.step);
+    sfx_step.dependOn(&sfx_example.step);
     // Also depend on the default step to ensure the ROM gets installed
     sfx_step.dependOn(b.default_step);
 
-    // MOD example: Zig-only. We embed tracker assets directly (to be ported in Zig).
-    const example_mod = ziggba.addGBAExecutable(b, gba_mod, "mod", "examples/mod/main.zig");
-    example_mod.linkLibrary(gba_lib);
-    example_mod.root_module.addImport("maxmod_gba", gba_mod_runtime);
+    // MOD example: Takes a MOD file as input, creates soundbank.bin, and builds ROM
+    const mod_step = b.step("mod", "Build MOD demo ROM from input MOD file");
+
+    // Create the MOD example (always built, but MOD processing is conditional)
+    const mod_example = ziggba.addGBAExecutable(b, gba_mod, "mod", "examples/mod/main.zig");
+    mod_example.linkLibrary(gba_lib);
+    mod_example.root_module.addImport("maxmod_gba", gba_mod_runtime);
     // Keep the prebuilt ASM mixer object linked
-    example_mod.addObjectFile(b.path("mixer_asm.o"));
+    mod_example.addObjectFile(b.path("mixer_asm.o"));
 
-    // TODO: Integrate ASM mixer when supported by toolchain (GAS). Clang IAS chokes on macros.
+    // The mod step builds the ROM
+    mod_step.dependOn(&mod_example.step);
+    // Also depend on the default step to ensure the ROM gets installed
+    mod_step.dependOn(b.default_step);
 
-    const mod_step = b.step("mod", "Build MOD demo ROM (Zig-only)");
-    mod_step.dependOn(&example_mod.step);
+    // Create a separate step for MOD processing that can be invoked manually
+    const mod_process_step = b.step("mod-process", "Process MOD file and create soundbank");
 
-    // Host utility: compare_wav (analyze good/bad WAV differences)
-    const cmp_mod = b.createModule(.{
-        .root_source_file = b.path("tools/compare_wav.zig"),
-        .target = host_target,
-        .optimize = optimize,
+    // MOD-specific processing (only runs when mod-process step is invoked)
+    const mod_args = b.args orelse &[_][]const u8{};
+    const selected_mod: []const u8 = if (mod_args.len > 0) mod_args[0] else "casio2.mod";
+
+    // Copy the selected MOD file to examples/mod directory for embedding
+    const copy_mod = b.addSystemCommand(&.{ "cp", selected_mod, "examples/mod/mod_file.mod" });
+
+    // Use our Zig mmutil to extract samples from the MOD and create soundbank.bin
+    const create_soundbank = b.addRunArtifact(mmutil_exe);
+    create_soundbank.addArgs(&.{
+        selected_mod,
+        "--mod",
+        "-o",
+        "examples/mod/soundbank.bin",
     });
-    // Provide src include path for tools module imports
-    cmp_mod.addIncludePath(b.path("."));
-    const cmp_exe = b.addExecutable(.{ .name = "compare_wav", .root_module = cmp_mod });
-    b.installArtifact(cmp_exe);
-    const cmp_run = b.addRunArtifact(cmp_exe);
-    if (b.args) |args2| cmp_run.addArgs(args2);
-    const cmp_step = b.step("compare", "Compare two WAVs: zig build compare -- good.wav bad.wav");
-    cmp_step.dependOn(&cmp_run.step);
+    create_soundbank.step.dependOn(&copy_mod.step);
+
+    // Build options for the MOD example
+    const mod_opts = b.addOptions();
+    mod_opts.addOption([]const u8, "mod_name", selected_mod);
+    mod_example.root_module.addOptions("build_options", mod_opts);
+
+    // The mod-process step handles the MOD file processing
+    mod_process_step.dependOn(&create_soundbank.step);
+
+    // Make mod step depend on mod-process step
+    mod_step.dependOn(mod_process_step);
 }

@@ -3,13 +3,13 @@ const gba = @import("gba");
 const text = gba.text;
 const maxmod = @import("maxmod_gba");
 const debug = gba.debug;
+const build_options = @import("build_options");
 const ISOLATE_CH3 = false; // set true to run lane-3 isolation test (targets mixer lane index 2)
 
 export var header linksection(".gbaheader") = gba.initHeader("MODDEMO", "MODZ", "00", 0);
 
-// Embed a MOD module placed next to this example
-const mod_data: []const u8 = @embedFile("casio2.mod");
-// Embed sample bank. Prefer official Maxmod MSL soundbank.
+// Embed the MOD file and soundbank created during build
+const mod_data: []const u8 = @embedFile("mod_file.mod");
 const gbsamp_data: []const u8 = @embedFile("soundbank.bin");
 
 pub export fn main() void {
@@ -22,7 +22,8 @@ pub export fn main() void {
     text.initBmpDefault(3);
 
     text.write("#{P:72,64}MOD Playback Demo");
-    text.write("#{P:72,80}Playing: casio2.mod");
+    text.write("#{P:72,80}Playing: ");
+    text.write(build_options.mod_name);
     debug.write("[MOD] UI ready\n") catch {};
 
     maxmod.init();
