@@ -13,7 +13,9 @@ pub fn disableAllDma() void {
     audio.silenceAllDma();
 }
 
-pub fn loadMmraw(data: []const u8) !void { try player.loadMmrawSlice(data); }
+pub fn loadMmraw(data: []const u8) !void {
+    try player.loadMmrawSlice(data);
+}
 
 pub fn play() void {
     // If a MOD is active, the mixer path already configured DMA and Direct Sound.
@@ -233,7 +235,10 @@ pub fn setActiveGbsSong(song_index: usize) bool {
     var k: usize = 0;
     while (k < samp_count and k < g_song_map.len) : (k += 1) {
         const soff = sample_offsets[k];
-        if (soff == 0) { g_song_map[k] = 0xFFFF; continue; }
+        if (soff == 0) {
+            g_song_map[k] = 0xFFFF;
+            continue;
+        }
         const sptr: [*]const u8 = @ptrFromInt((base + song_off) + 4 + @as(usize, soff));
         // sample struct layout in Write_Sample:
         // default_volume(1), default_panning(1), freq_div4(2), vibtype(1), vibdepth(1),

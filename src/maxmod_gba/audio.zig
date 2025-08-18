@@ -64,9 +64,9 @@ pub fn setTimer0(sample_rate_hz: u32) void {
 }
 
 pub fn pulseFifoResetA() void {
-    // Reapply DS A config with reset bit to generate a reset pulse
-    regs.REG_SOUNDCNT_H.* = regs.SOUNDCNT_H_DMG100 | regs.SOUNDCNT_H_FIFO_RESET_A;
-    regs.REG_SOUNDCNT_H.* = regs.SOUNDCNT_H_DMG100 | regs.SOUNDCNT_H_DS_A_LR_TIMER0_100;
+    // Reapply DS A/B config with reset bit to generate a reset pulse (use same value as C version)
+    regs.REG_SOUNDCNT_H.* = 0x9A0C | 0x0800; // 0x9A0C + FIFO reset bit
+    regs.REG_SOUNDCNT_H.* = 0x9A0C; // restore normal DS A/B config
 }
 
 // Timer1 is not used in the current DMA-fed path

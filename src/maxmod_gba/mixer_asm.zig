@@ -4,6 +4,7 @@ const audio = @import("audio.zig");
 const gba = @import("gba");
 const debug = gba.debug;
 const DEBUG_AUDIO: bool = false;
+const MAX_EMIT_CRC: u32 = 16;
 
 pub const MixChannel = extern struct {
     src: u32, // address of sample->data[0]
@@ -35,12 +36,68 @@ var s_mp_mix_seg: u8 = 0;
 // Debug: track CH3 (index 2) active/inactive transitions across any mixer path
 var s_prev_ch3_active: bool = false;
 var s_prev_ch3_read: u32 = 0;
+var s_crc_emitted: u32 = 0;
+
+fn fnv1a32(ptr: [*]const u8, len: usize) u32 {
+    var hash: u32 = 2166136261;
+    var i: usize = 0;
+    while (i < len) : (i += 1) {
+        hash ^= ptr[i];
+        hash *%= 16777619;
+    }
+    return hash;
+}
+
+fn crcSegment(left_start: usize, right_start: usize, seg_bytes: usize, left_base: usize, left_end: usize, right_base: usize, right_end: usize) struct {
+    crc_l: u32,
+    crc_r: u32,
+} {
+    // Handle potential wrap within the half-buffers.
+    var crc_l: u32 = 2166136261;
+    var crc_r: u32 = 2166136261;
+
+    // Left
+    var ls = left_start;
+    var remain = seg_bytes;
+    while (remain > 0) {
+        const chunk_end = if (ls + remain <= left_end) ls + remain else left_end;
+        const chunk_len = chunk_end - ls;
+        const p: [*]const u8 = @ptrFromInt(ls);
+        var i: usize = 0;
+        while (i < chunk_len) : (i += 1) {
+            crc_l ^= p[i];
+            crc_l *%= 16777619;
+        }
+        remain -= chunk_len;
+        ls = if (ls + chunk_len >= left_end) left_base else ls + chunk_len;
+    }
+
+    // Right
+    var rs = right_start;
+    remain = seg_bytes;
+    while (remain > 0) {
+        const chunk_end = if (rs + remain <= right_end) rs + remain else right_end;
+        const chunk_len = chunk_end - rs;
+        const p: [*]const u8 = @ptrFromInt(rs);
+        var j: usize = 0;
+        while (j < chunk_len) : (j += 1) {
+            crc_r ^= p[j];
+            crc_r *%= 16777619;
+        }
+        remain -= chunk_len;
+        rs = if (rs + chunk_len >= right_end) right_base else rs + chunk_len;
+    }
+
+    return .{ .crc_l = crc_l, .crc_r = crc_r };
+}
 
 // Optional external ASM mixer (from mixer_asm.o)
 extern fn mmMixerMix(samples_count: u32) callconv(.C) void;
 
 var s_use_asm_mixer: bool = false;
-pub fn setUseAsmMixer(on: bool) void { s_use_asm_mixer = on; }
+pub fn setUseAsmMixer(on: bool) void {
+    s_use_asm_mixer = on;
+}
 
 // Software mixer in Zig to replace GAS ASM path when ASM is disabled.
 // Mixes into `s_wave_buffer` interleaved halves (left block, then right block),
@@ -306,20 +363,45 @@ pub fn init(mode_index: u32) void {
     regs.REG_SOUNDCNT_X.* = regs.SOUNDCNT_X_ENABLE;
     regs.REG_SNDBIAS.* = 0x0200;
 
-    // Use the same configuration previously validated for stereo output (enables DS A/B, Timer0, 100%)
+    // Clear FIFO data (same as C version)
+    @as(*volatile u32, @ptrFromInt(regs.FIFO_A)).* = 0;
+    @as(*volatile u32, @ptrFromInt(regs.FIFO_A + 0x4)).* = 0;
+
+    // Reset direct sound (same as C version)
+    regs.REG_SOUNDCNT_H.* = 0;
+
+    // Setup sound: DIRECT SOUND A/B reset, timer0, A=left, B=right, volume=100% (same as C version)
     regs.REG_SOUNDCNT_H.* = 0x9A0C;
+
+    // Debug: Verify the value was set correctly
+    debug.init();
+    var buf_verify: [64]u8 = undefined;
+    const msg_verify = std.fmt.bufPrint(&buf_verify, "[ZIG_VERIFY] SOUNDCNT_H set to 0x{X:0>4}\n", .{regs.REG_SOUNDCNT_H.*}) catch null;
+    if (msg_verify) |m| debug.write(m) catch {};
+
+    // Debug: Print all DS configuration registers
+    debug.init();
+    var buf1: [128]u8 = undefined;
+    const msg1 = std.fmt.bufPrint(&buf1, "[ZIG_DS_CONFIG] SOUNDCNT_X=0x{X:0>8} SNDBIAS=0x{X:0>8} SOUNDCNT_H=0x{X:0>8}\n", .{ regs.REG_SOUNDCNT_X.*, regs.REG_SNDBIAS.*, regs.REG_SOUNDCNT_H.* }) catch null;
+    if (msg1) |m1| debug.write(m1) catch {};
+
+    // Debug: Print FIFO addresses and DMA setup
+    var buf2: [128]u8 = undefined;
+    const msg2 = std.fmt.bufPrint(&buf2, "[ZIG_DS_CONFIG] FIFO_A=0x{X:0>8} FIFO_B=0x{X:0>8} DMA1_DAD=0x{X:0>8} DMA2_DAD=0x{X:0>8}\n", .{ @as(u32, @intCast(regs.FIFO_A)), @as(u32, @intCast(regs.FIFO_A + 0x4)), regs.REG_DMA1DAD.*, regs.REG_DMA2DAD.* }) catch null;
+    if (msg2) |m2| debug.write(m2) catch {};
 
     // Setup DMA sources (left/right halves) - keep sources fixed at start
     const base = @as(u32, @intCast(@intFromPtr(&s_wave_buffer)));
     regs.REG_DMA1SAD.* = base;
     regs.REG_DMA2SAD.* = base + mm_mixlen * 2;
 
-    regs.REG_DMA1DAD.* = @as(u32, @intCast(regs.FIFO_A));
-    regs.REG_DMA2DAD.* = @as(u32, @intCast(regs.FIFO_A + 0x4)); // FIFO_B = FIFO_A + 4
+    // Use exact same FIFO addresses as working C version
+    regs.REG_DMA1DAD.* = 0x040000A0; // REG_SGFIFOA
+    regs.REG_DMA2DAD.* = 0x040000A4; // REG_SGFIFOB
 
-    // Enable DMA [enable, fifo request, 32-bit, repeat]
-    regs.REG_DMA1CNT.* = 0xB6000000;
-    regs.REG_DMA2CNT.* = 0xB6000000;
+    // Use exact same DMA control as working C version
+    regs.REG_DMA1CNT.* = 0x0000B600;
+    regs.REG_DMA2CNT.* = 0x0000B600;
 
     // Debug DMA setup
     debug.init();
@@ -342,9 +424,9 @@ pub fn onVBlank() void {
         // Disable DMA
         regs.REG_DMA1CNT_H.* &= ~regs.DMA_ENABLE;
         regs.REG_DMA2CNT_H.* &= ~regs.DMA_ENABLE;
-        // Restart DMA
-        regs.REG_DMA1CNT_H.* = regs.DMA_ENABLE | regs.DMA_START_FIFO | regs.DMA_REPEAT | regs.DMA_32 | regs.DMA_SRC_INC | regs.DMA_DEST_FIXED;
-        regs.REG_DMA2CNT_H.* = regs.DMA_ENABLE | regs.DMA_START_FIFO | regs.DMA_REPEAT | regs.DMA_32 | regs.DMA_SRC_INC | regs.DMA_DEST_FIXED;
+        // Use exact same DMA restart as working C version
+        regs.REG_DMA1CNT_H.* = 0xB600;
+        regs.REG_DMA2CNT_H.* = 0xB600;
     } else {
         // Reset write position to start of wave buffer
         mp_writepos = @intFromPtr(&s_wave_buffer);
@@ -362,6 +444,7 @@ pub fn setChannelFromPcm8(channel_index: usize, pcm: []const u8, loop_len: u32, 
     if (channel_index >= s_mix_channels.len) return;
     const data_addr: u32 = @intCast(@intFromPtr(pcm.ptr));
     const freq_field: u32 = step_fixed_20_12;
+
     s_mix_channels[channel_index] = .{
         .src = data_addr,
         .read = 0,
@@ -405,12 +488,35 @@ pub fn updateChannel(channel_index: usize, vol: u8, pan: u8, step_fixed_20_12: u
 pub fn mixOneSegment() void {
     // Generate next segment of length mm_mixlen
     const n: u32 = mm_mixlen;
+    // Capture starting write positions to identify the just-mixed segment
+    const left_base: usize = @intFromPtr(&s_wave_buffer);
+    const half_bytes: usize = @as(usize, mm_mixlen) * 2;
+    const left_end: usize = left_base + half_bytes;
+    const right_base: usize = left_end;
+    const right_end: usize = right_base + half_bytes;
+    const start_left: usize = @intCast(mp_writepos);
+    const start_right: usize = right_base + (start_left - left_base);
     if (s_use_asm_mixer) {
         mmMixerMix(n);
     } else {
         zig_mmMixerMix(n);
     }
     debug_ch3_transition();
+    // Emit per-segment CRCs for first few segments to compare with C
+    if (s_crc_emitted < MAX_EMIT_CRC) {
+        const seg_bytes: usize = @intCast(mm_mixlen);
+        const cs = crcSegment(start_left, start_right, seg_bytes, left_base, left_end, right_base, right_end);
+        var buf: [128]u8 = undefined;
+        const msg = std.fmt.bufPrint(&buf, "[ZIG_CRC] seg={d} L=0x{X:0>8} R=0x{X:0>8} startL=0x{X:0>8} startR=0x{X:0>8}\n", .{
+            s_crc_emitted,
+            cs.crc_l,
+            cs.crc_r,
+            start_left,
+            start_right,
+        }) catch null;
+        if (msg) |m| debug.write(m) catch {};
+        s_crc_emitted += 1;
+    }
     // Notify player state about tick timing if present
     if (@hasDecl(@import("player_mod.zig"), "ModPlayer")) {
         // Try to call into player to advance tick accounting

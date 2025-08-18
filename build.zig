@@ -106,10 +106,7 @@ pub fn build(b: *std.Build) void {
     // Also depend on the default step to ensure the ROM gets installed
     mod_step.dependOn(b.default_step);
 
-    // Create a separate step for MOD processing that can be invoked manually
-    const mod_process_step = b.step("mod-process", "Process MOD file and create soundbank");
-
-    // MOD-specific processing (only runs when mod-process step is invoked)
+    // MOD-specific processing (only runs when mod step is invoked)
     const mod_args = b.args orelse &[_][]const u8{};
     const selected_mod: []const u8 = if (mod_args.len > 0) mod_args[0] else "casio2.mod";
 
@@ -131,9 +128,6 @@ pub fn build(b: *std.Build) void {
     mod_opts.addOption([]const u8, "mod_name", selected_mod);
     mod_example.root_module.addOptions("build_options", mod_opts);
 
-    // The mod-process step handles the MOD file processing
-    mod_process_step.dependOn(&create_soundbank.step);
-
-    // Make mod step depend on mod-process step
-    mod_step.dependOn(mod_process_step);
+    // The mod step depends on MOD processing
+    mod_step.dependOn(&create_soundbank.step);
 }

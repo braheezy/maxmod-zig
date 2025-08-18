@@ -246,10 +246,12 @@ pub const ModPlayer = struct {
 
         // Initialize classic Amiga panning across 4 channels
         // Amiga: ch0=L, ch1=R, ch2=R, ch3=L
+        // Use a static buffer to avoid memory corruption from temporary slices
+        const silence_sample = [_]u8{0};
         var ch: usize = 0;
         while (ch < m.channels) : (ch += 1) {
             const pan = panForChannel(m.channels, @intCast(ch));
-            mixer.setChannelFromPcm8(phys(@intCast(ch)), &[_]u8{0}, 0, 0, pan, 0);
+            mixer.setChannelFromPcm8(phys(@intCast(ch)), &silence_sample, 0, 0, pan, 0);
         }
         // If MSL soundbank has songs, activate first song mapping
         if (@hasDecl(@import("lib.zig"), "setActiveGbsSong")) {
@@ -921,7 +923,7 @@ pub const ModPlayer = struct {
         if (DEBUG_ROWFLOW and (saw_bxx or saw_dxx or saw_e6x)) {
             var buf: [96]u8 = undefined;
             const msg = std.fmt.bufPrint(&buf, "[ROW] ord={d} row={d} Bxx={s}{d} Dxx={s}{d} E6x={s}{d}\n", .{
-                self.order_index, self.row_index,
+                self.order_index,         self.row_index,
                 if (saw_bxx) "" else "-", if (saw_bxx) val_bxx else 0,
                 if (saw_dxx) "" else "-", if (saw_dxx) val_dxx_row else 0,
                 if (saw_e6x) "" else "-", if (saw_e6x) val_e6x else 0,

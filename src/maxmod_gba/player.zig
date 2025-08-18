@@ -125,8 +125,12 @@ pub fn play() void {
     // Configure Direct Sound A now (not during init) and pulse reset
     // Route outputs and master volumes
     regs.REG_SOUNDCNT_L.* = 0x077F;
-    regs.REG_SOUNDCNT_H.* = regs.SOUNDCNT_H_DMG100 | regs.SOUNDCNT_H_FIFO_RESET_A;
-    regs.REG_SOUNDCNT_H.* = regs.SOUNDCNT_H_DMG100 | regs.SOUNDCNT_H_DS_A_LR_TIMER0_100;
+
+    // Don't override DS configuration if MOD is active (MOD player handles this)
+    if (!isModActive()) {
+        regs.REG_SOUNDCNT_H.* = regs.SOUNDCNT_H_DMG100 | regs.SOUNDCNT_H_FIFO_RESET_A;
+        regs.REG_SOUNDCNT_H.* = regs.SOUNDCNT_H_DMG100 | regs.SOUNDCNT_H_DS_A_LR_TIMER0_100;
+    }
     // Configure Timer0 to sample rate
     const rate: u32 = if (hdr.sample_rate_hz != 0) hdr.sample_rate_hz else audio.mix_rate_hz;
     audio.setTimer0(rate);
