@@ -2,3 +2,7 @@
 *.sav
 *.bin
 mod_file.mod
+src/trace
+src/working_mod_player
+src/maxmod_gba
+src/simple_mod_player

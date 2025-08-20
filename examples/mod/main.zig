@@ -9,7 +9,7 @@ const ISOLATE_CH3 = false; // set true to run lane-3 isolation test (targets mix
 export var header linksection(".gbaheader") = gba.initHeader("MODDEMO", "MODZ", "00", 0);
 
 // Embed the MOD file and soundbank created during build
-const mod_data: []const u8 = @embedFile("mod_file.mod");
+const mod_data: []const u8 = @embedFile("casio2.mod");
 const gbsamp_data: []const u8 = @embedFile("soundbank.bin");
 
 pub export fn main() void {
