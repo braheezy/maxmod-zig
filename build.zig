@@ -15,6 +15,31 @@ pub fn build(b: *std.Build) void {
         .name = "mmutil-zig",
         .root_module = mmutil_mod,
     });
+
+    // Use translate-c modules instead of older handwritten C-ports for mmutil
+    // Auto-translated C (host) – XM load, MAS write, MSL builder (GBA path only)
+    const tc_xm = b.createModule(.{ .root_source_file = b.path("src/mmutil/tc/xm_c_raw.zig"), .target = host_target, .optimize = optimize });
+    const tc_mas = b.createModule(.{ .root_source_file = b.path("src/mmutil/tc/mas_c_raw_auto.zig"), .target = host_target, .optimize = optimize });
+    const tc_files = b.createModule(.{ .root_source_file = b.path("src/mmutil/tc/files_c_raw_auto.zig"), .target = host_target, .optimize = optimize });
+    const tc_simple = b.createModule(.{ .root_source_file = b.path("src/mmutil/tc/simple_c_raw_auto.zig"), .target = host_target, .optimize = optimize });
+    const tc_samplefix = b.createModule(.{ .root_source_file = b.path("src/mmutil/tc/samplefix_c_raw_auto.zig"), .target = host_target, .optimize = optimize });
+    const tc_adpcm = b.createModule(.{ .root_source_file = b.path("src/mmutil/tc/adpcm_c_raw_auto.zig"), .target = host_target, .optimize = optimize });
+    const tc_wav = b.createModule(.{ .root_source_file = b.path("src/mmutil/tc/wav_c_raw_auto.zig"), .target = host_target, .optimize = optimize });
+    var tc_shim_mod = b.createModule(.{ .root_source_file = b.path("src/mmutil/tc/shim.zig"), .target = host_target, .optimize = optimize });
+    // Allow shim to import the translated modules by name
+    tc_shim_mod.addImport("tc_mas_c_raw", tc_mas);
+    tc_shim_mod.addImport("tc_samplefix_c_raw", tc_samplefix);
+    tc_shim_mod.addImport("tc_adpcm_c_raw", tc_adpcm);
+    // Attach modules to root
+    mmutil_exe.root_module.addImport("tc_xm_c_raw", tc_xm);
+    mmutil_exe.root_module.addImport("tc_mas_c_raw", tc_mas);
+    mmutil_exe.root_module.addImport("tc_files_c_raw", tc_files);
+    mmutil_exe.root_module.addImport("tc_simple_c_raw", tc_simple);
+    mmutil_exe.root_module.addImport("tc_samplefix_c_raw", tc_samplefix);
+    mmutil_exe.root_module.addImport("tc_adpcm_c_raw", tc_adpcm);
+    mmutil_exe.root_module.addImport("tc_wav_c_raw", tc_wav);
+    mmutil_exe.root_module.addImport("tc_shim", tc_shim_mod);
+
     b.installArtifact(mmutil_exe);
 
     const run_mmutil = b.addRunArtifact(mmutil_exe);
@@ -136,4 +161,43 @@ pub fn build(b: *std.Build) void {
 
     // Make mod step depend on mod-process step
     mod_step.dependOn(mod_process_step);
+
+    // XM example: Build XM demo ROM from input XM file
+    const xm_step = b.step("xm", "Build XM demo ROM from input XM file");
+
+    // Create the XM example executable
+    const xm_example = ziggba.addGBAExecutable(b, gba_mod, "xm", "examples/xm/main.zig");
+    xm_example.linkLibrary(gba_lib);
+    xm_example.root_module.addImport("maxmod_gba", gba_mod_runtime);
+    xm_example.addObjectFile(b.path("mixer_asm.o")); // keep available for future ASM path
+
+    // Handle XM file argument (copy into example directory)
+    const xm_args = b.args orelse &[_][]const u8{};
+    const selected_xm: []const u8 = if (xm_args.len > 0) xm_args[0] else "bad_apple.xm";
+    const copy_xm = b.addSystemCommand(&.{ "cp", selected_xm, "examples/xm/song.xm" });
+    xm_example.step.dependOn(&copy_xm.step);
+
+    const xm_opts = b.addOptions();
+    xm_opts.addOption([]const u8, "xm_name", selected_xm);
+    xm_example.root_module.addOptions("build_options", xm_opts);
+
+    // Generate a MAS file from the XM for upcoming runtime integration
+    const create_xm_soundbank = b.addRunArtifact(mmutil_exe);
+    create_xm_soundbank.addArgs(&.{
+        selected_xm,
+        "--xm",
+        "-m",
+        "-o",
+        "examples/xm/soundbank.bin",
+    });
+    create_xm_soundbank.step.dependOn(&copy_xm.step);
+
+    // Ensure example build waits for the soundbank
+    xm_example.step.dependOn(&create_xm_soundbank.step);
+
+    // xm step depends on processing too
+    xm_step.dependOn(&copy_xm.step);
+    xm_step.dependOn(&create_xm_soundbank.step);
+    xm_step.dependOn(&xm_example.step);
+    xm_step.dependOn(b.default_step);
 }

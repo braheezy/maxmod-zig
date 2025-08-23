@@ -3,6 +3,17 @@ const wav = @import("wav_reader.zig");
 const rs = @import("resampler.zig");
 const mmw = @import("mmraw_writer.zig");
 const mod_proc = @import("mod_processor.zig");
+const xm_proc = @import("xm_processor.zig");
+// Ensure translate-c shim is compiled and its exported globals are linked
+const tc_shim = @import("tc_shim");
+// Force-include C-translated support so symbols are available for linking
+const _tc_simple_force = @import("tc_simple_c_raw");
+const tc_samplefix = @import("tc_samplefix_c_raw");
+const _force_fixsample_ref = tc_samplefix.FixSample; // ensure codegen
+// Also force-link tracker loaders used by MSL builder
+const tc_wav = @import("tc_wav_c_raw");
+const _force_wav = tc_wav.Load_WAV;
+const _tc_adpcm_force = @import("tc_adpcm_c_raw");
 
 const default_rate: u32 = 0; // 0 means preserve source rate unless overridden
 
@@ -17,6 +28,9 @@ pub fn main() !void {
     _ = args.next(); // exe name
     const in_path = args.next() orelse return usage();
 
+    // Default to GBA path for MAS writer
+    tc_shim.target_system = 0; // SYSTEM_GBA
+
     var out_path: ?[]const u8 = null;
     var rate: u32 = default_rate;
     var rate_set: bool = false;
@@ -24,6 +38,9 @@ pub fn main() !void {
     var raw8 = false;
     var looped = false;
     var is_mod = false;
+    var is_xm = false;
+    var is_mas = false;
+    var to_mas = false;
 
     while (args.next()) |a| {
         if (std.mem.eql(u8, a, "-o")) {
@@ -48,6 +65,12 @@ pub fn main() !void {
             raw8 = true;
         } else if (std.mem.eql(u8, a, "--mod")) {
             is_mod = true;
+        } else if (std.mem.eql(u8, a, "--xm")) {
+            is_xm = true;
+        } else if (std.mem.eql(u8, a, "--mas")) {
+            is_mas = true;
+        } else if (std.mem.eql(u8, a, "-m")) {
+            to_mas = true;
         } else {
             return usage();
         }
@@ -64,6 +87,52 @@ pub fn main() !void {
         try mod_proc.createSoundbank(alloc, mod_file, out);
 
         std.debug.print("Created soundbank from MOD file: {s}\n", .{in_path});
+        return;
+    } else if (is_xm) {
+        const xm_data = try std.fs.cwd().readFileAlloc(alloc, in_path, 64 * 1024 * 1024);
+        defer alloc.free(xm_data);
+        if (to_mas) {
+            // Use translate-c path for byte-identical output
+            const tc_files = @import("tc_files_c_raw");
+            const tc_xm = @import("tc_xm_c_raw");
+            const tc_mas = @import("tc_mas_c_raw");
+            // Open input/output via translated file glue
+            if (tc_files.file_open_read(@constCast(@ptrCast(in_path.ptr))) != 0) return error.FileNotFound;
+            if (tc_files.file_open_write(@constCast(@ptrCast(out.ptr))) != 0) return error.FileAccess;
+            var mod_c: tc_mas.MAS_Module = std.mem.zeroes(tc_mas.MAS_Module);
+            const mod_for_xm: [*c]tc_xm.MAS_Module = @ptrCast(&mod_c);
+            _ = tc_xm.Load_XM(mod_for_xm, @as(u8, 0));
+            _ = tc_mas.Write_MAS(&mod_c, @as(u8, 0), @as(u8, 0));
+            tc_files.file_close_read();
+            tc_files.file_close_write();
+            std.debug.print("[tc] Created MAS soundbank from XM file: {s}\n", .{in_path});
+        } else {
+            const xm_file = try xm_proc.parseXmFile(alloc, xm_data);
+            defer {
+                for (xm_file.samples) |s| {
+                    if (s.pcm8.len > 0) alloc.free(s.pcm8);
+                    if (s.pcm16.len > 0) alloc.free(s.pcm16);
+                }
+                alloc.free(xm_file.samples);
+            }
+            try xm_proc.createSoundbank(alloc, xm_file, out);
+            std.debug.print("Created soundbank from XM file: {s}\n", .{in_path});
+        }
+        return;
+    } else if (is_mas) {
+        // Use translate-c path for XM->MAS direct
+        const tc_files = @import("tc_files_c_raw");
+        const tc_xm = @import("tc_xm_c_raw");
+        const tc_mas = @import("tc_mas_c_raw");
+        if (tc_files.file_open_read(@constCast(@ptrCast(in_path.ptr))) != 0) return error.FileNotFound;
+        if (tc_files.file_open_write(@constCast(@ptrCast(out.ptr))) != 0) return error.FileAccess;
+        var mod_c: tc_mas.MAS_Module = std.mem.zeroes(tc_mas.MAS_Module);
+        const mod_for_xm: [*c]tc_xm.MAS_Module = @ptrCast(&mod_c);
+        _ = tc_xm.Load_XM(mod_for_xm, @as(u8, 0));
+        _ = tc_mas.Write_MAS(&mod_c, @as(u8, 0), @as(u8, 0));
+        tc_files.file_close_read();
+        tc_files.file_close_write();
+        std.debug.print("[tc] Created MAS soundbank from XM file: {s}\n", .{in_path});
         return;
     }
 
@@ -191,5 +260,8 @@ fn usage() !void {
     const stderr = std.io.getStdErr().writer();
     try stderr.print("Usage: mmutil-zig input.wav -o output.mmraw [--rate 16000] [--bps 8|16] [--loop]\n", .{});
     try stderr.print("       mmutil-zig input.mod --mod -o output.bin (create soundbank from MOD)\n", .{});
+    try stderr.print("       mmutil-zig input.xm --xm -o output.bin (create soundbank from XM)\n", .{});
+    try stderr.print("       mmutil-zig input.xm --mas -o module.mas (create MAS from XM)\n", .{});
+    //try stderr.print("       mmutil-zig input.xm --msl -o soundbank.bin (create MSL soundbank from XM)\n", .{});
     return error.InvalidArgument;
 }
