@@ -1602,7 +1602,7 @@ pub export fn calc_samplen_ex2(arg_s: [*c]Sample) @"u32" {
     }
     return @import("std").mem.zeroes(@"u32");
 }
-pub export fn clamp_s8(arg_value: c_int) c_int {
+pub export fn clamp_s8(arg_value: c_int) callconv(.C) c_int {
     var value = arg_value;
     _ = &value;
     if (value < -@as(c_int, 128)) {
@@ -1613,7 +1613,7 @@ pub export fn clamp_s8(arg_value: c_int) c_int {
     }
     return value;
 }
-pub export fn clamp_u8(arg_value: c_int) c_int {
+pub export fn clamp_u8(arg_value: c_int) callconv(.C) c_int {
     var value = arg_value;
     _ = &value;
     if (value < @as(c_int, 0)) {

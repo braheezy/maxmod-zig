@@ -806,434 +806,6 @@ pub extern fn strtonum(__numstr: [*c]const u8, __minval: c_longlong, __maxval: c
 pub extern fn strtoq(__str: [*c]const u8, __endptr: [*c][*c]u8, __base: c_int) c_longlong;
 pub extern fn strtouq(__str: [*c]const u8, __endptr: [*c][*c]u8, __base: c_int) c_ulonglong;
 pub extern var suboptarg: [*c]u8;
-pub extern fn memchr(__s: ?*const anyopaque, __c: c_int, __n: c_ulong) ?*anyopaque;
-pub extern fn memcmp(__s1: ?*const anyopaque, __s2: ?*const anyopaque, __n: c_ulong) c_int;
-pub extern fn memcpy(__dst: ?*anyopaque, __src: ?*const anyopaque, __n: c_ulong) ?*anyopaque;
-pub extern fn memmove(__dst: ?*anyopaque, __src: ?*const anyopaque, __len: c_ulong) ?*anyopaque;
-pub extern fn memset(__b: ?*anyopaque, __c: c_int, __len: c_ulong) ?*anyopaque;
-pub extern fn strcat(__s1: [*c]u8, __s2: [*c]const u8) [*c]u8;
-pub extern fn strchr(__s: [*c]const u8, __c: c_int) [*c]u8;
-pub extern fn strcmp(__s1: [*c]const u8, __s2: [*c]const u8) c_int;
-pub extern fn strcoll(__s1: [*c]const u8, __s2: [*c]const u8) c_int;
-pub extern fn strcpy(__dst: [*c]u8, __src: [*c]const u8) [*c]u8;
-pub extern fn strcspn(__s: [*c]const u8, __charset: [*c]const u8) c_ulong;
-pub extern fn strerror(__errnum: c_int) [*c]u8;
-pub extern fn strlen(__s: [*c]const u8) c_ulong;
-pub extern fn strncat(__s1: [*c]u8, __s2: [*c]const u8, __n: c_ulong) [*c]u8;
-pub extern fn strncmp(__s1: [*c]const u8, __s2: [*c]const u8, __n: c_ulong) c_int;
-pub extern fn strncpy(__dst: [*c]u8, __src: [*c]const u8, __n: c_ulong) [*c]u8;
-pub extern fn strpbrk(__s: [*c]const u8, __charset: [*c]const u8) [*c]u8;
-pub extern fn strrchr(__s: [*c]const u8, __c: c_int) [*c]u8;
-pub extern fn strspn(__s: [*c]const u8, __charset: [*c]const u8) c_ulong;
-pub extern fn strstr(__big: [*c]const u8, __little: [*c]const u8) [*c]u8;
-pub extern fn strtok(__str: [*c]u8, __sep: [*c]const u8) [*c]u8;
-pub extern fn strxfrm(__s1: [*c]u8, __s2: [*c]const u8, __n: c_ulong) c_ulong;
-pub extern fn strtok_r(__str: [*c]u8, __sep: [*c]const u8, __lasts: [*c][*c]u8) [*c]u8;
-pub extern fn strerror_r(__errnum: c_int, __strerrbuf: [*c]u8, __buflen: usize) c_int;
-pub extern fn strdup(__s1: [*c]const u8) [*c]u8;
-pub extern fn memccpy(__dst: ?*anyopaque, __src: ?*const anyopaque, __c: c_int, __n: c_ulong) ?*anyopaque;
-pub extern fn stpcpy(__dst: [*c]u8, __src: [*c]const u8) [*c]u8;
-pub extern fn stpncpy(__dst: [*c]u8, __src: [*c]const u8, __n: c_ulong) [*c]u8;
-pub extern fn strndup(__s1: [*c]const u8, __n: c_ulong) [*c]u8;
-pub extern fn strnlen(__s1: [*c]const u8, __n: usize) usize;
-pub extern fn strsignal(__sig: c_int) [*c]u8;
-pub const rsize_t = __darwin_size_t;
-pub const errno_t = c_int;
-pub extern fn memset_s(__s: ?*anyopaque, __smax: rsize_t, __c: c_int, __n: rsize_t) errno_t;
-pub extern fn memmem(__big: ?*const anyopaque, __big_len: usize, __little: ?*const anyopaque, __little_len: usize) ?*anyopaque;
-pub extern fn memset_pattern4(__b: ?*anyopaque, __pattern4: ?*const anyopaque, __len: usize) void;
-pub extern fn memset_pattern8(__b: ?*anyopaque, __pattern8: ?*const anyopaque, __len: usize) void;
-pub extern fn memset_pattern16(__b: ?*anyopaque, __pattern16: ?*const anyopaque, __len: usize) void;
-pub extern fn strcasestr(__big: [*c]const u8, __little: [*c]const u8) [*c]u8;
-pub extern fn strchrnul(__s: [*c]const u8, __c: c_int) [*c]u8;
-pub extern fn strnstr(__big: [*c]const u8, __little: [*c]const u8, __len: usize) [*c]u8;
-pub extern fn strlcat(__dst: [*c]u8, __source: [*c]const u8, __size: c_ulong) c_ulong;
-pub extern fn strlcpy(__dst: [*c]u8, __source: [*c]const u8, __size: c_ulong) c_ulong;
-pub extern fn strmode(__mode: c_int, __bp: [*c]u8) void;
-pub extern fn strsep(__stringp: [*c][*c]u8, __delim: [*c]const u8) [*c]u8;
-pub extern fn swab(noalias ?*const anyopaque, noalias ?*anyopaque, __len: isize) void;
-pub extern fn timingsafe_bcmp(__b1: ?*const anyopaque, __b2: ?*const anyopaque, __len: usize) c_int;
-pub extern fn strsignal_r(__sig: c_int, __strsignalbuf: [*c]u8, __buflen: usize) c_int;
-pub extern fn bcmp(?*const anyopaque, ?*const anyopaque, __n: c_ulong) c_int;
-pub extern fn bcopy(?*const anyopaque, ?*anyopaque, __n: c_ulong) void;
-pub extern fn bzero(?*anyopaque, __n: c_ulong) void;
-pub extern fn index([*c]const u8, c_int) [*c]u8;
-pub extern fn rindex([*c]const u8, c_int) [*c]u8;
-pub extern fn ffs(c_int) c_int;
-pub extern fn strcasecmp([*c]const u8, [*c]const u8) c_int;
-pub extern fn strncasecmp([*c]const u8, [*c]const u8, c_ulong) c_int;
-pub extern fn ffsl(c_long) c_int;
-pub extern fn ffsll(c_longlong) c_int;
-pub extern fn fls(c_int) c_int;
-pub extern fn flsl(c_long) c_int;
-pub extern fn flsll(c_longlong) c_int;
-pub const float_t = f32;
-pub const double_t = f64;
-pub extern fn __math_errhandling() c_int;
-pub extern fn __fpclassifyf(f32) c_int;
-pub extern fn __fpclassifyd(f64) c_int;
-pub extern fn __fpclassifyl(c_longdouble) c_int;
-pub inline fn __inline_isfinitef(arg___x: f32) c_int {
-    var __x = arg___x;
-    _ = &__x;
-    return @intFromBool((__x == __x) and (__builtin_fabsf(__x) != __builtin_inff()));
-}
-// /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/math.h:200:49: warning: TODO implement function '__builtin_inf' in std.zig.c_builtins
-
-// /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/math.h:199:28: warning: unable to translate function, demoted to extern
-pub extern fn __inline_isfinited(arg___x: f64) c_int;
-// /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/math.h:203:26: warning: TODO implement function '__builtin_fabsl' in std.zig.c_builtins
-
-// /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/math.h:202:28: warning: unable to translate function, demoted to extern
-pub extern fn __inline_isfinitel(arg___x: c_longdouble) c_int;
-pub inline fn __inline_isinff(arg___x: f32) c_int {
-    var __x = arg___x;
-    _ = &__x;
-    return @intFromBool(__builtin_fabsf(__x) == __builtin_inff());
-}
-// /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/math.h:209:35: warning: TODO implement function '__builtin_inf' in std.zig.c_builtins
-
-// /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/math.h:208:28: warning: unable to translate function, demoted to extern
-pub extern fn __inline_isinfd(arg___x: f64) c_int;
-// /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/math.h:212:12: warning: TODO implement function '__builtin_fabsl' in std.zig.c_builtins
-
-// /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/math.h:211:28: warning: unable to translate function, demoted to extern
-pub extern fn __inline_isinfl(arg___x: c_longdouble) c_int;
-pub inline fn __inline_isnanf(arg___x: f32) c_int {
-    var __x = arg___x;
-    _ = &__x;
-    return @intFromBool(__x != __x);
-}
-pub inline fn __inline_isnand(arg___x: f64) c_int {
-    var __x = arg___x;
-    _ = &__x;
-    return @intFromBool(__x != __x);
-}
-pub inline fn __inline_isnanl(arg___x: c_longdouble) c_int {
-    var __x = arg___x;
-    _ = &__x;
-    return @intFromBool(__x != __x);
-}
-pub inline fn __inline_isnormalf(arg___x: f32) c_int {
-    var __x = arg___x;
-    _ = &__x;
-    return @intFromBool((__inline_isfinitef(__x) != 0) and (__builtin_fabsf(__x) >= 0.000000000000000000000000000000000000011754943508222875));
-}
-pub inline fn __inline_isnormald(arg___x: f64) c_int {
-    var __x = arg___x;
-    _ = &__x;
-    return @intFromBool((__inline_isfinited(__x) != 0) and (__builtin_fabs(__x) >= 0.000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000022250738585072014));
-}
-// /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/math.h:256:39: warning: TODO implement function '__builtin_fabsl' in std.zig.c_builtins
-
-// /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/math.h:255:28: warning: unable to translate function, demoted to extern
-pub extern fn __inline_isnormall(arg___x: c_longdouble) c_int;
-pub inline fn __inline_signbitf(arg___x: f32) c_int {
-    var __x = arg___x;
-    _ = &__x;
-    const union_unnamed_3 = extern union {
-        __f: f32,
-        __u: c_uint,
-    };
-    _ = &union_unnamed_3;
-    var __u: union_unnamed_3 = undefined;
-    _ = &__u;
-    __u.__f = __x;
-    return @as(c_int, @bitCast(__u.__u >> @intCast(31)));
-}
-pub inline fn __inline_signbitd(arg___x: f64) c_int {
-    var __x = arg___x;
-    _ = &__x;
-    const union_unnamed_4 = extern union {
-        __f: f64,
-        __u: c_ulonglong,
-    };
-    _ = &union_unnamed_4;
-    var __u: union_unnamed_4 = undefined;
-    _ = &__u;
-    __u.__f = __x;
-    return @as(c_int, @bitCast(@as(c_uint, @truncate(__u.__u >> @intCast(63)))));
-}
-pub inline fn __inline_signbitl(arg___x: c_longdouble) c_int {
-    var __x = arg___x;
-    _ = &__x;
-    const union_unnamed_5 = extern union {
-        __f: c_longdouble,
-        __u: c_ulonglong,
-    };
-    _ = &union_unnamed_5;
-    var __u: union_unnamed_5 = undefined;
-    _ = &__u;
-    __u.__f = __x;
-    return @as(c_int, @bitCast(@as(c_uint, @truncate(__u.__u >> @intCast(63)))));
-}
-pub extern fn acosf(f32) f32;
-pub extern fn acos(f64) f64;
-pub extern fn acosl(c_longdouble) c_longdouble;
-pub extern fn asinf(f32) f32;
-pub extern fn asin(f64) f64;
-pub extern fn asinl(c_longdouble) c_longdouble;
-pub extern fn atanf(f32) f32;
-pub extern fn atan(f64) f64;
-pub extern fn atanl(c_longdouble) c_longdouble;
-pub extern fn atan2f(f32, f32) f32;
-pub extern fn atan2(f64, f64) f64;
-pub extern fn atan2l(c_longdouble, c_longdouble) c_longdouble;
-pub extern fn cosf(f32) f32;
-pub extern fn cos(f64) f64;
-pub extern fn cosl(c_longdouble) c_longdouble;
-pub extern fn sinf(f32) f32;
-pub extern fn sin(f64) f64;
-pub extern fn sinl(c_longdouble) c_longdouble;
-pub extern fn tanf(f32) f32;
-pub extern fn tan(f64) f64;
-pub extern fn tanl(c_longdouble) c_longdouble;
-pub extern fn acoshf(f32) f32;
-pub extern fn acosh(f64) f64;
-pub extern fn acoshl(c_longdouble) c_longdouble;
-pub extern fn asinhf(f32) f32;
-pub extern fn asinh(f64) f64;
-pub extern fn asinhl(c_longdouble) c_longdouble;
-pub extern fn atanhf(f32) f32;
-pub extern fn atanh(f64) f64;
-pub extern fn atanhl(c_longdouble) c_longdouble;
-pub extern fn coshf(f32) f32;
-pub extern fn cosh(f64) f64;
-pub extern fn coshl(c_longdouble) c_longdouble;
-pub extern fn sinhf(f32) f32;
-pub extern fn sinh(f64) f64;
-pub extern fn sinhl(c_longdouble) c_longdouble;
-pub extern fn tanhf(f32) f32;
-pub extern fn tanh(f64) f64;
-pub extern fn tanhl(c_longdouble) c_longdouble;
-pub extern fn expf(f32) f32;
-pub extern fn exp(f64) f64;
-pub extern fn expl(c_longdouble) c_longdouble;
-pub extern fn exp2f(f32) f32;
-pub extern fn exp2(f64) f64;
-pub extern fn exp2l(c_longdouble) c_longdouble;
-pub extern fn expm1f(f32) f32;
-pub extern fn expm1(f64) f64;
-pub extern fn expm1l(c_longdouble) c_longdouble;
-pub extern fn logf(f32) f32;
-pub extern fn log(f64) f64;
-pub extern fn logl(c_longdouble) c_longdouble;
-pub extern fn log10f(f32) f32;
-pub extern fn log10(f64) f64;
-pub extern fn log10l(c_longdouble) c_longdouble;
-pub extern fn log2f(f32) f32;
-pub extern fn log2(f64) f64;
-pub extern fn log2l(c_longdouble) c_longdouble;
-pub extern fn log1pf(f32) f32;
-pub extern fn log1p(f64) f64;
-pub extern fn log1pl(c_longdouble) c_longdouble;
-pub extern fn logbf(f32) f32;
-pub extern fn logb(f64) f64;
-pub extern fn logbl(c_longdouble) c_longdouble;
-pub extern fn modff(f32, [*c]f32) f32;
-pub extern fn modf(f64, [*c]f64) f64;
-pub extern fn modfl(c_longdouble, [*c]c_longdouble) c_longdouble;
-pub extern fn ldexpf(f32, c_int) f32;
-pub extern fn ldexp(f64, c_int) f64;
-pub extern fn ldexpl(c_longdouble, c_int) c_longdouble;
-pub extern fn frexpf(f32, [*c]c_int) f32;
-pub extern fn frexp(f64, [*c]c_int) f64;
-pub extern fn frexpl(c_longdouble, [*c]c_int) c_longdouble;
-pub extern fn ilogbf(f32) c_int;
-pub extern fn ilogb(f64) c_int;
-pub extern fn ilogbl(c_longdouble) c_int;
-pub extern fn scalbnf(f32, c_int) f32;
-pub extern fn scalbn(f64, c_int) f64;
-pub extern fn scalbnl(c_longdouble, c_int) c_longdouble;
-pub extern fn scalblnf(f32, c_long) f32;
-pub extern fn scalbln(f64, c_long) f64;
-pub extern fn scalblnl(c_longdouble, c_long) c_longdouble;
-pub extern fn fabsf(f32) f32;
-pub extern fn fabs(f64) f64;
-pub extern fn fabsl(c_longdouble) c_longdouble;
-pub extern fn cbrtf(f32) f32;
-pub extern fn cbrt(f64) f64;
-pub extern fn cbrtl(c_longdouble) c_longdouble;
-pub extern fn hypotf(f32, f32) f32;
-pub extern fn hypot(f64, f64) f64;
-pub extern fn hypotl(c_longdouble, c_longdouble) c_longdouble;
-pub extern fn powf(f32, f32) f32;
-pub extern fn pow(f64, f64) f64;
-pub extern fn powl(c_longdouble, c_longdouble) c_longdouble;
-pub extern fn sqrtf(f32) f32;
-pub extern fn sqrt(f64) f64;
-pub extern fn sqrtl(c_longdouble) c_longdouble;
-pub extern fn erff(f32) f32;
-pub extern fn erf(f64) f64;
-pub extern fn erfl(c_longdouble) c_longdouble;
-pub extern fn erfcf(f32) f32;
-pub extern fn erfc(f64) f64;
-pub extern fn erfcl(c_longdouble) c_longdouble;
-pub extern fn lgammaf(f32) f32;
-pub extern fn lgamma(f64) f64;
-pub extern fn lgammal(c_longdouble) c_longdouble;
-pub extern fn tgammaf(f32) f32;
-pub extern fn tgamma(f64) f64;
-pub extern fn tgammal(c_longdouble) c_longdouble;
-pub extern fn ceilf(f32) f32;
-pub extern fn ceil(f64) f64;
-pub extern fn ceill(c_longdouble) c_longdouble;
-pub extern fn floorf(f32) f32;
-pub extern fn floor(f64) f64;
-pub extern fn floorl(c_longdouble) c_longdouble;
-pub extern fn nearbyintf(f32) f32;
-pub extern fn nearbyint(f64) f64;
-pub extern fn nearbyintl(c_longdouble) c_longdouble;
-pub extern fn rintf(f32) f32;
-pub extern fn rint(f64) f64;
-pub extern fn rintl(c_longdouble) c_longdouble;
-pub extern fn lrintf(f32) c_long;
-pub extern fn lrint(f64) c_long;
-pub extern fn lrintl(c_longdouble) c_long;
-pub extern fn roundf(f32) f32;
-pub extern fn round(f64) f64;
-pub extern fn roundl(c_longdouble) c_longdouble;
-pub extern fn lroundf(f32) c_long;
-pub extern fn lround(f64) c_long;
-pub extern fn lroundl(c_longdouble) c_long;
-pub extern fn llrintf(f32) c_longlong;
-pub extern fn llrint(f64) c_longlong;
-pub extern fn llrintl(c_longdouble) c_longlong;
-pub extern fn llroundf(f32) c_longlong;
-pub extern fn llround(f64) c_longlong;
-pub extern fn llroundl(c_longdouble) c_longlong;
-pub extern fn truncf(f32) f32;
-pub extern fn trunc(f64) f64;
-pub extern fn truncl(c_longdouble) c_longdouble;
-pub extern fn fmodf(f32, f32) f32;
-pub extern fn fmod(f64, f64) f64;
-pub extern fn fmodl(c_longdouble, c_longdouble) c_longdouble;
-pub extern fn remainderf(f32, f32) f32;
-pub extern fn remainder(f64, f64) f64;
-pub extern fn remainderl(c_longdouble, c_longdouble) c_longdouble;
-pub extern fn remquof(f32, f32, [*c]c_int) f32;
-pub extern fn remquo(f64, f64, [*c]c_int) f64;
-pub extern fn remquol(c_longdouble, c_longdouble, [*c]c_int) c_longdouble;
-pub extern fn copysignf(f32, f32) f32;
-pub extern fn copysign(f64, f64) f64;
-pub extern fn copysignl(c_longdouble, c_longdouble) c_longdouble;
-pub extern fn nanf([*c]const u8) f32;
-pub extern fn nan([*c]const u8) f64;
-pub extern fn nanl([*c]const u8) c_longdouble;
-pub extern fn nextafterf(f32, f32) f32;
-pub extern fn nextafter(f64, f64) f64;
-pub extern fn nextafterl(c_longdouble, c_longdouble) c_longdouble;
-pub extern fn nexttoward(f64, c_longdouble) f64;
-pub extern fn nexttowardf(f32, c_longdouble) f32;
-pub extern fn nexttowardl(c_longdouble, c_longdouble) c_longdouble;
-pub extern fn fdimf(f32, f32) f32;
-pub extern fn fdim(f64, f64) f64;
-pub extern fn fdiml(c_longdouble, c_longdouble) c_longdouble;
-pub extern fn fmaxf(f32, f32) f32;
-pub extern fn fmax(f64, f64) f64;
-pub extern fn fmaxl(c_longdouble, c_longdouble) c_longdouble;
-pub extern fn fminf(f32, f32) f32;
-pub extern fn fmin(f64, f64) f64;
-pub extern fn fminl(c_longdouble, c_longdouble) c_longdouble;
-pub extern fn fmaf(f32, f32, f32) f32;
-pub extern fn fma(f64, f64, f64) f64;
-pub extern fn fmal(c_longdouble, c_longdouble, c_longdouble) c_longdouble;
-pub extern fn __exp10f(f32) f32;
-pub extern fn __exp10(f64) f64;
-pub const struct___float2 = extern struct {
-    __sinval: f32 = @import("std").mem.zeroes(f32),
-    __cosval: f32 = @import("std").mem.zeroes(f32),
-};
-pub inline fn __sincosf(arg___x: f32, arg___sinp: [*c]f32, arg___cosp: [*c]f32) void {
-    var __x = arg___x;
-    _ = &__x;
-    var __sinp = arg___sinp;
-    _ = &__sinp;
-    var __cosp = arg___cosp;
-    _ = &__cosp;
-    const __stret: struct___float2 = __sincosf_stret(__x);
-    _ = &__stret;
-    __sinp.* = __stret.__sinval;
-    __cosp.* = __stret.__cosval;
-}
-pub const struct___double2 = extern struct {
-    __sinval: f64 = @import("std").mem.zeroes(f64),
-    __cosval: f64 = @import("std").mem.zeroes(f64),
-};
-pub inline fn __sincos(arg___x: f64, arg___sinp: [*c]f64, arg___cosp: [*c]f64) void {
-    var __x = arg___x;
-    _ = &__x;
-    var __sinp = arg___sinp;
-    _ = &__sinp;
-    var __cosp = arg___cosp;
-    _ = &__cosp;
-    const __stret: struct___double2 = __sincos_stret(__x);
-    _ = &__stret;
-    __sinp.* = __stret.__sinval;
-    __cosp.* = __stret.__cosval;
-}
-pub extern fn __cospif(f32) f32;
-pub extern fn __cospi(f64) f64;
-pub extern fn __sinpif(f32) f32;
-pub extern fn __sinpi(f64) f64;
-pub extern fn __tanpif(f32) f32;
-pub extern fn __tanpi(f64) f64;
-pub extern fn __fabsf16(f16) f16;
-pub extern fn __hypotf16(f16, f16) f16;
-pub extern fn __sqrtf16(f16) f16;
-pub extern fn __ceilf16(f16) f16;
-pub extern fn __floorf16(f16) f16;
-pub extern fn __rintf16(f16) f16;
-pub extern fn __roundf16(f16) f16;
-pub extern fn __truncf16(f16) f16;
-pub extern fn __copysignf16(f16, f16) f16;
-pub extern fn __nextafterf16(f16, f16) f16;
-pub extern fn __fmaxf16(f16, f16) f16;
-pub extern fn __fminf16(f16, f16) f16;
-pub extern fn __fmaf16(f16, f16, f16) f16;
-pub inline fn __sincospif(arg___x: f32, arg___sinp: [*c]f32, arg___cosp: [*c]f32) void {
-    var __x = arg___x;
-    _ = &__x;
-    var __sinp = arg___sinp;
-    _ = &__sinp;
-    var __cosp = arg___cosp;
-    _ = &__cosp;
-    const __stret: struct___float2 = __sincospif_stret(__x);
-    _ = &__stret;
-    __sinp.* = __stret.__sinval;
-    __cosp.* = __stret.__cosval;
-}
-pub inline fn __sincospi(arg___x: f64, arg___sinp: [*c]f64, arg___cosp: [*c]f64) void {
-    var __x = arg___x;
-    _ = &__x;
-    var __sinp = arg___sinp;
-    _ = &__sinp;
-    var __cosp = arg___cosp;
-    _ = &__cosp;
-    const __stret: struct___double2 = __sincospi_stret(__x);
-    _ = &__stret;
-    __sinp.* = __stret.__sinval;
-    __cosp.* = __stret.__cosval;
-}
-pub extern fn __sincosf_stret(f32) struct___float2;
-pub extern fn __sincos_stret(f64) struct___double2;
-pub extern fn __sincospif_stret(f32) struct___float2;
-pub extern fn __sincospi_stret(f64) struct___double2;
-pub extern fn j0(f64) f64;
-pub extern fn j1(f64) f64;
-pub extern fn jn(c_int, f64) f64;
-pub extern fn y0(f64) f64;
-pub extern fn y1(f64) f64;
-pub extern fn yn(c_int, f64) f64;
-pub extern fn scalb(f64, f64) f64;
-pub extern var signgam: c_int;
-pub const struct_exception = extern struct {
-    type: c_int = @import("std").mem.zeroes(c_int),
-    name: [*c]u8 = @import("std").mem.zeroes([*c]u8),
-    arg1: f64 = @import("std").mem.zeroes(f64),
-    arg2: f64 = @import("std").mem.zeroes(f64),
-    retval: f64 = @import("std").mem.zeroes(f64),
-};
 pub const @"u16" = c_ushort;
 pub const @"u32" = c_uint;
 pub const s16 = c_short;
@@ -1242,315 +814,6 @@ pub const @"u8" = u8;
 pub const s8 = i8;
 pub const @"bool" = u8;
 pub extern var PANNING_SEP: c_int;
-pub const struct_tInstrument_Envelope = extern struct {
-    loop_start: @"u8" = @import("std").mem.zeroes(@"u8"),
-    loop_end: @"u8" = @import("std").mem.zeroes(@"u8"),
-    sus_start: @"u8" = @import("std").mem.zeroes(@"u8"),
-    sus_end: @"u8" = @import("std").mem.zeroes(@"u8"),
-    node_count: @"u8" = @import("std").mem.zeroes(@"u8"),
-    node_x: [25]@"u16" = @import("std").mem.zeroes([25]@"u16"),
-    node_y: [25]@"u8" = @import("std").mem.zeroes([25]@"u8"),
-    env_filter: @"bool" = @import("std").mem.zeroes(@"bool"),
-    env_valid: @"bool" = @import("std").mem.zeroes(@"bool"),
-    env_enabled: @"bool" = @import("std").mem.zeroes(@"bool"),
-};
-pub const Instrument_Envelope = struct_tInstrument_Envelope;
-pub const struct_tInstrument = extern struct {
-    parapointer: @"u32" = @import("std").mem.zeroes(@"u32"),
-    global_volume: @"u8" = @import("std").mem.zeroes(@"u8"),
-    setpan: @"u8" = @import("std").mem.zeroes(@"u8"),
-    fadeout: @"u16" = @import("std").mem.zeroes(@"u16"),
-    random_volume: @"u8" = @import("std").mem.zeroes(@"u8"),
-    nna: @"u8" = @import("std").mem.zeroes(@"u8"),
-    dct: @"u8" = @import("std").mem.zeroes(@"u8"),
-    dca: @"u8" = @import("std").mem.zeroes(@"u8"),
-    env_flags: @"u8" = @import("std").mem.zeroes(@"u8"),
-    notemap: [120]@"u16" = @import("std").mem.zeroes([120]@"u16"),
-    name: [32]u8 = @import("std").mem.zeroes([32]u8),
-    envelope_volume: Instrument_Envelope = @import("std").mem.zeroes(Instrument_Envelope),
-    envelope_pan: Instrument_Envelope = @import("std").mem.zeroes(Instrument_Envelope),
-    envelope_pitch: Instrument_Envelope = @import("std").mem.zeroes(Instrument_Envelope),
-};
-pub const Instrument = struct_tInstrument;
-pub const struct_tSample = extern struct {
-    parapointer: @"u32" = @import("std").mem.zeroes(@"u32"),
-    global_volume: @"u8" = @import("std").mem.zeroes(@"u8"),
-    default_volume: @"u8" = @import("std").mem.zeroes(@"u8"),
-    default_panning: @"u8" = @import("std").mem.zeroes(@"u8"),
-    sample_length: @"u32" = @import("std").mem.zeroes(@"u32"),
-    loop_start: @"u32" = @import("std").mem.zeroes(@"u32"),
-    loop_end: @"u32" = @import("std").mem.zeroes(@"u32"),
-    loop_type: @"u8" = @import("std").mem.zeroes(@"u8"),
-    frequency: @"u32" = @import("std").mem.zeroes(@"u32"),
-    data: ?*anyopaque = @import("std").mem.zeroes(?*anyopaque),
-    vibtype: @"u8" = @import("std").mem.zeroes(@"u8"),
-    vibdepth: @"u8" = @import("std").mem.zeroes(@"u8"),
-    vibspeed: @"u8" = @import("std").mem.zeroes(@"u8"),
-    vibrate: @"u8" = @import("std").mem.zeroes(@"u8"),
-    msl_index: @"u16" = @import("std").mem.zeroes(@"u16"),
-    rsamp_index: @"u8" = @import("std").mem.zeroes(@"u8"),
-    format: @"u8" = @import("std").mem.zeroes(@"u8"),
-    datapointer: @"u32" = @import("std").mem.zeroes(@"u32"),
-    it_compression: @"u8" = @import("std").mem.zeroes(@"u8"),
-    name: [32]u8 = @import("std").mem.zeroes([32]u8),
-    filename: [12]u8 = @import("std").mem.zeroes([12]u8),
-};
-pub const Sample = struct_tSample;
-pub const struct_tPatternEntry = extern struct {
-    note: @"u8" = @import("std").mem.zeroes(@"u8"),
-    inst: @"u8" = @import("std").mem.zeroes(@"u8"),
-    vol: @"u8" = @import("std").mem.zeroes(@"u8"),
-    fx: @"u8" = @import("std").mem.zeroes(@"u8"),
-    param: @"u8" = @import("std").mem.zeroes(@"u8"),
-};
-pub const PatternEntry = struct_tPatternEntry;
-pub const struct_tPattern = extern struct {
-    parapointer: @"u32" = @import("std").mem.zeroes(@"u32"),
-    nrows: @"u16" = @import("std").mem.zeroes(@"u16"),
-    clength: c_int = @import("std").mem.zeroes(c_int),
-    data: [8192]PatternEntry = @import("std").mem.zeroes([8192]PatternEntry),
-    cmarks: [256]@"bool" = @import("std").mem.zeroes([256]@"bool"),
-};
-pub const Pattern = struct_tPattern;
-pub const struct_tMAS_Module = extern struct {
-    title: [32]u8 = @import("std").mem.zeroes([32]u8),
-    order_count: @"u16" = @import("std").mem.zeroes(@"u16"),
-    inst_count: @"u8" = @import("std").mem.zeroes(@"u8"),
-    samp_count: @"u8" = @import("std").mem.zeroes(@"u8"),
-    patt_count: @"u8" = @import("std").mem.zeroes(@"u8"),
-    restart_pos: @"u8" = @import("std").mem.zeroes(@"u8"),
-    stereo: @"bool" = @import("std").mem.zeroes(@"bool"),
-    inst_mode: @"bool" = @import("std").mem.zeroes(@"bool"),
-    freq_mode: @"u8" = @import("std").mem.zeroes(@"u8"),
-    old_effects: @"bool" = @import("std").mem.zeroes(@"bool"),
-    link_gxx: @"bool" = @import("std").mem.zeroes(@"bool"),
-    xm_mode: @"bool" = @import("std").mem.zeroes(@"bool"),
-    old_mode: @"bool" = @import("std").mem.zeroes(@"bool"),
-    global_volume: @"u8" = @import("std").mem.zeroes(@"u8"),
-    initial_speed: @"u8" = @import("std").mem.zeroes(@"u8"),
-    initial_tempo: @"u8" = @import("std").mem.zeroes(@"u8"),
-    channel_volume: [32]@"u8" = @import("std").mem.zeroes([32]@"u8"),
-    channel_panning: [32]@"u8" = @import("std").mem.zeroes([32]@"u8"),
-    orders: [256]@"u8" = @import("std").mem.zeroes([256]@"u8"),
-    instruments: [*c]Instrument = @import("std").mem.zeroes([*c]Instrument),
-    samples: [*c]Sample = @import("std").mem.zeroes([*c]Sample),
-    patterns: [*c]Pattern = @import("std").mem.zeroes([*c]Pattern),
-};
-pub const MAS_Module = struct_tMAS_Module;
-pub extern fn Write_Instrument_Envelope(env: [*c]Instrument_Envelope) void;
-pub extern fn Write_Instrument(inst: [*c]Instrument) void;
-pub extern fn Write_SampleData(samp: [*c]Sample) void;
-pub extern fn Write_Sample(samp: [*c]Sample) void;
-pub extern fn Write_Pattern(patt: [*c]Pattern, xm_vol: @"bool") void;
-pub extern fn Write_MAS(mod: [*c]MAS_Module, verbose: @"bool", msl_dep: @"bool") c_int;
-pub extern fn Delete_Module(mod: [*c]MAS_Module) void;
-pub extern var MAS_FILESIZE: @"u32";
-pub export fn Load_MOD(arg_mod: [*c]MAS_Module, arg_verbose: @"bool") c_int {
-    var mod = arg_mod;
-    _ = &mod;
-    var verbose = arg_verbose;
-    _ = &verbose;
-    var file_start: @"u32" = undefined;
-    _ = &file_start;
-    var mod_channels: @"u32" = undefined;
-    _ = &mod_channels;
-    var x: c_int = undefined;
-    _ = &x;
-    var npatterns: c_int = undefined;
-    _ = &npatterns;
-    var sig: @"u32" = undefined;
-    _ = &sig;
-    var sigs: [5]u8 = undefined;
-    _ = &sigs;
-    if (verbose != 0) {
-        _ = printf("Loading MOD, ");
-    }
-    _ = __builtin___memset_chk(@as(?*anyopaque, @ptrCast(mod)), @as(c_int, 0), @sizeOf(MAS_Module), __builtin_object_size(@as(?*const anyopaque, @ptrCast(mod)), @as(c_int, 0)));
-    file_start = @as(@"u32", @bitCast(file_tell_read()));
-    _ = file_seek_read(@as(c_int, 1080), @as(c_int, 0));
-    sig = read32();
-    sigs[@as(c_uint, @intCast(@as(c_int, 0)))] = @as(u8, @bitCast(@as(u8, @truncate(sig & @as(@"u32", @bitCast(@as(c_int, 255)))))));
-    sigs[@as(c_uint, @intCast(@as(c_int, 1)))] = @as(u8, @bitCast(@as(u8, @truncate((sig >> @intCast(8)) & @as(@"u32", @bitCast(@as(c_int, 255)))))));
-    sigs[@as(c_uint, @intCast(@as(c_int, 2)))] = @as(u8, @bitCast(@as(u8, @truncate((sig >> @intCast(16)) & @as(@"u32", @bitCast(@as(c_int, 255)))))));
-    sigs[@as(c_uint, @intCast(@as(c_int, 3)))] = @as(u8, @bitCast(@as(u8, @truncate(sig >> @intCast(24)))));
-    sigs[@as(c_uint, @intCast(@as(c_int, 4)))] = 0;
-    while (true) {
-        switch (sig) {
-            @as(@"u32", @bitCast(@as(c_int, 1313358641))) => {
-                mod_channels = 1;
-                break;
-            },
-            @as(@"u32", @bitCast(@as(c_int, 1313358642))) => {
-                mod_channels = 2;
-                break;
-            },
-            @as(@"u32", @bitCast(@as(c_int, 1313358643))) => {
-                mod_channels = 3;
-                break;
-            },
-            @as(@"u32", @bitCast(@as(c_int, 776678989))), @as(@"u32", @bitCast(@as(c_int, 1313358644))) => {
-                mod_channels = 4;
-                break;
-            },
-            @as(@"u32", @bitCast(@as(c_int, 1313358645))) => {
-                mod_channels = 5;
-                break;
-            },
-            @as(@"u32", @bitCast(@as(c_int, 1313358646))) => {
-                mod_channels = 6;
-                break;
-            },
-            @as(@"u32", @bitCast(@as(c_int, 1313358647))) => {
-                mod_channels = 7;
-                break;
-            },
-            @as(@"u32", @bitCast(@as(c_int, 1313358648))) => {
-                mod_channels = 8;
-                break;
-            },
-            @as(@"u32", @bitCast(@as(c_int, 1313358649))) => {
-                mod_channels = 9;
-                break;
-            },
-            else => {
-                if ((sig >> @intCast(16)) == @as(@"u32", @bitCast(@as(c_int, 18499)))) {
-                    var chn_number: [3]u8 = undefined;
-                    _ = &chn_number;
-                    chn_number[@as(c_uint, @intCast(@as(c_int, 0)))] = @as(u8, @bitCast(@as(u8, @truncate(sig & @as(@"u32", @bitCast(@as(c_int, 255)))))));
-                    chn_number[@as(c_uint, @intCast(@as(c_int, 1)))] = @as(u8, @bitCast(@as(u8, @truncate((sig >> @intCast(8)) & @as(@"u32", @bitCast(@as(c_int, 255)))))));
-                    chn_number[@as(c_uint, @intCast(@as(c_int, 2)))] = 0;
-                    mod_channels = @as(@"u32", @bitCast(atoi(@as([*c]u8, @ptrCast(@alignCast(&chn_number[@as(usize, @intCast(0))]))))));
-                    if (mod_channels > @as(@"u32", @bitCast(@as(c_int, 32)))) return 5;
-                } else {
-                    return 1;
-                }
-            },
-        }
-        break;
-    }
-    _ = file_seek_read(@as(c_int, @bitCast(file_start)), @as(c_int, 0));
-    {
-        x = 0;
-        while (x < @as(c_int, 20)) : (x += 1) {
-            mod.*.title[@as(c_uint, @intCast(x))] = @as(u8, @bitCast(read8()));
-        }
-    }
-    if (verbose != 0) {
-        _ = printf("\"%s\"\n", @as([*c]u8, @ptrCast(@alignCast(&mod.*.title[@as(usize, @intCast(0))]))));
-        _ = printf("%i channels (%s)\n", mod_channels, @as([*c]u8, @ptrCast(@alignCast(&sigs[@as(usize, @intCast(0))]))));
-    }
-    {
-        x = 0;
-        while (x < @as(c_int, 32)) : (x += 1) {
-            if (((x & @as(c_int, 3)) != @as(c_int, 1)) and ((x & @as(c_int, 3)) != @as(c_int, 2))) {
-                mod.*.channel_panning[@as(c_uint, @intCast(x))] = @as(@"u8", @bitCast(@as(i8, @truncate(clamp_u8(@as(c_int, 128) - @divTrunc(PANNING_SEP, @as(c_int, 2)))))));
-            } else {
-                mod.*.channel_panning[@as(c_uint, @intCast(x))] = @as(@"u8", @bitCast(@as(i8, @truncate(clamp_u8(@as(c_int, 128) + @divTrunc(PANNING_SEP, @as(c_int, 2)))))));
-            }
-            mod.*.channel_volume[@as(c_uint, @intCast(x))] = 64;
-        }
-    }
-    mod.*.freq_mode = 0;
-    mod.*.global_volume = 64;
-    mod.*.initial_speed = 6;
-    mod.*.initial_tempo = 125;
-    mod.*.inst_count = 0;
-    mod.*.inst_mode = @as(@"bool", @bitCast(@as(i8, @truncate(@as(c_int, 0)))));
-    mod.*.instruments = @as([*c]Instrument, @ptrCast(@alignCast(malloc(@as(c_ulong, @bitCast(@as(c_long, @as(c_int, 31)))) *% @sizeOf(Instrument)))));
-    mod.*.link_gxx = @as(@"bool", @bitCast(@as(i8, @truncate(@as(c_int, 0)))));
-    mod.*.old_effects = @as(@"bool", @intFromBool(!false));
-    mod.*.restart_pos = 0;
-    mod.*.samp_count = 0;
-    mod.*.samples = @as([*c]Sample, @ptrCast(@alignCast(malloc(@as(c_ulong, @bitCast(@as(c_long, @as(c_int, 31)))) *% @sizeOf(Sample)))));
-    mod.*.stereo = @as(@"bool", @intFromBool(!false));
-    mod.*.xm_mode = @as(@"bool", @intFromBool(!false));
-    mod.*.old_mode = @as(@"bool", @intFromBool(!false));
-    if (verbose != 0) {
-        _ = printf("--------------------------------------------\n");
-        _ = printf("Loading Samples...\n");
-        _ = printf("--------------------------------------------\n");
-        _ = printf(" INDEX LENGTH LOOP  VOLUME  MID-C   NAME                   \n");
-    }
-    {
-        x = 0;
-        while (x < @as(c_int, 31)) : (x += 1) {
-            _ = Create_MOD_Instrument(&(blk: {
-                const tmp = x;
-                if (tmp >= 0) break :blk mod.*.instruments + @as(usize, @intCast(tmp)) else break :blk mod.*.instruments - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-            }).*, @as(@"u8", @bitCast(@as(i8, @truncate(x)))));
-            _ = Load_MOD_Sample(&(blk: {
-                const tmp = x;
-                if (tmp >= 0) break :blk mod.*.samples + @as(usize, @intCast(tmp)) else break :blk mod.*.samples - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-            }).*, verbose, x);
-        }
-    }
-    mod.*.order_count = @as(@"u16", @bitCast(@as(c_ushort, read8())));
-    mod.*.restart_pos = read8();
-    if (@as(c_int, @bitCast(@as(c_uint, mod.*.restart_pos))) >= @as(c_int, 127)) {
-        mod.*.restart_pos = 0;
-    }
-    npatterns = 0;
-    {
-        x = 0;
-        while (x < @as(c_int, 128)) : (x += 1) {
-            mod.*.orders[@as(c_uint, @intCast(x))] = read8();
-            if (@as(c_int, @bitCast(@as(c_uint, mod.*.orders[@as(c_uint, @intCast(x))]))) >= npatterns) {
-                npatterns = @as(c_int, @bitCast(@as(c_uint, mod.*.orders[@as(c_uint, @intCast(x))]))) + @as(c_int, 1);
-            }
-        }
-    }
-    _ = read32();
-    mod.*.patt_count = @as(@"u8", @bitCast(@as(i8, @truncate(npatterns))));
-    mod.*.patterns = @as([*c]Pattern, @ptrCast(@alignCast(malloc(@as(c_ulong, @bitCast(@as(c_ulong, mod.*.patt_count))) *% @sizeOf(Pattern)))));
-    if (verbose != 0) {
-        _ = printf("--------------------------------------------\n");
-        _ = printf("Sequence has %i entries.\n", @as(c_int, @bitCast(@as(c_uint, mod.*.order_count))));
-        // Avoid variadic with non-C strings under Zig; simplify logging
-        _ = printf("Module has %i patterns.\n", @as(c_int, @bitCast(@as(c_uint, mod.*.patt_count))));
-        _ = printf("--------------------------------------------\n");
-        _ = printf("Loading Patterns...\n");
-        _ = printf("--------------------------------------------\n");
-    }
-    {
-        x = 0;
-        while (x < @as(c_int, @bitCast(@as(c_uint, mod.*.patt_count)))) : (x += 1) {
-            if (verbose != 0) {
-        // Avoid variadic with slice arguments
-        _ = printf(" * %2i", x + @as(c_int, 1));
-        if (@import("std").zig.c_translation.signedRemainder(x + @as(c_int, 1), @as(c_int, 15)) == 0) {
-            _ = printf("\n");
-        }
-            }
-            _ = Load_MOD_Pattern(&(blk: {
-                const tmp = x;
-                if (tmp >= 0) break :blk mod.*.patterns + @as(usize, @intCast(tmp)) else break :blk mod.*.patterns - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-            }).*, @as(@"u8", @bitCast(@as(u8, @truncate(mod_channels)))), &mod.*.inst_count);
-        }
-    }
-    if (verbose != 0) {
-        _ = printf("\n");
-        _ = printf("--------------------------------------------\n");
-    }
-    if (verbose != 0) {
-        _ = printf("Loading Sample Data...\n");
-    }
-    mod.*.samp_count = mod.*.inst_count;
-    {
-        x = 0;
-        while (x < @as(c_int, 31)) : (x += 1) {
-            _ = Load_MOD_SampleData(&(blk: {
-                const tmp = x;
-                if (tmp >= 0) break :blk mod.*.samples + @as(usize, @intCast(tmp)) else break :blk mod.*.samples - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-            }).*);
-        }
-    }
-    if (verbose != 0) {
-        _ = printf("--------------------------------------------\n");
-    }
-    return 0;
-}
-pub extern fn Load_XM(mod: [*c]MAS_Module, verbose: @"bool") c_int;
-pub extern fn CONV_XM_EFFECT(fx: [*c]@"u8", param: [*c]@"u8") void;
 pub const va_list = __darwin_va_list;
 pub extern fn renameat(c_int, [*c]const u8, c_int, [*c]const u8) c_int;
 pub extern fn renamex_np([*c]const u8, [*c]const u8, c_uint) c_int;
@@ -1728,192 +991,715 @@ pub extern fn file_delete(filename: [*c]u8) void;
 pub extern fn file_exists(filename: [*c]u8) @"bool";
 pub extern fn file_get_byte_count(...) c_int;
 pub extern fn file_tell_size() c_int;
+pub const struct_tInstrument_Envelope = extern struct {
+    loop_start: @"u8" = @import("std").mem.zeroes(@"u8"),
+    loop_end: @"u8" = @import("std").mem.zeroes(@"u8"),
+    sus_start: @"u8" = @import("std").mem.zeroes(@"u8"),
+    sus_end: @"u8" = @import("std").mem.zeroes(@"u8"),
+    node_count: @"u8" = @import("std").mem.zeroes(@"u8"),
+    node_x: [25]@"u16" = @import("std").mem.zeroes([25]@"u16"),
+    node_y: [25]@"u8" = @import("std").mem.zeroes([25]@"u8"),
+    env_filter: @"bool" = @import("std").mem.zeroes(@"bool"),
+    env_valid: @"bool" = @import("std").mem.zeroes(@"bool"),
+    env_enabled: @"bool" = @import("std").mem.zeroes(@"bool"),
+};
+pub const Instrument_Envelope = struct_tInstrument_Envelope;
+pub const struct_tInstrument = extern struct {
+    parapointer: @"u32" = @import("std").mem.zeroes(@"u32"),
+    global_volume: @"u8" = @import("std").mem.zeroes(@"u8"),
+    setpan: @"u8" = @import("std").mem.zeroes(@"u8"),
+    fadeout: @"u16" = @import("std").mem.zeroes(@"u16"),
+    random_volume: @"u8" = @import("std").mem.zeroes(@"u8"),
+    nna: @"u8" = @import("std").mem.zeroes(@"u8"),
+    dct: @"u8" = @import("std").mem.zeroes(@"u8"),
+    dca: @"u8" = @import("std").mem.zeroes(@"u8"),
+    env_flags: @"u8" = @import("std").mem.zeroes(@"u8"),
+    notemap: [120]@"u16" = @import("std").mem.zeroes([120]@"u16"),
+    name: [32]u8 = @import("std").mem.zeroes([32]u8),
+    envelope_volume: Instrument_Envelope = @import("std").mem.zeroes(Instrument_Envelope),
+    envelope_pan: Instrument_Envelope = @import("std").mem.zeroes(Instrument_Envelope),
+    envelope_pitch: Instrument_Envelope = @import("std").mem.zeroes(Instrument_Envelope),
+};
+pub const Instrument = struct_tInstrument;
+pub const struct_tSample = extern struct {
+    parapointer: @"u32" = @import("std").mem.zeroes(@"u32"),
+    global_volume: @"u8" = @import("std").mem.zeroes(@"u8"),
+    default_volume: @"u8" = @import("std").mem.zeroes(@"u8"),
+    default_panning: @"u8" = @import("std").mem.zeroes(@"u8"),
+    sample_length: @"u32" = @import("std").mem.zeroes(@"u32"),
+    loop_start: @"u32" = @import("std").mem.zeroes(@"u32"),
+    loop_end: @"u32" = @import("std").mem.zeroes(@"u32"),
+    loop_type: @"u8" = @import("std").mem.zeroes(@"u8"),
+    frequency: @"u32" = @import("std").mem.zeroes(@"u32"),
+    data: ?*anyopaque = @import("std").mem.zeroes(?*anyopaque),
+    vibtype: @"u8" = @import("std").mem.zeroes(@"u8"),
+    vibdepth: @"u8" = @import("std").mem.zeroes(@"u8"),
+    vibspeed: @"u8" = @import("std").mem.zeroes(@"u8"),
+    vibrate: @"u8" = @import("std").mem.zeroes(@"u8"),
+    msl_index: @"u16" = @import("std").mem.zeroes(@"u16"),
+    rsamp_index: @"u8" = @import("std").mem.zeroes(@"u8"),
+    format: @"u8" = @import("std").mem.zeroes(@"u8"),
+    datapointer: @"u32" = @import("std").mem.zeroes(@"u32"),
+    it_compression: @"u8" = @import("std").mem.zeroes(@"u8"),
+    name: [32]u8 = @import("std").mem.zeroes([32]u8),
+    filename: [12]u8 = @import("std").mem.zeroes([12]u8),
+};
+pub const Sample = struct_tSample;
+pub const struct_tPatternEntry = extern struct {
+    note: @"u8" = @import("std").mem.zeroes(@"u8"),
+    inst: @"u8" = @import("std").mem.zeroes(@"u8"),
+    vol: @"u8" = @import("std").mem.zeroes(@"u8"),
+    fx: @"u8" = @import("std").mem.zeroes(@"u8"),
+    param: @"u8" = @import("std").mem.zeroes(@"u8"),
+};
+pub const PatternEntry = struct_tPatternEntry;
+pub const struct_tPattern = extern struct {
+    parapointer: @"u32" = @import("std").mem.zeroes(@"u32"),
+    nrows: @"u16" = @import("std").mem.zeroes(@"u16"),
+    clength: c_int = @import("std").mem.zeroes(c_int),
+    data: [8192]PatternEntry = @import("std").mem.zeroes([8192]PatternEntry),
+    cmarks: [256]@"bool" = @import("std").mem.zeroes([256]@"bool"),
+};
+pub const Pattern = struct_tPattern;
+pub const struct_tMAS_Module = extern struct {
+    title: [32]u8 = @import("std").mem.zeroes([32]u8),
+    order_count: @"u16" = @import("std").mem.zeroes(@"u16"),
+    inst_count: @"u8" = @import("std").mem.zeroes(@"u8"),
+    samp_count: @"u8" = @import("std").mem.zeroes(@"u8"),
+    patt_count: @"u8" = @import("std").mem.zeroes(@"u8"),
+    restart_pos: @"u8" = @import("std").mem.zeroes(@"u8"),
+    stereo: @"bool" = @import("std").mem.zeroes(@"bool"),
+    inst_mode: @"bool" = @import("std").mem.zeroes(@"bool"),
+    freq_mode: @"u8" = @import("std").mem.zeroes(@"u8"),
+    old_effects: @"bool" = @import("std").mem.zeroes(@"bool"),
+    link_gxx: @"bool" = @import("std").mem.zeroes(@"bool"),
+    xm_mode: @"bool" = @import("std").mem.zeroes(@"bool"),
+    old_mode: @"bool" = @import("std").mem.zeroes(@"bool"),
+    global_volume: @"u8" = @import("std").mem.zeroes(@"u8"),
+    initial_speed: @"u8" = @import("std").mem.zeroes(@"u8"),
+    initial_tempo: @"u8" = @import("std").mem.zeroes(@"u8"),
+    channel_volume: [32]@"u8" = @import("std").mem.zeroes([32]@"u8"),
+    channel_panning: [32]@"u8" = @import("std").mem.zeroes([32]@"u8"),
+    orders: [256]@"u8" = @import("std").mem.zeroes([256]@"u8"),
+    instruments: [*c]Instrument = @import("std").mem.zeroes([*c]Instrument),
+    samples: [*c]Sample = @import("std").mem.zeroes([*c]Sample),
+    patterns: [*c]Pattern = @import("std").mem.zeroes([*c]Pattern),
+};
+pub const MAS_Module = struct_tMAS_Module;
+pub export fn Write_Instrument_Envelope(arg_env: [*c]Instrument_Envelope) void {
+    var env = arg_env;
+    _ = &env;
+    var x: c_int = undefined;
+    _ = &x;
+    write8(@as(@"u8", @bitCast(@as(i8, @truncate((@as(c_int, @bitCast(@as(c_uint, env.*.node_count))) * @as(c_int, 4)) + @as(c_int, 8))))));
+    write8(env.*.loop_start);
+    write8(env.*.loop_end);
+    write8(env.*.sus_start);
+    write8(env.*.sus_end);
+    write8(env.*.node_count);
+    write8(env.*.env_filter);
+    write8(@as(@"u8", @bitCast(@as(i8, @truncate(@as(c_int, 186))))));
+    if (@as(c_int, @bitCast(@as(c_uint, env.*.node_count))) > @as(c_int, 1)) {
+        var delta: c_int = undefined;
+        _ = &delta;
+        var base: c_int = undefined;
+        _ = &base;
+        var range: c_int = undefined;
+        _ = &range;
+        {
+            x = 0;
+            while (x < @as(c_int, @bitCast(@as(c_uint, env.*.node_count)))) : (x += 1) {
+                base = @as(c_int, @bitCast(@as(c_uint, env.*.node_y[@as(c_uint, @intCast(x))])));
+                if (x != (@as(c_int, @bitCast(@as(c_uint, env.*.node_count))) - @as(c_int, 1))) {
+                    range = @as(c_int, @bitCast(@as(c_uint, env.*.node_x[@as(c_uint, @intCast(x + @as(c_int, 1)))]))) - @as(c_int, @bitCast(@as(c_uint, env.*.node_x[@as(c_uint, @intCast(x))])));
+                    if (range > @as(c_int, 511)) {
+                        range = 511;
+                    }
+                    if (range < @as(c_int, 1)) {
+                        range = 1;
+                    }
+                    delta = @divTrunc(((@as(c_int, @bitCast(@as(c_uint, env.*.node_y[@as(c_uint, @intCast(x + @as(c_int, 1)))]))) - base) * @as(c_int, 512)) + @divTrunc(range, @as(c_int, 2)), range);
+                    if (delta > @as(c_int, 32767)) {
+                        delta = 32767;
+                    }
+                    if (delta < -@as(c_int, 32768)) {
+                        delta = -@as(c_int, 32768);
+                    }
+                    while ((base + ((delta * range) >> @intCast(9))) > @as(c_int, 64)) {
+                        delta -= 1;
+                    }
+                    while ((base + ((delta * range) >> @intCast(9))) < @as(c_int, 0)) {
+                        delta += 1;
+                    }
+                } else {
+                    range = 0;
+                    delta = 0;
+                }
+                write16(@as(@"u16", @bitCast(@as(c_short, @truncate(delta)))));
+                write16(@as(@"u16", @bitCast(@as(c_short, @truncate(base | (range << @intCast(7)))))));
+            }
+        }
+    }
+}
+pub export fn Write_Instrument(arg_inst: [*c]Instrument) void {
+    var inst = arg_inst;
+    _ = &inst;
+    var y: c_int = undefined;
+    _ = &y;
+    var full_notemap: c_int = undefined;
+    _ = &full_notemap;
+    var first_notemap_samp: c_int = undefined;
+    _ = &first_notemap_samp;
+    align32();
+    inst.*.parapointer = @as(@"u32", @bitCast(file_tell_write())) -% MAS_OFFSET;
+    write8(inst.*.global_volume);
+    write8(@as(@"u8", @bitCast(@as(u8, @truncate(inst.*.fadeout)))));
+    write8(inst.*.random_volume);
+    write8(inst.*.dct);
+    write8(inst.*.nna);
+    write8(inst.*.env_flags);
+    write8(inst.*.setpan);
+    write8(inst.*.dca);
+    full_notemap = 0;
+    first_notemap_samp = @as(c_int, @bitCast(@as(c_uint, inst.*.notemap[@as(c_uint, @intCast(@as(c_int, 0)))]))) >> @intCast(8);
+    {
+        y = 0;
+        while (y < @as(c_int, 120)) : (y += 1) {
+            if (((@as(c_int, @bitCast(@as(c_uint, inst.*.notemap[@as(c_uint, @intCast(y))]))) & @as(c_int, 255)) != y) or ((@as(c_int, @bitCast(@as(c_uint, inst.*.notemap[@as(c_uint, @intCast(y))]))) >> @intCast(8)) != first_notemap_samp)) {
+                full_notemap = 1;
+                break;
+            }
+        }
+    }
+    if (full_notemap != 0) {
+        write16(@as(@"u16", @bitCast(@as(c_short, @truncate(CalcInstrumentSize(inst))))));
+    } else {
+        write16(@as(@"u16", @bitCast(@as(c_short, @truncate(@as(c_int, 32768) | first_notemap_samp)))));
+    }
+    write16(@as(@"u16", @bitCast(@as(c_short, @truncate(@as(c_int, 0))))));
+    if ((@as(c_int, @bitCast(@as(c_uint, inst.*.env_flags))) & @as(c_int, 1)) != 0) {
+        Write_Instrument_Envelope(&inst.*.envelope_volume);
+    }
+    if ((@as(c_int, @bitCast(@as(c_uint, inst.*.env_flags))) & @as(c_int, 2)) != 0) {
+        Write_Instrument_Envelope(&inst.*.envelope_pan);
+    }
+    if ((@as(c_int, @bitCast(@as(c_uint, inst.*.env_flags))) & @as(c_int, 4)) != 0) {
+        Write_Instrument_Envelope(&inst.*.envelope_pitch);
+    }
+    if (full_notemap != 0) {
+        {
+            y = 0;
+            while (y < @as(c_int, 120)) : (y += 1) {
+                write16(inst.*.notemap[@as(c_uint, @intCast(y))]);
+            }
+        }
+    }
+}
+pub export fn Write_SampleData(arg_samp: [*c]Sample) void {
+    var samp = arg_samp;
+    _ = &samp;
+    var x: @"u32" = undefined;
+    _ = &x;
+    var sample_length: @"u32" = samp.*.sample_length;
+    _ = &sample_length;
+    var sample_looplen: @"u32" = samp.*.loop_end -% samp.*.loop_start;
+    _ = &sample_looplen;
+    if (target_system == @as(c_int, 0)) {
+        write32(sample_length);
+        write32(if (@as(c_int, @bitCast(@as(c_uint, samp.*.loop_type))) != 0) sample_looplen else @as(c_uint, 4294967295));
+        write8(@as(@"u8", @bitCast(@as(i8, @truncate(@as(c_int, 0))))));
+        write8(@as(@"u8", @bitCast(@as(i8, @truncate(@as(c_int, 186))))));
+        write16(@as(@"u16", @bitCast(@as(c_ushort, @truncate(((samp.*.frequency *% @as(@"u32", @bitCast(@as(c_int, 1024)))) +% @as(@"u32", @bitCast(@divTrunc(@as(c_int, 15768), @as(c_int, 2))))) / @as(@"u32", @bitCast(@as(c_int, 15768))))))));
+    } else {
+        if ((@as(c_int, @bitCast(@as(c_uint, samp.*.format))) & @as(c_int, 1)) != 0) {
+            if (samp.*.loop_type != 0) {
+                write32(samp.*.loop_start / @as(@"u32", @bitCast(@as(c_int, 2))));
+                write32((samp.*.loop_end -% samp.*.loop_start) / @as(@"u32", @bitCast(@as(c_int, 2))));
+            } else {
+                write32(@as(@"u32", @bitCast(@as(c_int, 0))));
+                write32(sample_length / @as(@"u32", @bitCast(@as(c_int, 2))));
+            }
+        } else {
+            if (samp.*.loop_type != 0) {
+                write32(samp.*.loop_start / @as(@"u32", @bitCast(@as(c_int, 4))));
+                write32((samp.*.loop_end -% samp.*.loop_start) / @as(@"u32", @bitCast(@as(c_int, 4))));
+            } else {
+                write32(@as(@"u32", @bitCast(@as(c_int, 0))));
+                write32(sample_length / @as(@"u32", @bitCast(@as(c_int, 4))));
+            }
+        }
+        write8(sample_dsformat(samp));
+        write8(sample_dsreptype(samp));
+        write16(@as(@"u16", @bitCast(@as(c_ushort, @truncate(((samp.*.frequency *% @as(@"u32", @bitCast(@as(c_int, 1024)))) +% @as(@"u32", @bitCast(@divTrunc(@as(c_int, 32768), @as(c_int, 2))))) / @as(@"u32", @bitCast(@as(c_int, 32768))))))));
+        write32(@as(@"u32", @bitCast(@as(c_int, 0))));
+    }
+    if ((@as(c_int, @bitCast(@as(c_uint, samp.*.format))) & @as(c_int, 1)) != 0) {
+        {
+            x = 0;
+            while (x < sample_length) : (x +%= 1) {
+                write16(@as([*c]@"u16", @ptrCast(@alignCast(samp.*.data)))[x]);
+            }
+        }
+        if ((@as(c_int, @bitCast(@as(c_uint, samp.*.loop_type))) != 0) and (sample_length >= (samp.*.loop_start +% @as(@"u32", @bitCast(@as(c_int, 2)))))) {
+            write16(@as([*c]@"u16", @ptrCast(@alignCast(samp.*.data)))[samp.*.loop_start]);
+            write16(@as([*c]@"u16", @ptrCast(@alignCast(samp.*.data)))[samp.*.loop_start +% @as(@"u32", @bitCast(@as(c_int, 1)))]);
+        } else {
+            write16(@as(@"u16", @bitCast(@as(c_short, @truncate(@as(c_int, 0))))));
+            write16(@as(@"u16", @bitCast(@as(c_short, @truncate(@as(c_int, 0))))));
+        }
+    } else {
+        {
+            x = 0;
+            while (x < sample_length) : (x +%= 1) {
+                write8(@as([*c]@"u8", @ptrCast(@alignCast(samp.*.data)))[x]);
+            }
+        }
+        if ((@as(c_int, @bitCast(@as(c_uint, samp.*.loop_type))) != 0) and (sample_length >= (samp.*.loop_start +% @as(@"u32", @bitCast(@as(c_int, 4)))))) {
+            write8(@as([*c]@"u8", @ptrCast(@alignCast(samp.*.data)))[samp.*.loop_start]);
+            write8(@as([*c]@"u8", @ptrCast(@alignCast(samp.*.data)))[samp.*.loop_start +% @as(@"u32", @bitCast(@as(c_int, 1)))]);
+            write8(@as([*c]@"u8", @ptrCast(@alignCast(samp.*.data)))[samp.*.loop_start +% @as(@"u32", @bitCast(@as(c_int, 2)))]);
+            write8(@as([*c]@"u8", @ptrCast(@alignCast(samp.*.data)))[samp.*.loop_start +% @as(@"u32", @bitCast(@as(c_int, 3)))]);
+        } else {
+            {
+                x = 0;
+                while (x < @as(@"u32", @bitCast(@as(c_int, 4)))) : (x +%= 1) {
+                    write8(@as(@"u8", @bitCast(@as(i8, @truncate(if (target_system == @as(c_int, 0)) @as(c_int, 128) else @as(c_int, 0))))));
+                }
+            }
+        }
+    }
+}
+pub export fn Write_Sample(arg_samp: [*c]Sample) void {
+    var samp = arg_samp;
+    _ = &samp;
+    align32();
+    samp.*.parapointer = @as(@"u32", @bitCast(file_tell_write())) -% MAS_OFFSET;
+    write8(samp.*.default_volume);
+    write8(samp.*.default_panning);
+    write16(@as(@"u16", @bitCast(@as(c_ushort, @truncate(samp.*.frequency / @as(@"u32", @bitCast(@as(c_int, 4))))))));
+    write8(samp.*.vibtype);
+    write8(samp.*.vibdepth);
+    write8(samp.*.vibspeed);
+    write8(samp.*.global_volume);
+    write16(@as(@"u16", @bitCast(@as(c_ushort, samp.*.vibrate))));
+    write16(samp.*.msl_index);
+    if (@as(c_int, @bitCast(@as(c_uint, samp.*.msl_index))) == @as(c_int, 65535)) {
+        Write_SampleData(samp);
+    }
+}
+pub export fn Write_Pattern(arg_patt: [*c]Pattern, arg_xm_vol: @"bool") void {
+    var patt = arg_patt;
+    _ = &patt;
+    var xm_vol = arg_xm_vol;
+    _ = &xm_vol;
+    var row: c_int = undefined;
+    _ = &row;
+    var col: c_int = undefined;
+    _ = &col;
+    var last_mask: [32]@"u16" = undefined;
+    _ = &last_mask;
+    var last_note: [32]@"u16" = undefined;
+    _ = &last_note;
+    var last_inst: [32]@"u16" = undefined;
+    _ = &last_inst;
+    var last_vol: [32]@"u16" = undefined;
+    _ = &last_vol;
+    var last_fx: [32]@"u16" = undefined;
+    _ = &last_fx;
+    var last_param: [32]@"u16" = undefined;
+    _ = &last_param;
+    var chanvar: @"u8" = undefined;
+    _ = &chanvar;
+    var maskvar: @"u8" = undefined;
+    _ = &maskvar;
+    var emptyvol: @"u8" = undefined;
+    _ = &emptyvol;
+    var pe: [*c]PatternEntry = undefined;
+    _ = &pe;
+    patt.*.parapointer = @as(@"u32", @bitCast(file_tell_write())) -% MAS_OFFSET;
+    write8(@as(@"u8", @bitCast(@as(i8, @truncate(@as(c_int, @bitCast(@as(c_uint, patt.*.nrows))) - @as(c_int, 1))))));
+    patt.*.cmarks[@as(c_uint, @intCast(@as(c_int, 0)))] = @as(@"bool", @intFromBool(!false));
+    emptyvol = @as(@"u8", @bitCast(@as(i8, @truncate(if (@as(c_int, @bitCast(@as(c_uint, xm_vol))) != 0) @as(c_int, 0) else @as(c_int, 255)))));
+    {
+        row = 0;
+        while (row < @as(c_int, @bitCast(@as(c_uint, patt.*.nrows)))) : (row += 1) {
+            if (patt.*.cmarks[@as(c_uint, @intCast(row))] != 0) {
+                {
+                    col = 0;
+                    while (col < @as(c_int, 32)) : (col += 1) {
+                        last_mask[@as(c_uint, @intCast(col))] = @as(@"u16", @bitCast(@as(c_short, @truncate(@as(c_int, 256)))));
+                        last_note[@as(c_uint, @intCast(col))] = @as(@"u16", @bitCast(@as(c_short, @truncate(@as(c_int, 256)))));
+                        last_inst[@as(c_uint, @intCast(col))] = @as(@"u16", @bitCast(@as(c_short, @truncate(@as(c_int, 256)))));
+                        last_vol[@as(c_uint, @intCast(col))] = @as(@"u16", @bitCast(@as(c_short, @truncate(@as(c_int, 256)))));
+                        last_fx[@as(c_uint, @intCast(col))] = @as(@"u16", @bitCast(@as(c_short, @truncate(@as(c_int, 256)))));
+                        last_param[@as(c_uint, @intCast(col))] = @as(@"u16", @bitCast(@as(c_short, @truncate(@as(c_int, 256)))));
+                    }
+                }
+            }
+            {
+                col = 0;
+                while (col < @as(c_int, 32)) : (col += 1) {
+                    pe = &patt.*.data[@as(c_uint, @intCast((row * @as(c_int, 32)) + col))];
+                    if (((((@as(c_int, @bitCast(@as(c_uint, pe.*.note))) != @as(c_int, 250)) or (@as(c_int, @bitCast(@as(c_uint, pe.*.inst))) != @as(c_int, 0))) or (@as(c_int, @bitCast(@as(c_uint, pe.*.vol))) != @as(c_int, @bitCast(@as(c_uint, emptyvol))))) or (@as(c_int, @bitCast(@as(c_uint, pe.*.fx))) != @as(c_int, 0))) or (@as(c_int, @bitCast(@as(c_uint, pe.*.param))) != @as(c_int, 0))) {
+                        maskvar = 0;
+                        chanvar = @as(@"u8", @bitCast(@as(i8, @truncate(col + @as(c_int, 1)))));
+                        if (@as(c_int, @bitCast(@as(c_uint, pe.*.note))) != @as(c_int, 250)) {
+                            maskvar |= @as(@"u8", @bitCast(@as(i8, @truncate(@as(c_int, 1) | @as(c_int, 16)))));
+                        }
+                        if (@as(c_int, @bitCast(@as(c_uint, pe.*.inst))) != @as(c_int, 0)) {
+                            maskvar |= @as(@"u8", @bitCast(@as(i8, @truncate(@as(c_int, 2) | @as(c_int, 32)))));
+                        }
+                        if (@as(c_int, @bitCast(@as(c_uint, pe.*.note))) > @as(c_int, 250)) {
+                            maskvar &= @as(@"u8", @bitCast(@as(i8, @truncate(~(@as(c_int, 16) | @as(c_int, 32))))));
+                        }
+                        if (@as(c_int, @bitCast(@as(c_uint, pe.*.vol))) != @as(c_int, @bitCast(@as(c_uint, emptyvol)))) {
+                            maskvar |= @as(@"u8", @bitCast(@as(i8, @truncate(@as(c_int, 4) | @as(c_int, 64)))));
+                        }
+                        if ((@as(c_int, @bitCast(@as(c_uint, pe.*.fx))) != @as(c_int, 0)) or (@as(c_int, @bitCast(@as(c_uint, pe.*.param))) != @as(c_int, 0))) {
+                            maskvar |= @as(@"u8", @bitCast(@as(i8, @truncate(@as(c_int, 8) | @as(c_int, 128)))));
+                        }
+                        if ((@as(c_int, @bitCast(@as(c_uint, maskvar))) & @as(c_int, 1)) != 0) {
+                            if (@as(c_int, @bitCast(@as(c_uint, pe.*.note))) == @as(c_int, @bitCast(@as(c_uint, last_note[@as(c_uint, @intCast(col))])))) {
+                                maskvar &= @as(@"u8", @bitCast(@as(i8, @truncate(~@as(c_int, 1)))));
+                            } else {
+                                last_note[@as(c_uint, @intCast(col))] = @as(@"u16", @bitCast(@as(c_ushort, pe.*.note)));
+                                if ((@as(c_int, @bitCast(@as(c_uint, last_note[@as(c_uint, @intCast(col))]))) == @as(c_int, 254)) or (@as(c_int, @bitCast(@as(c_uint, last_note[@as(c_uint, @intCast(col))]))) == @as(c_int, 255))) {
+                                    last_note[@as(c_uint, @intCast(col))] = @as(@"u16", @bitCast(@as(c_short, @truncate(@as(c_int, 256)))));
+                                }
+                            }
+                        }
+                        if ((@as(c_int, @bitCast(@as(c_uint, maskvar))) & @as(c_int, 2)) != 0) {
+                            if (@as(c_int, @bitCast(@as(c_uint, pe.*.inst))) == @as(c_int, @bitCast(@as(c_uint, last_inst[@as(c_uint, @intCast(col))])))) {
+                                maskvar &= @as(@"u8", @bitCast(@as(i8, @truncate(~@as(c_int, 2)))));
+                            } else {
+                                last_inst[@as(c_uint, @intCast(col))] = @as(@"u16", @bitCast(@as(c_ushort, pe.*.inst)));
+                            }
+                        }
+                        if ((@as(c_int, @bitCast(@as(c_uint, maskvar))) & @as(c_int, 4)) != 0) {
+                            if (@as(c_int, @bitCast(@as(c_uint, pe.*.vol))) == @as(c_int, @bitCast(@as(c_uint, last_vol[@as(c_uint, @intCast(col))])))) {
+                                maskvar &= @as(@"u8", @bitCast(@as(i8, @truncate(~@as(c_int, 4)))));
+                            } else {
+                                last_vol[@as(c_uint, @intCast(col))] = @as(@"u16", @bitCast(@as(c_ushort, pe.*.vol)));
+                            }
+                        }
+                        if ((@as(c_int, @bitCast(@as(c_uint, maskvar))) & @as(c_int, 8)) != 0) {
+                            if ((@as(c_int, @bitCast(@as(c_uint, pe.*.fx))) == @as(c_int, @bitCast(@as(c_uint, last_fx[@as(c_uint, @intCast(col))])))) and (@as(c_int, @bitCast(@as(c_uint, pe.*.param))) == @as(c_int, @bitCast(@as(c_uint, last_param[@as(c_uint, @intCast(col))]))))) {
+                                maskvar &= @as(@"u8", @bitCast(@as(i8, @truncate(~@as(c_int, 8)))));
+                            } else {
+                                last_fx[@as(c_uint, @intCast(col))] = @as(@"u16", @bitCast(@as(c_ushort, pe.*.fx)));
+                                last_param[@as(c_uint, @intCast(col))] = @as(@"u16", @bitCast(@as(c_ushort, pe.*.param)));
+                            }
+                        }
+                        if (@as(c_int, @bitCast(@as(c_uint, maskvar))) != @as(c_int, @bitCast(@as(c_uint, last_mask[@as(c_uint, @intCast(col))])))) {
+                            chanvar |= @as(@"u8", @bitCast(@as(i8, @truncate(@as(c_int, 128)))));
+                            last_mask[@as(c_uint, @intCast(col))] = @as(@"u16", @bitCast(@as(c_ushort, maskvar)));
+                        }
+                        write8(chanvar);
+                        if ((@as(c_int, @bitCast(@as(c_uint, chanvar))) & @as(c_int, 128)) != 0) {
+                            write8(maskvar);
+                        }
+                        if ((@as(c_int, @bitCast(@as(c_uint, maskvar))) & @as(c_int, 1)) != 0) {
+                            write8(pe.*.note);
+                        }
+                        if ((@as(c_int, @bitCast(@as(c_uint, maskvar))) & @as(c_int, 2)) != 0) {
+                            write8(pe.*.inst);
+                        }
+                        if ((@as(c_int, @bitCast(@as(c_uint, maskvar))) & @as(c_int, 4)) != 0) {
+                            write8(pe.*.vol);
+                        }
+                        if ((@as(c_int, @bitCast(@as(c_uint, maskvar))) & @as(c_int, 8)) != 0) {
+                            write8(pe.*.fx);
+                            write8(pe.*.param);
+                        }
+                    } else {
+                        continue;
+                    }
+                }
+            }
+            write8(@as(@"u8", @bitCast(@as(i8, @truncate(@as(c_int, 0))))));
+        }
+    }
+}
+pub export fn Write_MAS(arg_mod: [*c]MAS_Module, arg_verbose: @"bool", arg_msl_dep: @"bool") c_int {
+    var mod = arg_mod;
+    _ = &mod;
+    var verbose = arg_verbose;
+    _ = &verbose;
+    var msl_dep = arg_msl_dep;
+    _ = &msl_dep;
+    var x: c_int = undefined;
+    _ = &x;
+    var fpos_pointer: c_int = undefined;
+    _ = &fpos_pointer;
+    _ = file_get_byte_count();
+    write32(@as(@"u32", @bitCast(@as(c_int, 186))));
+    write8(@as(@"u8", @bitCast(@as(i8, @truncate(@as(c_int, 0))))));
+    write8(@as(@"u8", @bitCast(@as(i8, @truncate(@as(c_int, 24))))));
+    write8(@as(@"u8", @bitCast(@as(i8, @truncate(@as(c_int, 186))))));
+    write8(@as(@"u8", @bitCast(@as(i8, @truncate(@as(c_int, 186))))));
+    MAS_OFFSET = @as(@"u32", @bitCast(file_tell_write()));
+    write8(@as(@"u8", @bitCast(@as(u8, @truncate(mod.*.order_count)))));
+    write8(mod.*.inst_count);
+    write8(mod.*.samp_count);
+    write8(mod.*.patt_count);
+    write8(@as(@"u8", @bitCast(@as(i8, @truncate((((((if (@as(c_int, @bitCast(@as(c_uint, mod.*.link_gxx))) != 0) @as(c_int, 1) else @as(c_int, 0)) | (if (@as(c_int, @bitCast(@as(c_uint, mod.*.old_effects))) != 0) @as(c_int, 2) else @as(c_int, 0))) | (if (@as(c_int, @bitCast(@as(c_uint, mod.*.freq_mode))) != 0) @as(c_int, 4) else @as(c_int, 0))) | (if (@as(c_int, @bitCast(@as(c_uint, mod.*.xm_mode))) != 0) @as(c_int, 8) else @as(c_int, 0))) | (if (@as(c_int, @bitCast(@as(c_uint, msl_dep))) != 0) @as(c_int, 16) else @as(c_int, 0))) | (if (@as(c_int, @bitCast(@as(c_uint, mod.*.old_mode))) != 0) @as(c_int, 32) else @as(c_int, 0)))))));
+    write8(mod.*.global_volume);
+    write8(mod.*.initial_speed);
+    write8(mod.*.initial_tempo);
+    write8(mod.*.restart_pos);
+    write8(@as(@"u8", @bitCast(@as(i8, @truncate(@as(c_int, 186))))));
+    write8(@as(@"u8", @bitCast(@as(i8, @truncate(@as(c_int, 186))))));
+    write8(@as(@"u8", @bitCast(@as(i8, @truncate(@as(c_int, 186))))));
+    {
+        x = 0;
+        while (x < @as(c_int, 32)) : (x += 1) {
+            write8(mod.*.channel_volume[@as(c_uint, @intCast(x))]);
+        }
+    }
+    {
+        x = 0;
+        while (x < @as(c_int, 32)) : (x += 1) {
+            write8(mod.*.channel_panning[@as(c_uint, @intCast(x))]);
+        }
+    }
+    {
+        x = 0;
+        while (x < @as(c_int, @bitCast(@as(c_uint, mod.*.order_count)))) : (x += 1) {
+            if (@as(c_int, @bitCast(@as(c_uint, mod.*.orders[@as(c_uint, @intCast(x))]))) < @as(c_int, 254)) {
+                if (@as(c_int, @bitCast(@as(c_uint, mod.*.orders[@as(c_uint, @intCast(x))]))) < @as(c_int, @bitCast(@as(c_uint, mod.*.patt_count)))) {
+                    write8(mod.*.orders[@as(c_uint, @intCast(x))]);
+                } else {
+                    write8(@as(@"u8", @bitCast(@as(i8, @truncate(@as(c_int, 254))))));
+                }
+            } else {
+                write8(mod.*.orders[@as(c_uint, @intCast(x))]);
+            }
+        }
+    }
+    while (x < @as(c_int, 200)) : (x += 1) {
+        write8(@as(@"u8", @bitCast(@as(i8, @truncate(@as(c_int, 255))))));
+    }
+    fpos_pointer = file_tell_write();
+    {
+        x = 0;
+        while (x < (((@as(c_int, @bitCast(@as(c_uint, mod.*.inst_count))) * @as(c_int, 4)) + (@as(c_int, @bitCast(@as(c_uint, mod.*.samp_count))) * @as(c_int, 4))) + (@as(c_int, @bitCast(@as(c_uint, mod.*.patt_count))) * @as(c_int, 4)))) : (x += 1) {
+            write8(@as(@"u8", @bitCast(@as(i8, @truncate(@as(c_int, 186))))));
+        }
+    }
+    if (verbose != 0) {
+        _ = printf("Header: %i bytes\n", file_get_byte_count());
+    }
+    {
+        x = 0;
+        while (x < @as(c_int, @bitCast(@as(c_uint, mod.*.inst_count)))) : (x += 1) {
+            Write_Instrument(&(blk: {
+                const tmp = x;
+                if (tmp >= 0) break :blk mod.*.instruments + @as(usize, @intCast(tmp)) else break :blk mod.*.instruments - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+            }).*);
+        }
+    }
+    {
+        x = 0;
+        while (x < @as(c_int, @bitCast(@as(c_uint, mod.*.samp_count)))) : (x += 1) {
+            Write_Sample(&(blk: {
+                const tmp = x;
+                if (tmp >= 0) break :blk mod.*.samples + @as(usize, @intCast(tmp)) else break :blk mod.*.samples - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+            }).*);
+        }
+    }
+    if (verbose != 0) {
+        _ = printf("Instruments: %i bytes\n", file_get_byte_count());
+    }
+    Mark_Patterns(mod);
+    {
+        x = 0;
+        while (x < @as(c_int, @bitCast(@as(c_uint, mod.*.patt_count)))) : (x += 1) {
+            Write_Pattern(&(blk: {
+                const tmp = x;
+                if (tmp >= 0) break :blk mod.*.patterns + @as(usize, @intCast(tmp)) else break :blk mod.*.patterns - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+            }).*, mod.*.xm_mode);
+        }
+    }
+    align32();
+    if (verbose != 0) {
+        _ = printf("Patterns: %i bytes\n", file_get_byte_count());
+    }
+    MAS_FILESIZE = @as(@"u32", @bitCast(file_tell_write())) -% MAS_OFFSET;
+    _ = file_seek_write(@as(c_int, @bitCast(MAS_OFFSET -% @as(@"u32", @bitCast(@as(c_int, 8))))), @as(c_int, 0));
+    write32(MAS_FILESIZE);
+    _ = file_seek_write(fpos_pointer, @as(c_int, 0));
+    {
+        x = 0;
+        while (x < @as(c_int, @bitCast(@as(c_uint, mod.*.inst_count)))) : (x += 1) {
+            write32((blk: {
+                const tmp = x;
+                if (tmp >= 0) break :blk mod.*.instruments + @as(usize, @intCast(tmp)) else break :blk mod.*.instruments - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+            }).*.parapointer);
+        }
+    }
+    {
+        x = 0;
+        while (x < @as(c_int, @bitCast(@as(c_uint, mod.*.samp_count)))) : (x += 1) {
+            _ = printf("sample %s is at %d/%d of %d\n", @as([*c]u8, @ptrCast(@alignCast(&(blk: {
+                const tmp = x;
+                if (tmp >= 0) break :blk mod.*.samples + @as(usize, @intCast(tmp)) else break :blk mod.*.samples - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+            }).*.name[@as(usize, @intCast(0))]))), (blk: {
+                const tmp = x;
+                if (tmp >= 0) break :blk mod.*.samples + @as(usize, @intCast(tmp)) else break :blk mod.*.samples - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+            }).*.parapointer, file_tell_write(), (blk: {
+                const tmp = x;
+                if (tmp >= 0) break :blk mod.*.samples + @as(usize, @intCast(tmp)) else break :blk mod.*.samples - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+            }).*.sample_length);
+            write32((blk: {
+                const tmp = x;
+                if (tmp >= 0) break :blk mod.*.samples + @as(usize, @intCast(tmp)) else break :blk mod.*.samples - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+            }).*.parapointer);
+        }
+    }
+    {
+        x = 0;
+        while (x < @as(c_int, @bitCast(@as(c_uint, mod.*.patt_count)))) : (x += 1) {
+            write32((blk: {
+                const tmp = x;
+                if (tmp >= 0) break :blk mod.*.patterns + @as(usize, @intCast(tmp)) else break :blk mod.*.patterns - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+            }).*.parapointer);
+        }
+    }
+    return @as(c_int, @bitCast(MAS_FILESIZE));
+}
+pub export fn Delete_Module(arg_mod: [*c]MAS_Module) void {
+    var mod = arg_mod;
+    _ = &mod;
+    var x: c_int = undefined;
+    _ = &x;
+    if (mod.*.instruments != null) {
+        free(@as(?*anyopaque, @ptrCast(mod.*.instruments)));
+    }
+    if (mod.*.samples != null) {
+        {
+            x = 0;
+            while (x < @as(c_int, @bitCast(@as(c_uint, mod.*.samp_count)))) : (x += 1) {
+                if ((blk: {
+                    const tmp = x;
+                    if (tmp >= 0) break :blk mod.*.samples + @as(usize, @intCast(tmp)) else break :blk mod.*.samples - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+                }).*.data != null) {
+                    free((blk: {
+                        const tmp = x;
+                        if (tmp >= 0) break :blk mod.*.samples + @as(usize, @intCast(tmp)) else break :blk mod.*.samples - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+                    }).*.data);
+                }
+            }
+        }
+        free(@as(?*anyopaque, @ptrCast(mod.*.samples)));
+    }
+    if (mod.*.patterns != null) {
+        free(@as(?*anyopaque, @ptrCast(mod.*.patterns)));
+    }
+}
+pub extern var MAS_FILESIZE: @"u32";
 pub extern fn get_ext(filename: [*c]u8) c_int;
 pub extern fn calc_samplooplen(s: [*c]Sample) @"u32";
 pub extern fn calc_samplen(s: [*c]Sample) @"u32";
 pub extern fn calc_samplen_ex2(s: [*c]Sample) @"u32";
 pub extern fn clamp_s8(value: c_int) c_int;
 pub extern fn clamp_u8(value: c_int) c_int;
-// Ensure we pull in the exporting unit so the symbol is defined
-const _shim_ref_clamp = @import("simple_c_raw_auto.zig");
 pub extern fn readbits(buffer: [*c]@"u8", pos: c_uint, size: c_uint) @"u32";
 pub extern fn sample_dsformat(samp: [*c]Sample) @"u8";
 pub extern fn sample_dsreptype(samp: [*c]Sample) @"u8";
-pub extern fn FixSample(samp: [*c]Sample) void;
-pub export fn Create_MOD_Instrument(arg_inst: [*c]Instrument, arg_sample: @"u8") c_int {
-    var inst = arg_inst;
-    _ = &inst;
-    var sample = arg_sample;
-    _ = &sample;
-    var x: c_int = undefined;
-    _ = &x;
-    _ = __builtin___memset_chk(@as(?*anyopaque, @ptrCast(inst)), @as(c_int, 0), @sizeOf(Instrument), __builtin_object_size(@as(?*const anyopaque, @ptrCast(inst)), @as(c_int, 0)));
-    inst.*.global_volume = 128;
-    {
-        x = 0;
-        while (x < @as(c_int, 120)) : (x += 1) {
-            inst.*.notemap[@as(c_uint, @intCast(x))] = @as(@"u16", @bitCast(@as(c_short, @truncate(x | ((@as(c_int, @bitCast(@as(c_uint, sample))) + @as(c_int, 1)) << @intCast(8))))));
-        }
-    }
-    return 0;
+pub extern var target_system: c_int;
+pub export var MAS_OFFSET: @"u32" = @import("std").mem.zeroes(@"u32");
+pub fn CalcEnvelopeSize(arg_env: [*c]Instrument_Envelope) callconv(.c) c_int {
+    var env = arg_env;
+    _ = &env;
+    return (@as(c_int, @bitCast(@as(c_uint, env.*.node_count))) * @as(c_int, 4)) + @as(c_int, 8);
 }
-pub export fn Load_MOD_SampleData(arg_samp: [*c]Sample) c_int {
-    var samp = arg_samp;
-    _ = &samp;
-    var t: @"u32" = undefined;
-    _ = &t;
-    if (samp.*.sample_length > @as(@"u32", @bitCast(@as(c_int, 0)))) {
-        samp.*.data = @as(?*anyopaque, @ptrCast(@as([*c]@"u8", @ptrCast(@alignCast(malloc(@as(c_ulong, @bitCast(@as(c_ulong, samp.*.sample_length)))))))));
-        {
-            t = 0;
-            while (t < samp.*.sample_length) : (t +%= 1) {
-                @as([*c]@"u8", @ptrCast(@alignCast(samp.*.data)))[t] = @as(@"u8", @bitCast(@as(i8, @truncate(@as(c_int, @bitCast(@as(c_uint, read8()))) + @as(c_int, 128)))));
-            }
-        }
+pub fn CalcInstrumentSize(arg_instr: [*c]Instrument) callconv(.c) c_int {
+    var instr = arg_instr;
+    _ = &instr;
+    var size: c_int = undefined;
+    _ = &size;
+    size = 12;
+    if ((@as(c_int, @bitCast(@as(c_uint, instr.*.env_flags))) & @as(c_int, 1)) != 0) {
+        size += CalcEnvelopeSize(&instr.*.envelope_volume);
     }
-    FixSample(samp);
-    return 0;
+    if ((@as(c_int, @bitCast(@as(c_uint, instr.*.env_flags))) & @as(c_int, 2)) != 0) {
+        size += CalcEnvelopeSize(&instr.*.envelope_pan);
+    }
+    if ((@as(c_int, @bitCast(@as(c_uint, instr.*.env_flags))) & @as(c_int, 4)) != 0) {
+        size += CalcEnvelopeSize(&instr.*.envelope_pitch);
+    }
+    return size;
 }
-pub export fn Load_MOD_Pattern(arg_patt: [*c]Pattern, arg_nchannels: @"u8", arg_inst_count: [*c]@"u8") c_int {
-    var patt = arg_patt;
-    _ = &patt;
-    var nchannels = arg_nchannels;
-    _ = &nchannels;
-    var inst_count = arg_inst_count;
-    _ = &inst_count;
-    var data1: @"u8" = undefined;
-    _ = &data1;
-    var data2: @"u8" = undefined;
-    _ = &data2;
-    var data3: @"u8" = undefined;
-    _ = &data3;
-    var data4: @"u8" = undefined;
-    _ = &data4;
-    var period: @"u16" = undefined;
-    _ = &period;
-    var inst: @"u8" = undefined;
-    _ = &inst;
-    var effect: @"u8" = undefined;
-    _ = &effect;
-    var param: @"u8" = undefined;
-    _ = &param;
-    var row: @"u32" = undefined;
+pub export fn Mark_Pattern_Row(arg_mod: [*c]MAS_Module, arg_order: c_int, arg_row: c_int) void {
+    var mod = arg_mod;
+    _ = &mod;
+    var order = arg_order;
+    _ = &order;
+    var row = arg_row;
     _ = &row;
-    var col: @"u32" = undefined;
-    _ = &col;
-    var p: [*c]PatternEntry = undefined;
+    var p: [*c]Pattern = undefined;
     _ = &p;
-    _ = __builtin___memset_chk(@as(?*anyopaque, @ptrCast(patt)), @as(c_int, 0), @sizeOf(Pattern), __builtin_object_size(@as(?*const anyopaque, @ptrCast(patt)), @as(c_int, 0)));
-    patt.*.nrows = 64;
-    {
-        row = 0;
-        while (row < @as(@"u32", @bitCast(@as(c_int, 64) * @as(c_int, 32)))) : (row +%= 1) {
-            patt.*.data[row].note = 250;
+    if (row >= @as(c_int, 256)) return;
+    if (@as(c_int, @bitCast(@as(c_uint, mod.*.orders[@as(c_uint, @intCast(order))]))) == @as(c_int, 255)) {
+        order = 0;
+    }
+    while (@as(c_int, @bitCast(@as(c_uint, mod.*.orders[@as(c_uint, @intCast(order))]))) >= @as(c_int, 254)) {
+        if (@as(c_int, @bitCast(@as(c_uint, mod.*.orders[@as(c_uint, @intCast(order))]))) == @as(c_int, 255)) return;
+        if (@as(c_int, @bitCast(@as(c_uint, mod.*.orders[@as(c_uint, @intCast(order))]))) == @as(c_int, 254)) {
+            order += 1;
         }
     }
+    p = &mod.*.patterns[mod.*.orders[@as(c_uint, @intCast(order))]];
+    p.*.cmarks[@as(c_uint, @intCast(row))] = @as(@"bool", @intFromBool(!false));
+}
+pub export fn Mark_Patterns(arg_mod: [*c]MAS_Module) void {
+    var mod = arg_mod;
+    _ = &mod;
+    var o: c_int = undefined;
+    _ = &o;
+    var p: c_int = undefined;
+    _ = &p;
+    var row: c_int = undefined;
+    _ = &row;
+    var col: c_int = undefined;
+    _ = &col;
+    var pe: [*c]PatternEntry = undefined;
+    _ = &pe;
     {
-        row = 0;
-        while (row < @as(@"u32", @bitCast(@as(c_int, 64)))) : (row +%= 1) {
+        o = 0;
+        while (o < @as(c_int, @bitCast(@as(c_uint, mod.*.order_count)))) : (o += 1) {
+            p = @as(c_int, @bitCast(@as(c_uint, mod.*.orders[@as(c_uint, @intCast(o))])));
+            if (p == @as(c_int, 255)) break;
+            if (p == @as(c_int, 254)) continue;
+            if (p >= @as(c_int, @bitCast(@as(c_uint, mod.*.patt_count)))) continue;
             {
-                col = 0;
-                while (col < @as(@"u32", @bitCast(@as(c_uint, nchannels)))) : (col +%= 1) {
-                    data1 = read8();
-                    data2 = read8();
-                    data3 = read8();
-                    data4 = read8();
-                    period = @as(@"u16", @bitCast(@as(c_short, @truncate(((@as(c_int, @bitCast(@as(c_uint, data1))) & @as(c_int, 15)) * @as(c_int, 256)) + @as(c_int, @bitCast(@as(c_uint, data2)))))));
-                    inst = @as(@"u8", @bitCast(@as(i8, @truncate((@as(c_int, @bitCast(@as(c_uint, data1))) & @as(c_int, 240)) + (@as(c_int, @bitCast(@as(c_uint, data3))) >> @intCast(4))))));
-                    effect = @as(@"u8", @bitCast(@as(i8, @truncate(@as(c_int, @bitCast(@as(c_uint, data3))) & @as(c_int, 15)))));
-                    param = data4;
-                    while (true) {
-                        switch (@as(c_int, @bitCast(@as(c_uint, effect)))) {
-                            @as(c_int, 5), @as(c_int, 6) => {
-                                if ((@as(c_int, @bitCast(@as(c_uint, param))) & @as(c_int, 240)) != 0) {
-                                    param &= @as(@"u8", @bitCast(@as(i8, @truncate(@as(c_int, 240)))));
+                row = 0;
+                while (row < @as(c_int, @bitCast(@as(c_uint, (blk: {
+                    const tmp = p;
+                    if (tmp >= 0) break :blk mod.*.patterns + @as(usize, @intCast(tmp)) else break :blk mod.*.patterns - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+                }).*.nrows)))) : (row += 1) {
+                    {
+                        col = 0;
+                        while (col < @as(c_int, 32)) : (col += 1) {
+                            pe = &(blk: {
+                                const tmp = p;
+                                if (tmp >= 0) break :blk mod.*.patterns + @as(usize, @intCast(tmp)) else break :blk mod.*.patterns - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+                            }).*.data[@as(c_uint, @intCast((row * @as(c_int, 32)) + col))];
+                            if (@as(c_int, @bitCast(@as(c_uint, pe.*.fx))) == @as(c_int, 3)) {
+                                if (@as(c_int, @bitCast(@as(c_uint, pe.*.param))) != @as(c_int, 0)) {
+                                    Mark_Pattern_Row(mod, o + @as(c_int, 1), @as(c_int, @bitCast(@as(c_uint, pe.*.param))));
                                 }
-                            },
-                            else => {},
-                        }
-                        break;
-                    }
-                    p = &patt.*.data[(row *% @as(@"u32", @bitCast(@as(c_int, 32)))) +% col];
-                    p.*.inst = inst;
-                    CONV_XM_EFFECT(&effect, &param);
-                    p.*.fx = effect;
-                    p.*.param = param;
-                    if (@as(c_int, @bitCast(@as(c_uint, period))) != @as(c_int, 0)) {
-                        p.*.note = @as(@"u8", @bitCast(@as(i8, @truncate((@as(c_int, @intFromFloat(round((12.0 * log(856.0 / @as(f64, @floatFromInt(period)))) / log(@as(f64, @floatFromInt(@as(c_int, 2))))))) + @as(c_int, 37)) + @as(c_int, 11)))));
-                    }
-                    if (@as(c_int, @bitCast(@as(c_uint, inst_count.*))) < (@as(c_int, @bitCast(@as(c_uint, inst))) + @as(c_int, 1))) {
-                        inst_count.* = @as(@"u8", @bitCast(@as(i8, @truncate(@as(c_int, @bitCast(@as(c_uint, inst))) + @as(c_int, 1)))));
-                        if (@as(c_int, @bitCast(@as(c_uint, inst_count.*))) > @as(c_int, 31)) {
-                            inst_count.* = 31;
+                            } else if (@as(c_int, @bitCast(@as(c_uint, pe.*.fx))) == @as(c_int, 19)) {
+                                if (@as(c_int, @bitCast(@as(c_uint, pe.*.param))) == @as(c_int, 176)) {
+                                    Mark_Pattern_Row(mod, o, row);
+                                }
+                            }
                         }
                     }
                 }
             }
         }
     }
-    return 0;
-}
-pub export fn Load_MOD_Sample(arg_samp: [*c]Sample, arg_verbose: @"bool", arg_index_1: c_int) c_int {
-    var samp = arg_samp;
-    _ = &samp;
-    var verbose = arg_verbose;
-    _ = &verbose;
-    var index_1 = arg_index_1;
-    _ = &index_1;
-    var finetune: c_int = undefined;
-    _ = &finetune;
-    var x: c_int = undefined;
-    _ = &x;
-    _ = __builtin___memset_chk(@as(?*anyopaque, @ptrCast(samp)), @as(c_int, 0), @sizeOf(Sample), __builtin_object_size(@as(?*const anyopaque, @ptrCast(samp)), @as(c_int, 0)));
-    samp.*.msl_index = @as(@"u16", @bitCast(@as(c_short, @truncate(@as(c_int, 65535)))));
-    {
-        x = 0;
-        while (x < @as(c_int, 22)) : (x += 1) {
-            samp.*.name[@as(c_uint, @intCast(x))] = @as(u8, @bitCast(read8()));
-        }
-    }
-    {
-        x = 0;
-        while (x < @as(c_int, 12)) : (x += 1) {
-            samp.*.filename[@as(c_uint, @intCast(x))] = samp.*.name[@as(c_uint, @intCast(x))];
-        }
-    }
-    samp.*.sample_length = @as(@"u32", @bitCast(((@as(c_int, @bitCast(@as(c_uint, read8()))) * @as(c_int, 256)) + @as(c_int, @bitCast(@as(c_uint, read8())))) * @as(c_int, 2)));
-    finetune = @as(c_int, @bitCast(@as(c_uint, read8())));
-    if (finetune >= @as(c_int, 8)) {
-        finetune -= @as(c_int, 16);
-    }
-    samp.*.default_volume = read8();
-    samp.*.loop_start = @as(@"u32", @bitCast(((@as(c_int, @bitCast(@as(c_uint, read8()))) * @as(c_int, 256)) + @as(c_int, @bitCast(@as(c_uint, read8())))) * @as(c_int, 2)));
-    samp.*.loop_end = samp.*.loop_start +% @as(@"u32", @bitCast(((@as(c_int, @bitCast(@as(c_uint, read8()))) * @as(c_int, 256)) + @as(c_int, @bitCast(@as(c_uint, read8())))) * @as(c_int, 2)));
-    samp.*.frequency = @as(@"u32", @bitCast(@as(c_int, @intFromFloat(8363.0 * pow(2.0, @as(f64, @floatFromInt(finetune)) * (1.0 / 192.0))))));
-    samp.*.global_volume = 64;
-    if ((samp.*.loop_end -% samp.*.loop_start) <= @as(@"u32", @bitCast(@as(c_int, 2)))) {
-        samp.*.loop_type = @as(@"u8", @bitCast(@as(u8, @truncate(blk: {
-            const tmp = blk_1: {
-                const tmp_2 = @as(@"u32", @bitCast(@as(c_int, 0)));
-                samp.*.loop_end = tmp_2;
-                break :blk_1 tmp_2;
-            };
-            samp.*.loop_start = tmp;
-            break :blk tmp;
-        }))));
-    } else {
-        samp.*.loop_type = 1;
-    }
-    if (verbose != 0) {
-        if (samp.*.sample_length != @as(@"u32", @bitCast(@as(c_int, 0)))) {
-            // Simplify logging to avoid [:0]const u8 passing to printf
-            const yes: [*c]const u8 = "Yes";
-            const no: [*c]const u8 = "No";
-            const loop_str: [*c]const u8 = if (@as(c_int, @bitCast(@as(c_uint, samp.*.loop_type))) != @as(c_int, 0)) yes else no;
-            _ = printf(" %2i  len=%5i  loop=%3s  vol=%3i%%  %ihz\n", index_1, samp.*.sample_length, loop_str, @divTrunc(@as(c_int, @bitCast(@as(c_uint, samp.*.default_volume))) * @as(c_int, 100), @as(c_int, 64)), samp.*.frequency);
-        } else {}
-    }
-    return 0;
 }
 pub const __llvm__ = @as(c_int, 1);
 pub const __clang__ = @as(c_int, 1);
@@ -2385,7 +2171,9 @@ pub const __STDC_EMBED_NOT_FOUND__ = @as(c_int, 0);
 pub const __STDC_EMBED_FOUND__ = @as(c_int, 1);
 pub const __STDC_EMBED_EMPTY__ = @as(c_int, 2);
 pub const _DEBUG = @as(c_int, 1);
+pub const __GBA__ = @as(c_int, 1);
 pub const __GCC_HAVE_DWARF2_CFI_ASM = @as(c_int, 1);
+pub const MAS_C = "";
 pub const _STDLIB_H_ = "";
 pub const _LIBC_COUNT__MB_LEN_MAX = _LIBC_UNSAFE_INDEXABLE;
 pub const _LIBC_COUNT__PATH_MAX = _LIBC_UNSAFE_INDEXABLE;
@@ -7746,95 +7534,6 @@ pub const __bsearch_noescape = @compileError("unable to translate macro: undefin
 // /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/_stdlib.h:297:9
 pub const __sort_noescape = @compileError("unable to translate macro: undefined identifier `__noescape__`");
 // /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/_stdlib.h:330:9
-pub const _STRING_H_ = "";
-pub const _RSIZE_T = "";
-pub const _ERRNO_T = "";
-pub const _SSIZE_T = "";
-pub const __STRINGS_H_ = "";
-pub const _SECURE__STRINGS_H_ = "";
-pub const _SECURE__COMMON_H_ = "";
-pub const _USE_FORTIFY_LEVEL = @as(c_int, 2);
-pub inline fn __darwin_obsz0(object: anytype) @TypeOf(__builtin_object_size(object, @as(c_int, 0))) {
-    _ = &object;
-    return __builtin_object_size(object, @as(c_int, 0));
-}
-pub inline fn __darwin_obsz(object: anytype) @TypeOf(__builtin_object_size(object, if (_USE_FORTIFY_LEVEL > @as(c_int, 1)) @as(c_int, 1) else @as(c_int, 0))) {
-    _ = &object;
-    return __builtin_object_size(object, if (_USE_FORTIFY_LEVEL > @as(c_int, 1)) @as(c_int, 1) else @as(c_int, 0));
-}
-pub const _SECURE__STRING_H_ = "";
-pub const __HAS_FIXED_CHK_PROTOTYPES = @as(c_int, 1);
-pub const __MATH_H__ = "";
-pub const __MATH__ = "";
-pub const HUGE_VAL = @compileError("unable to translate macro: undefined identifier `__builtin_huge_val`");
-// /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/math.h:63:15
-pub const HUGE_VALF = __builtin_huge_valf();
-pub const HUGE_VALL = @compileError("unable to translate macro: undefined identifier `__builtin_huge_vall`");
-// /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/math.h:65:15
-pub const NAN = __builtin_nanf("0x7fc00000");
-pub const INFINITY = HUGE_VALF;
-pub const FP_NAN = @as(c_int, 1);
-pub const FP_INFINITE = @as(c_int, 2);
-pub const FP_ZERO = @as(c_int, 3);
-pub const FP_NORMAL = @as(c_int, 4);
-pub const FP_SUBNORMAL = @as(c_int, 5);
-pub const FP_SUPERNORMAL = @as(c_int, 6);
-pub const FP_FAST_FMA = @as(c_int, 1);
-pub const FP_FAST_FMAF = @as(c_int, 1);
-pub const FP_FAST_FMAL = @as(c_int, 1);
-pub const FP_ILOGB0 = -@import("std").zig.c_translation.promoteIntLiteral(c_int, 2147483647, .decimal) - @as(c_int, 1);
-pub const FP_ILOGBNAN = -@import("std").zig.c_translation.promoteIntLiteral(c_int, 2147483647, .decimal) - @as(c_int, 1);
-pub const MATH_ERRNO = @as(c_int, 1);
-pub const MATH_ERREXCEPT = @as(c_int, 2);
-pub const math_errhandling = __math_errhandling();
-pub const fpclassify = @compileError("unable to translate: TODO long double");
-// /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/math.h:132:9
-pub const isnormal = @compileError("unable to translate: TODO long double");
-// /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/math.h:155:9
-pub const isfinite = @compileError("unable to translate: TODO long double");
-// /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/math.h:160:9
-pub const isinf = @compileError("unable to translate: TODO long double");
-// /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/math.h:165:9
-pub const isnan = @compileError("unable to translate: TODO long double");
-// /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/math.h:170:9
-pub const signbit = @compileError("unable to translate: TODO long double");
-// /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/math.h:175:9
-pub const isgreater = @compileError("unable to translate macro: undefined identifier `__builtin_isgreater`");
-// /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/math.h:549:9
-pub const isgreaterequal = @compileError("unable to translate macro: undefined identifier `__builtin_isgreaterequal`");
-// /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/math.h:550:9
-pub const isless = @compileError("unable to translate macro: undefined identifier `__builtin_isless`");
-// /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/math.h:551:9
-pub const islessequal = @compileError("unable to translate macro: undefined identifier `__builtin_islessequal`");
-// /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/math.h:552:9
-pub const islessgreater = @compileError("unable to translate macro: undefined identifier `__builtin_islessgreater`");
-// /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/math.h:553:9
-pub const isunordered = @compileError("unable to translate macro: undefined identifier `__builtin_isunordered`");
-// /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/math.h:554:9
-pub const M_E = @as(f64, 2.71828182845904523536028747135266250);
-pub const M_LOG2E = @as(f64, 1.44269504088896340735992468100189214);
-pub const M_LOG10E = @as(f64, 0.434294481903251827651128918916605082);
-pub const M_LN2 = @as(f64, 0.693147180559945309417232121458176568);
-pub const M_LN10 = @as(f64, 2.30258509299404568401799145468436421);
-pub const M_PI = @as(f64, 3.14159265358979323846264338327950288);
-pub const M_PI_2 = @as(f64, 1.57079632679489661923132169163975144);
-pub const M_PI_4 = @as(f64, 0.785398163397448309615660845819875721);
-pub const M_1_PI = @as(f64, 0.318309886183790671537767526745028724);
-pub const M_2_PI = @as(f64, 0.636619772367581343075535053490057448);
-pub const M_2_SQRTPI = @as(f64, 1.12837916709551257389615890312154517);
-pub const M_SQRT2 = @as(f64, 1.41421356237309504880168872420969808);
-pub const M_SQRT1_2 = @as(f64, 0.707106781186547524400844362104849039);
-pub const MAXFLOAT = @as(f32, 0x1.fffffep+127);
-pub const FP_SNAN = FP_NAN;
-pub const FP_QNAN = FP_NAN;
-pub const HUGE = MAXFLOAT;
-pub const X_TLOSS = @as(f64, 1.41484755040568800000e+16);
-pub const DOMAIN = @as(c_int, 1);
-pub const SING = @as(c_int, 2);
-pub const OVERFLOW = @as(c_int, 3);
-pub const UNDERFLOW = @as(c_int, 4);
-pub const TLOSS = @as(c_int, 5);
-pub const PLOSS = @as(c_int, 6);
 pub const _defs_h_ = "";
 pub const DEFTYPES_H = "";
 pub const @"true" = !(@as(c_int, 0) != 0);
@@ -7847,20 +7546,6 @@ pub inline fn CLAMP(x: anytype, a: anytype, b: anytype) @TypeOf(if (x < a) a els
     _ = &b;
     return if (x < a) a else if (x > b) b else x;
 }
-pub const MAS_H = "";
-pub const SAMPF_16BIT = @as(c_int, 0x001);
-pub const SAMPF_SIGNED = @as(c_int, 0x002);
-pub const SAMPF_COMP = @as(c_int, 0x004);
-pub const SAMP_FORMAT_U8 = @as(c_int, 0);
-pub const SAMP_FORMAT_U16 = SAMPF_16BIT;
-pub const SAMP_FORMAT_S8 = SAMPF_SIGNED;
-pub const SAMP_FORMAT_S16 = SAMPF_16BIT | SAMPF_SIGNED;
-pub const SAMP_FORMAT_ADPCM = SAMPF_COMP;
-pub const MAS_TYPE_SONG = @as(c_int, 0);
-pub const MAS_TYPE_SAMPLE_GBA = @as(c_int, 1);
-pub const MAS_TYPE_SAMPLE_NDS = @as(c_int, 2);
-pub const MOD_H = "";
-pub const XM_H = "";
 pub const FILES_H = "";
 pub const _STDIO_H_ = "";
 pub const __STDIO_H_ = "";
@@ -7937,6 +7622,7 @@ pub inline fn __sfileno(p: anytype) @TypeOf(p.*._file) {
     return p.*._file;
 }
 pub const _OFF_T = "";
+pub const _SSIZE_T = "";
 pub inline fn fropen(cookie: anytype, @"fn": anytype) @TypeOf(funopen(cookie, @"fn", @as(c_int, 0), @as(c_int, 0), @as(c_int, 0))) {
     _ = &cookie;
     _ = &@"fn";
@@ -7964,8 +7650,30 @@ pub inline fn fileno_unlocked(p: anytype) @TypeOf(__sfileno(p)) {
     return __sfileno(p);
 }
 pub const _SECURE__STDIO_H_ = "";
+pub const _SECURE__COMMON_H_ = "";
+pub const _USE_FORTIFY_LEVEL = @as(c_int, 2);
+pub inline fn __darwin_obsz0(object: anytype) @TypeOf(__builtin_object_size(object, @as(c_int, 0))) {
+    _ = &object;
+    return __builtin_object_size(object, @as(c_int, 0));
+}
+pub inline fn __darwin_obsz(object: anytype) @TypeOf(__builtin_object_size(object, if (_USE_FORTIFY_LEVEL > @as(c_int, 1)) @as(c_int, 1) else @as(c_int, 0))) {
+    _ = &object;
+    return __builtin_object_size(object, if (_USE_FORTIFY_LEVEL > @as(c_int, 1)) @as(c_int, 1) else @as(c_int, 0));
+}
 pub const FILE_OPEN_OKAY = @as(c_int, 0);
 pub const FILE_OPEN_ERROR = -@as(c_int, 1);
+pub const MAS_H = "";
+pub const SAMPF_16BIT = @as(c_int, 0x001);
+pub const SAMPF_SIGNED = @as(c_int, 0x002);
+pub const SAMPF_COMP = @as(c_int, 0x004);
+pub const SAMP_FORMAT_U8 = @as(c_int, 0);
+pub const SAMP_FORMAT_U16 = SAMPF_16BIT;
+pub const SAMP_FORMAT_S8 = SAMPF_SIGNED;
+pub const SAMP_FORMAT_S16 = SAMPF_16BIT | SAMPF_SIGNED;
+pub const SAMP_FORMAT_ADPCM = SAMPF_COMP;
+pub const MAS_TYPE_SONG = @as(c_int, 0);
+pub const MAS_TYPE_SAMPLE_GBA = @as(c_int, 1);
+pub const MAS_TYPE_SAMPLE_NDS = @as(c_int, 2);
 pub const SIMPLE_H = "";
 pub const INPUT_TYPE_MOD = @as(c_int, 0);
 pub const INPUT_TYPE_S3M = @as(c_int, 1);
@@ -7976,27 +7684,9 @@ pub const INPUT_TYPE_TXT = @as(c_int, 5);
 pub const INPUT_TYPE_UNK = @as(c_int, 6);
 pub const INPUT_TYPE_H = @as(c_int, 7);
 pub const INPUT_TYPE_MSL = @as(c_int, 8);
-pub const ERRORS_H = "";
-pub const ERR_NONE = @as(c_int, 0x00);
-pub const ERR_INVALID_MODULE = @as(c_int, 0x01);
-pub const ERR_MANYARGS = @as(c_int, 0x02);
-pub const ERR_NOINPUT = @as(c_int, 0x03);
-pub const ERR_NOWRITE = @as(c_int, 0x04);
-pub const ERR_MANYCHANNELS = @as(c_int, 0x05);
-pub const ERR_UNKNOWNSAMPLE = @as(c_int, 0x06);
-pub const ERR_UNKNOWNPATTERN = @as(c_int, 0x07);
-pub const ERR_UNKNOWNINST = @as(c_int, 0x08);
-pub const ERR_TOOMANYSAMPLES = @as(c_int, 0x09);
-pub const ERR_UNKNOWNINPUT = @as(c_int, 0x0A);
-pub const ERR_BADINPUT = @as(c_int, 0x0B);
-pub const ERR_RETARDEDSCRIPT = @as(c_int, 0x0C);
-pub const SAMPLEFIX_H = "";
-pub const vstr_mod_div = "--------------------------------------------\n";
-pub const vstr_mod_samp_top = vstr_mod_div;
-pub const vstr_mod_samp_header = " INDEX LENGTH LOOP  VOLUME  MID-C   NAME                   \n";
-pub const vstr_mod_samp = " %-2i    %-5i  %-3s   %3i%%    %ihz  %-22s \n";
-pub const vstr_mod_samp_bottom = vstr_mod_div;
-pub const vstr_mod_pattern = " * %2i%s";
+pub const SYSTEM_GBA = @as(c_int, 0);
+pub const SYSTEM_NDS = @as(c_int, 1);
+pub const MAS_VERSION = @as(c_int, 0x18);
 pub const __darwin_pthread_handler_rec = struct___darwin_pthread_handler_rec;
 pub const _opaque_pthread_attr_t = struct__opaque_pthread_attr_t;
 pub const _opaque_pthread_cond_t = struct__opaque_pthread_cond_t;
@@ -8049,15 +7739,12 @@ pub const rusage_info_v6 = struct_rusage_info_v6;
 pub const rlimit = struct_rlimit;
 pub const proc_rlimit_control_wakeupmon = struct_proc_rlimit_control_wakeupmon;
 pub const _malloc_zone_t = struct__malloc_zone_t;
-pub const __float2 = struct___float2;
-pub const __double2 = struct___double2;
-pub const exception = struct_exception;
+pub const __sbuf = struct___sbuf;
+pub const __sFILEX = struct___sFILEX;
+pub const __sFILE = struct___sFILE;
 pub const tInstrument_Envelope = struct_tInstrument_Envelope;
 pub const tInstrument = struct_tInstrument;
 pub const tSample = struct_tSample;
 pub const tPatternEntry = struct_tPatternEntry;
 pub const tPattern = struct_tPattern;
 pub const tMAS_Module = struct_tMAS_Module;
-pub const __sbuf = struct___sbuf;
-pub const __sFILEX = struct___sFILEX;
-pub const __sFILE = struct___sFILE;

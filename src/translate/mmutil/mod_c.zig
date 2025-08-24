@@ -1505,8 +1505,7 @@ pub export fn Load_MOD(arg_mod: [*c]MAS_Module, arg_verbose: @"bool") c_int {
     if (verbose != 0) {
         _ = printf("--------------------------------------------\n");
         _ = printf("Sequence has %i entries.\n", @as(c_int, @bitCast(@as(c_uint, mod.*.order_count))));
-        // Avoid variadic with non-C strings under Zig; simplify logging
-        _ = printf("Module has %i patterns.\n", @as(c_int, @bitCast(@as(c_uint, mod.*.patt_count))));
+        _ = printf("Module has %i pattern%s.\n", @as(c_int, @bitCast(@as(c_uint, mod.*.patt_count))), if (@as(c_int, @bitCast(@as(c_uint, mod.*.patt_count))) == @as(c_int, 1)) "" else "s");
         _ = printf("--------------------------------------------\n");
         _ = printf("Loading Patterns...\n");
         _ = printf("--------------------------------------------\n");
@@ -1515,11 +1514,7 @@ pub export fn Load_MOD(arg_mod: [*c]MAS_Module, arg_verbose: @"bool") c_int {
         x = 0;
         while (x < @as(c_int, @bitCast(@as(c_uint, mod.*.patt_count)))) : (x += 1) {
             if (verbose != 0) {
-        // Avoid variadic with slice arguments
-        _ = printf(" * %2i", x + @as(c_int, 1));
-        if (@import("std").zig.c_translation.signedRemainder(x + @as(c_int, 1), @as(c_int, 15)) == 0) {
-            _ = printf("\n");
-        }
+                _ = printf(" * %2i%s", x + @as(c_int, 1), if (@import("std").zig.c_translation.signedRemainder(x + @as(c_int, 1), @as(c_int, 15)) != 0) "" else "\n");
             }
             _ = Load_MOD_Pattern(&(blk: {
                 const tmp = x;
@@ -1734,8 +1729,6 @@ pub extern fn calc_samplen(s: [*c]Sample) @"u32";
 pub extern fn calc_samplen_ex2(s: [*c]Sample) @"u32";
 pub extern fn clamp_s8(value: c_int) c_int;
 pub extern fn clamp_u8(value: c_int) c_int;
-// Ensure we pull in the exporting unit so the symbol is defined
-const _shim_ref_clamp = @import("simple_c_raw_auto.zig");
 pub extern fn readbits(buffer: [*c]@"u8", pos: c_uint, size: c_uint) @"u32";
 pub extern fn sample_dsformat(samp: [*c]Sample) @"u8";
 pub extern fn sample_dsreptype(samp: [*c]Sample) @"u8";
@@ -1906,11 +1899,7 @@ pub export fn Load_MOD_Sample(arg_samp: [*c]Sample, arg_verbose: @"bool", arg_in
     }
     if (verbose != 0) {
         if (samp.*.sample_length != @as(@"u32", @bitCast(@as(c_int, 0)))) {
-            // Simplify logging to avoid [:0]const u8 passing to printf
-            const yes: [*c]const u8 = "Yes";
-            const no: [*c]const u8 = "No";
-            const loop_str: [*c]const u8 = if (@as(c_int, @bitCast(@as(c_uint, samp.*.loop_type))) != @as(c_int, 0)) yes else no;
-            _ = printf(" %2i  len=%5i  loop=%3s  vol=%3i%%  %ihz\n", index_1, samp.*.sample_length, loop_str, @divTrunc(@as(c_int, @bitCast(@as(c_uint, samp.*.default_volume))) * @as(c_int, 100), @as(c_int, 64)), samp.*.frequency);
+            _ = printf(" %-2i    %-5i  %-3s   %3i%%    %ihz  %-22s \n", index_1, samp.*.sample_length, if (@as(c_int, @bitCast(@as(c_uint, samp.*.loop_type))) != @as(c_int, 0)) "Yes" else "No", @divTrunc(@as(c_int, @bitCast(@as(c_uint, samp.*.default_volume))) * @as(c_int, 100), @as(c_int, 64)), samp.*.frequency, @as([*c]u8, @ptrCast(@alignCast(&samp.*.name[@as(usize, @intCast(0))]))));
         } else {}
     }
     return 0;
@@ -2385,6 +2374,7 @@ pub const __STDC_EMBED_NOT_FOUND__ = @as(c_int, 0);
 pub const __STDC_EMBED_FOUND__ = @as(c_int, 1);
 pub const __STDC_EMBED_EMPTY__ = @as(c_int, 2);
 pub const _DEBUG = @as(c_int, 1);
+pub const __GBA__ = @as(c_int, 1);
 pub const __GCC_HAVE_DWARF2_CFI_ASM = @as(c_int, 1);
 pub const _STDLIB_H_ = "";
 pub const _LIBC_COUNT__MB_LEN_MAX = _LIBC_UNSAFE_INDEXABLE;

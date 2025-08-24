@@ -1,5 +1,7 @@
 const std = @import("std");
 const regs = @import("registers_gba.zig");
+// Force-include translated Maxmod mixer so mmMixerMix is provided by translate-c
+const _mm_c_mixer = @import("mm_gba_mixer_c");
 const audio = @import("audio.zig");
 const gba = @import("gba");
 const debug = gba.debug;
@@ -121,8 +123,9 @@ fn zig_mmMixerMix(samples_count: u32) callconv(.C) void {
         vol_accum += vl;
         vol_accum += vr << 16;
     }
-    const prvolL: i32 = (@as(i32, @intCast(vol_accum & 0xFFFF)) >> 1) << 3;
-    const prvolR: i32 = (@as(i32, @intCast(vol_accum >> 16)) >> 1) << 3;
+    // Simplify: disable pre-volume DC subtraction for audibility while debugging XM
+    const prvolL: i32 = 0;
+    const prvolR: i32 = 0;
     var n: u32 = 0;
     while (n < samples_count) : (n += 2) {
         var acc_l0: i32 = 0;
@@ -158,7 +161,8 @@ fn zig_mmMixerMix(samples_count: u32) callconv(.C) void {
             }
             const s0: i32 = blk: {
                 const p: [*]const u8 = @ptrFromInt(src_addr + idx0);
-                break :blk @as(i32, @intCast(@as(i8, @bitCast(p[0]))));
+                // GBA 8-bit PCM is unsigned with 0x80 bias; convert to signed
+                break :blk (@as(i32, @intCast(p[0])) - 128);
             };
             read_pos += step_fixed[k];
 
@@ -183,7 +187,8 @@ fn zig_mmMixerMix(samples_count: u32) callconv(.C) void {
             }
             const s1: i32 = blk: {
                 const p: [*]const u8 = @ptrFromInt(src_addr + idx1);
-                break :blk @as(i32, @intCast(@as(i8, @bitCast(p[0]))));
+                // GBA 8-bit PCM is unsigned with 0x80 bias; convert to signed
+                break :blk (@as(i32, @intCast(p[0])) - 128);
             };
             read_pos += step_fixed[k];
             read_pos_list[k] = read_pos;
@@ -276,6 +281,7 @@ fn setExports(mode_index: u32) void {
     const rate_scale: u32 = mp_rate_scales[mode_index];
 
     mm_mixlen = mixlen;
+    // For software mixer, mm_ratescale is unused, but keep consistent
     mm_ratescale = rate_scale;
 
     // Export pointers
@@ -358,10 +364,19 @@ pub fn getMixRate() u32 {
     return s_mix_rate_hz;
 }
 
+// Expose buffer pointers for mmInit-style setup
+pub fn getMixBufferPtr() u32 { return mm_mixbuffer; }
+pub fn getWaveBufferPtr() u32 { return @intFromPtr(&s_wave_buffer); }
+
 pub fn setChannelFromPcm8(channel_index: usize, pcm: []const u8, loop_len: u32, vol: u8, pan: u8, step_fixed_20_12: u32) void {
     if (channel_index >= s_mix_channels.len) return;
     const data_addr: u32 = @intCast(@intFromPtr(pcm.ptr));
     const freq_field: u32 = step_fixed_20_12;
+    const eff_loop: u32 = if (loop_len == 0) 0x8000_0000 else loop_len;
+
+    // For ASM mixer, ensure that 12-byte GBA sample header exists immediately before data_addr.
+    // Our MAS loader returns PCM pointers that already satisfy this (header is part of MAS data).
+
     s_mix_channels[channel_index] = .{
         .src = data_addr,
         .read = 0,
@@ -372,11 +387,13 @@ pub fn setChannelFromPcm8(channel_index: usize, pcm: []const u8, loop_len: u32, 
         .freq = freq_field,
     };
     s_len_bytes[channel_index] = @intCast(pcm.len);
-    s_loop_bytes[channel_index] = if (loop_len == 0) 0x8000_0000 else loop_len;
-    if (DEBUG_AUDIO and channel_index == 2) {
-        var buf: [96]u8 = undefined;
-        const ll = s_loop_bytes[channel_index];
-        const msg = std.fmt.bufPrint(&buf, "[MX CH3 set] len={d} loop=0x{X:0>8} read={d}\n", .{ s_len_bytes[channel_index], ll, s_mix_channels[channel_index].read }) catch null;
+    s_loop_bytes[channel_index] = eff_loop;
+    // Concise one-line debug for any active channel
+    if (vol > 0 and pcm.len > 0) {
+        var b: [96]u8 = undefined;
+        const first: u8 = pcm[0];
+        const msg = std.fmt.bufPrint(&b, "[MX SET] ch={d} len={d} loop=0x{X} vol={d} pan={d} step={d} b0=0x{X}\n",
+            .{ channel_index, pcm.len, s_loop_bytes[channel_index], vol, pan, step_fixed_20_12, first }) catch null;
         if (msg) |m| debug.write(m) catch {};
     }
 }
@@ -389,6 +406,8 @@ pub fn setChannelFromPcm8WithOffset(channel_index: usize, pcm: []const u8, loop_
     if (off >= lenb) off = 0;
     s_mix_channels[channel_index].read = off << 12;
 }
+
+// No shadow buffer needed; MAS data contains the header right before PCM.
 
 pub fn retriggerChannel(channel_index: usize) void {
     if (channel_index >= s_mix_channels.len) return;

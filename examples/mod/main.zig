@@ -9,7 +9,7 @@ const ISOLATE_CH3 = false; // set true to run lane-3 isolation test (targets mix
 export var header linksection(".gbaheader") = gba.initHeader("MODDEMO", "MODZ", "00", 0);
 
 // Embed the MOD file and soundbank created during build
-const mod_data: []const u8 = @embedFile("casio2.mod");
+const mod_data: []const u8 = @embedFile("mod_file.mod");
 const gbsamp_data: []const u8 = @embedFile("soundbank.bin");
 
 pub export fn main() void {
@@ -27,7 +27,6 @@ pub export fn main() void {
     debug.write("[MOD] UI ready\n") catch {};
 
     maxmod.init();
-    // Use fast ASM mixer + mmFrame by default (disabled in isolate mode)
     maxmod.setAsmMixer(true);
     maxmod.enableAsmFrame(true);
 
@@ -55,13 +54,12 @@ pub export fn main() void {
         debug.write("[TEST] Lane 2 isolated with looping square\n") catch {};
     } else {
         debug.write("[TEST] isolate=false path\n") catch {};
-        // Load soundbank for ASM mixer (MAS headers in ROM)
+        // Load soundbank (samples for ASM mixer)
         _ = maxmod.loadGbsamp(gbsamp_data) catch {};
         debug.write("[MOD] GBSAMP loaded\n") catch {};
-        // Parse MOD and play using ASM mixer with GBSAMP samples
+        // Parse and load the MOD, then start playback via Zig runtime
         _ = maxmod.loadMod(mod_data) catch {};
         debug.write("[MOD] Module parsed\n") catch {};
-        // The player will mix a small looping buffer on play
         maxmod.play();
         debug.write("[MOD] Playback started\n") catch {};
     }

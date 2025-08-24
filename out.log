@@ -1,0 +1,227 @@
+qt.qpa.backingstore: Back buffer dpr of 2 doesn't match <NSViewBackingLayer: 0x154f823b0> contents scale of 1 - updating layer to match.
+[INFO] GBA Debug: [MIX INIT] DAD1=0x69206920 DAD2=0x68206820 SAD1=0x68E068E0 SAD2=0xA8FFA8FF
+
+[INFO] GBA Debug: [XM INIT] mix_ch_ptr=0x2000000
+
+[INFO] GBA Debug: [MAS HDR PICK] ord=31 inst=11 samp=12 patt=31
+
+[INFO] GBA Debug: [XM START] mas=0x800B1CC len=121852
+
+[INFO] GBA Debug: [XM STARTED]
+
+[INFO] GBA Debug: [XM LAYER PTR] core=0x200AB6C shim=0x200AB6C
+
+[INFO] GBA Debug: [PTR] songadr=0x800B1CC patttable=0x800B33C
+
+[INFO] GBA Debug: [PAT] ptr=0x8028451 rowc=63
+
+[INFO] GBA Debug: [PROBE] patt=0x8028451 +1 hdr=0xB41BB81
+
+[INFO] GBA Debug: [SEED] ok=1 base=+1 row=0 pos=0 upd=0x203
+
+[INFO] GBA Debug: [CHAN] mod=32 mix=8 mpp_n=32
+
+[INFO] GBA Debug: [UPD0] mask=0x203 row=0 tick=0
+
+[INFO] GBA Debug: [UPD1] mask=0x0 row=0 tick=1
+
+[INFO] GBA Debug: [CH] i=0 note=0 inst=11 vol=0 eff=1 par=6 flags=0x1B
+
+[INFO] GBA Debug: [CH] i=1 note=0 inst=9 vol=0 eff=20 par=137 flags=0x1B
+
+[INFO] GBA Debug: [CH] i=2 note=0 inst=0 vol=0 eff=0 par=0 flags=0x0
+
+[INFO] GBA Debug: [CH] i=3 note=0 inst=0 vol=0 eff=0 par=0 flags=0x0
+
+[INFO] GBA Debug: [XM LAYER] flags=0xE speed=6 bpm=137
+
+[INFO] GBA Debug: [MAS HDR] ord=31 inst=11 samp=12 patt=31 spd=6 tmp=137
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=2 tick=1 note=8 inst=164 vol=0 eff=155 par=142 flags=0x18
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=2 tick=1 note=8 inst=164 vol=0 eff=155 par=142 flags=0x18
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=2 tick=1 note=8 inst=164 vol=0 eff=155 par=142 flags=0x18
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=2 tick=1 note=8 inst=164 vol=0 eff=155 par=142 flags=0x18
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=2 tick=1 note=8 inst=164 vol=0 eff=155 par=142 flags=0x18
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=2 tick=1 note=8 inst=164 vol=0 eff=155 par=142 flags=0x18
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=2 tick=1 note=8 inst=164 vol=0 eff=155 par=142 flags=0x18
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=2 tick=1 note=8 inst=164 vol=0 eff=155 par=142 flags=0x18
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=2 tick=1 note=8 inst=164 vol=0 eff=155 par=142 flags=0x18
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=2 tick=1 note=8 inst=164 vol=0 eff=155 par=142 flags=0x18
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=2 tick=1 note=8 inst=164 vol=0 eff=155 par=142 flags=0x18
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=2 tick=1 note=8 inst=164 vol=0 eff=155 par=142 flags=0x18
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=2 tick=1 note=8 inst=164 vol=0 eff=155 par=142 flags=0x18
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=2 tick=1 note=8 inst=164 vol=0 eff=155 par=142 flags=0x18
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=2 tick=1 note=8 inst=164 vol=0 eff=155 par=142 flags=0x18
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=2 tick=1 note=8 inst=164 vol=0 eff=155 par=142 flags=0x18
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=2 tick=1 note=8 inst=164 vol=0 eff=155 par=142 flags=0x18
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=2 tick=1 note=8 inst=164 vol=0 eff=155 par=142 flags=0x18
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=2 tick=1 note=8 inst=164 vol=0 eff=155 par=142 flags=0x18
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=2 tick=1 note=8 inst=164 vol=0 eff=155 par=142 flags=0x18
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=2 tick=1 note=8 inst=164 vol=0 eff=155 par=142 flags=0x18
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=2 tick=1 note=8 inst=164 vol=0 eff=155 par=142 flags=0x18
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=2 tick=1 note=8 inst=164 vol=0 eff=155 par=142 flags=0x18
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=2 tick=1 note=8 inst=164 vol=0 eff=155 par=142 flags=0x18
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=2 tick=1 note=8 inst=164 vol=0 eff=155 par=142 flags=0x18
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=2 tick=1 note=8 inst=164 vol=0 eff=155 par=142 flags=0x18
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=2 tick=1 note=8 inst=164 vol=0 eff=155 par=142 flags=0x18
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=2 tick=1 note=8 inst=164 vol=0 eff=155 par=142 flags=0x18
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=2 tick=1 note=8 inst=164 vol=0 eff=155 par=142 flags=0x18
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=2 tick=1 note=8 inst=164 vol=0 eff=155 par=142 flags=0x18
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=2 tick=1 note=8 inst=164 vol=0 eff=155 par=142 flags=0x18
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=2 tick=1 note=8 inst=164 vol=0 eff=155 par=142 flags=0x18
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=2 tick=1 note=2 inst=164 vol=0 eff=200 par=137 flags=0xF8
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=2 tick=1 note=2 inst=164 vol=0 eff=200 par=137 flags=0xF8
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=2 tick=1 note=2 inst=164 vol=0 eff=200 par=137 flags=0xF8
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=2 tick=1 note=2 inst=164 vol=0 eff=200 par=137 flags=0xF8
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=2 tick=1 note=2 inst=164 vol=0 eff=200 par=137 flags=0xF8
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=2 tick=1 note=2 inst=164 vol=0 eff=200 par=137 flags=0xF8
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=2 tick=1 note=2 inst=164 vol=0 eff=200 par=137 flags=0xF8
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=2 tick=1 note=2 inst=164 vol=0 eff=200 par=137 flags=0xF8
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=2 tick=1 note=2 inst=164 vol=0 eff=200 par=137 flags=0xF8
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=2 tick=1 note=2 inst=164 vol=0 eff=200 par=137 flags=0xF8
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=2 tick=1 note=2 inst=164 vol=0 eff=200 par=137 flags=0xF8
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=2 tick=1 note=2 inst=164 vol=0 eff=200 par=137 flags=0xF8
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=2 tick=1 note=2 inst=164 vol=0 eff=200 par=137 flags=0xF8
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=2 tick=1 note=2 inst=164 vol=0 eff=200 par=137 flags=0xF8
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=2 tick=1 note=2 inst=164 vol=0 eff=200 par=137 flags=0xF8
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=2 tick=1 note=2 inst=164 vol=0 eff=200 par=137 flags=0xF8
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=2 tick=1 note=2 inst=164 vol=0 eff=200 par=137 flags=0xF8
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=2 tick=1 note=2 inst=164 vol=0 eff=200 par=137 flags=0xF8
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=2 tick=1 note=2 inst=164 vol=0 eff=200 par=137 flags=0xF8
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=2 tick=1 note=2 inst=164 vol=0 eff=200 par=137 flags=0xF8
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=2 tick=1 note=2 inst=164 vol=0 eff=200 par=137 flags=0xF8
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=2 tick=1 note=2 inst=164 vol=0 eff=200 par=137 flags=0xF8
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=2 tick=1 note=2 inst=164 vol=0 eff=200 par=137 flags=0xF8
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=2 tick=1 note=2 inst=164 vol=0 eff=200 par=137 flags=0xF8
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=2 tick=1 note=2 inst=164 vol=0 eff=200 par=137 flags=0xF8
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=2 tick=1 note=2 inst=164 vol=0 eff=200 par=137 flags=0xF8
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=2 tick=1 note=2 inst=164 vol=0 eff=200 par=137 flags=0xF8
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=2 tick=1 note=2 inst=164 vol=0 eff=200 par=137 flags=0xF8
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=2 tick=1 note=2 inst=164 vol=0 eff=200 par=137 flags=0xF8
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=2 tick=1 note=2 inst=164 vol=0 eff=200 par=137 flags=0xF8
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=2 tick=1 note=2 inst=164 vol=0 eff=200 par=137 flags=0xF8
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=0 tick=1 note=2 inst=164 vol=0 eff=168 par=138 flags=0xF8
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=0 tick=1 note=2 inst=164 vol=0 eff=168 par=138 flags=0xF8
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=0 tick=1 note=2 inst=164 vol=0 eff=168 par=138 flags=0xF8
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=0 tick=1 note=2 inst=164 vol=0 eff=168 par=138 flags=0xF8
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=0 tick=1 note=2 inst=164 vol=0 eff=168 par=138 flags=0xF8
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=0 tick=1 note=2 inst=164 vol=0 eff=168 par=138 flags=0xF8
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=0 tick=1 note=2 inst=164 vol=0 eff=168 par=138 flags=0xF8
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=0 tick=1 note=2 inst=164 vol=0 eff=168 par=138 flags=0xF8
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=0 tick=1 note=2 inst=164 vol=0 eff=168 par=138 flags=0xF8
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=0 tick=1 note=2 inst=164 vol=0 eff=168 par=138 flags=0xF8
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=0 tick=1 note=2 inst=164 vol=0 eff=168 par=138 flags=0xF8
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=0 tick=1 note=2 inst=164 vol=0 eff=168 par=138 flags=0xF8
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=0 tick=1 note=2 inst=164 vol=0 eff=168 par=138 flags=0xF8
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=0 tick=1 note=2 inst=164 vol=0 eff=168 par=138 flags=0xF8
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=0 tick=1 note=2 inst=164 vol=0 eff=168 par=138 flags=0xF8
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=0 tick=1 note=2 inst=164 vol=0 eff=168 par=138 flags=0xF8
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=0 tick=1 note=2 inst=164 vol=0 eff=168 par=138 flags=0xF8
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=0 tick=1 note=2 inst=164 vol=0 eff=168 par=138 flags=0xF8
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=0 tick=1 note=2 inst=164 vol=0 eff=168 par=138 flags=0xF8
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=0 tick=1 note=2 inst=164 vol=0 eff=168 par=138 flags=0xF8
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=0 tick=1 note=2 inst=164 vol=0 eff=168 par=138 flags=0xF8
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=0 tick=1 note=2 inst=164 vol=0 eff=168 par=138 flags=0xF8
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=0 tick=1 note=2 inst=164 vol=0 eff=168 par=138 flags=0xF8
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=0 tick=1 note=2 inst=164 vol=0 eff=168 par=138 flags=0xF8
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=0 tick=1 note=2 inst=164 vol=0 eff=168 par=138 flags=0xF8
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=0 tick=1 note=2 inst=164 vol=0 eff=168 par=138 flags=0xF8
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=0 tick=1 note=2 inst=164 vol=0 eff=168 par=138 flags=0xF8
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=0 tick=1 note=2 inst=164 vol=0 eff=168 par=138 flags=0xF8
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=0 tick=1 note=2 inst=164 vol=0 eff=168 par=138 flags=0xF8
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=0 tick=1 note=2 inst=164 vol=0 eff=168 par=138 flags=0xF8
+
+[INFO] GBA Debug: [T0] ch=0 pos=0 row=0 tick=1 note=2 inst=164 vol=0 eff=168 par=138 flags=0xF8
+

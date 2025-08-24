@@ -1,0 +1,12 @@
+FROM devkitpro/devkitarm:latest
+
+# Set working directory
+WORKDIR /workspace
+
+# Copy source files
+COPY maxmod/ ./maxmod/
+COPY src/trace/ ./src/trace/
+COPY casio2.mod ./casio2.mod
+
+# Build the trace ROM
+CMD ["sh", "-c", "cd src/trace && make -f Makefile trace.gba"]

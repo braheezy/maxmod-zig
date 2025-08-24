@@ -79,15 +79,33 @@ pub fn main() !void {
     const out = out_path orelse return usage();
 
     if (is_mod) {
-        // Process MOD file and create soundbank
-        const mod_data = try std.fs.cwd().readFileAlloc(alloc, in_path, 64 * 1024 * 1024);
-        defer alloc.free(mod_data);
+        if (to_mas or is_mas) {
+            // Use translate-c path: Load MOD and write single MAS (no MSL dependency)
+            const tc_files = @import("tc_files_c_raw");
+            const tc_mod = @import("tc_mod_c_raw");
+            const tc_mas = @import("tc_mas_c_raw");
+            if (tc_files.file_open_read(@constCast(@ptrCast(in_path.ptr))) != 0) return error.FileNotFound;
+            if (tc_files.file_open_write(@constCast(@ptrCast(out.ptr))) != 0) return error.FileAccess;
+            var mod_c: tc_mas.MAS_Module = std.mem.zeroes(tc_mas.MAS_Module);
+            const mas_mod: [*c]tc_mod.MAS_Module = @ptrCast(&mod_c);
+            _ = tc_mod.Load_MOD(mas_mod, @as(u8, 0));
+            // msl_dep=0 (embed samples), xm_mode=0
+            _ = tc_mas.Write_MAS(&mod_c, @as(u8, 0), @as(u8, 0));
+            tc_files.file_close_read();
+            tc_files.file_close_write();
+            std.debug.print("[tc] Created MAS from MOD file: {s}\n", .{in_path});
+            return;
+        } else {
+            // Zig path: Process MOD file and create soundbank
+            const mod_data = try std.fs.cwd().readFileAlloc(alloc, in_path, 64 * 1024 * 1024);
+            defer alloc.free(mod_data);
 
-        const mod_file = try mod_proc.parseModFile(alloc, mod_data);
-        try mod_proc.createSoundbank(alloc, mod_file, out);
+            const mod_file = try mod_proc.parseModFile(alloc, mod_data);
+            try mod_proc.createSoundbank(alloc, mod_file, out);
 
-        std.debug.print("Created soundbank from MOD file: {s}\n", .{in_path});
-        return;
+            std.debug.print("Created soundbank from MOD file: {s}\n", .{in_path});
+            return;
+        }
     } else if (is_xm) {
         const xm_data = try std.fs.cwd().readFileAlloc(alloc, in_path, 64 * 1024 * 1024);
         defer alloc.free(xm_data);
