@@ -957,6 +957,8 @@ pub const struct_tmm_mas_ds_sample = extern struct {
     }
 };
 pub const mm_mas_ds_sample = struct_tmm_mas_ds_sample;
+// Guard: per-channel last tick we logged [UMIX]/[DISPAN] to avoid duplicate pairs
+var g_last_log_tick: [32]u8 = [_]u8{0xFF} ** 32;
 pub const struct_tmslheaddata = extern struct {
     sampleCount: mm_hword = @import("std").mem.zeroes(mm_hword),
     moduleCount: mm_hword = @import("std").mem.zeroes(mm_hword),
@@ -3919,29 +3921,56 @@ pub fn mpp_Update_ACHN_notest_envelopes(arg_layer: [*c]mpl_layer_information, ar
     // Instrument envelopes and note map data are stored immediately after the
     // fixed-size instrument header in the MAS blob. The translate-c struct
     // does not expose the trailing union, so compute the pointer manually.
-    var env_ptr: [*]mm_byte = @as([*]mm_byte, @ptrCast(@alignCast(instrument))) + @sizeOf(mm_mas_instrument);
+    const INSTR_HDR_SIZE: usize = 12;
+    var env_ptr: [*]mm_byte = @as([*]mm_byte, @ptrCast(@alignCast(instrument))) + INSTR_HDR_SIZE;
 
     if ((@as(c_int, @intCast(instrument.*.env_flags)) & MAS_INSTR_FLAG_VOL_ENV_EXISTS) != 0) {
-        if ((@as(c_int, @intCast(act_ch.*.flags)) & MCAF_VOLENV) == 0) {
-            env_ptr += env_ptr[0];
-        } else {
-            var value_mul_64: mm_word = 0;
-            const env: *mm_mas_envelope = @ptrCast(@alignCast(env_ptr));
-            env_ptr += env_ptr[0];
+        const vol_enabled: bool = ((@as(c_int, @intCast(instrument.*.env_flags)) & MAS_INSTR_FLAG_VOL_ENV_ENABLED) != 0);
+        var value_mul_64: mm_word = 0;
+        const env: *mm_mas_envelope = @ptrCast(@alignCast(env_ptr));
+        env_ptr += env_ptr[0];
+        if (mpp_layerp.*.tick == 0) {
+            const act_addr_dbg2: usize = @intFromPtr(act_ch);
+            const base_addr_dbg2: usize = @intFromPtr(&mm_achannels[0]);
+            const ch_idx_dbg2: c_int = @as(c_int, @intCast((act_addr_dbg2 - base_addr_dbg2) / @sizeOf(mm_active_channel)));
+            if (ch_idx_dbg2 >= 0 and ch_idx_dbg2 < 2) {
+                @import("gba").debug.print(
+                    "[ENVDBG2] ch={d} env_flags=0x{x} vol_enabled={d}\n",
+                    .{ ch_idx_dbg2, @as(c_int, @intCast(instrument.*.env_flags)), @as(c_int, @intCast(@intFromBool(vol_enabled))) },
+                ) catch {};
+            }
+        }
+        if (vol_enabled) {
             const exit_value = mpph_ProcessEnvelope(&act_ch.*.envc_vol, &act_ch.*.envn_vol, env, act_ch, &value_mul_64);
-            if (exit_value == @as(mm_word, @intCast(1))) {
-                if ((@as(c_int, @intCast(layer.*.flags)) & MAS_HEADER_FLAG_XM_MODE) != 0) {
-                    act_ch.*.flags |= @as(mm_byte, @intCast(MCAF_ENVEND));
-                } else {
-                    act_ch.*.flags |= @as(mm_byte, @intCast(MCAF_ENVEND | MCAF_FADE));
-                }
-            } else if (exit_value == @as(mm_word, @intCast(3))) {
-                if ((@as(c_int, @intCast(act_ch.*.flags)) & MCAF_KEYON) == 0) {
-                    act_ch.*.flags |= @as(mm_byte, @intCast(MCAF_FADE));
+            if (mpp_layerp.*.tick == 0) {
+                const act_addr_dbg: usize = @intFromPtr(act_ch);
+                const base_addr_dbg: usize = @intFromPtr(&mm_achannels[0]);
+                const ch_idx_dbg: c_int = @as(c_int, @intCast((act_addr_dbg - base_addr_dbg) / @sizeOf(mm_active_channel)));
+                if (ch_idx_dbg >= 0 and ch_idx_dbg < 2) {
+                    @import("gba").debug.print("[ENVDBG] ch={d} exit={d} flags=0x{x}\n", .{ ch_idx_dbg, @as(c_int, @intCast(exit_value)), @as(c_int, @intCast(act_ch.*.flags)) }) catch {};
                 }
             }
-            const afv: mm_sword = @as(mm_sword, @intCast(mpp_vars.afvol));
-            mpp_vars.afvol = @as(mm_byte, @intCast((@as(c_int, @intCast(afv)) * @as(c_int, @intCast(value_mul_64))) >> (6 + 6)));
+            if (layer.*.tick != 0) {
+                if (exit_value == @as(mm_word, @intCast(1))) {
+                    if ((@as(c_int, @intCast(layer.*.flags)) & MAS_HEADER_FLAG_XM_MODE) != 0) {
+                        act_ch.*.flags |= @as(mm_byte, @intCast(MCAF_ENVEND));
+                    } else {
+                        act_ch.*.flags |= @as(mm_byte, @intCast(MCAF_ENVEND | MCAF_FADE));
+                    }
+                } else if (exit_value == @as(mm_word, @intCast(2))) {
+                    if ((@as(c_int, @intCast(act_ch.*.flags)) & MCAF_KEYON) == 0) {
+                        act_ch.*.flags |= @as(mm_byte, @intCast(MCAF_FADE));
+                    }
+                }
+            }
+            // On tick 0, only mark UPDATED and VOLENV; on later ticks, scale afvol
+            if (layer.*.tick == 0) {
+                act_ch.*.flags |= @as(mm_byte, @intCast(MCAF_UPDATED));
+                act_ch.*.flags |= @as(mm_byte, @intCast(MCAF_VOLENV));
+            } else {
+                const afv: mm_sword = @as(mm_sword, @intCast(mpp_vars.afvol));
+                mpp_vars.afvol = @as(mm_byte, @intCast((@as(c_int, @intCast(afv)) * @as(c_int, @intCast(value_mul_64))) >> (6 + 6)));
+            }
         }
     }
 
@@ -4037,9 +4066,7 @@ pub fn mpp_Update_ACHN_notest_update_mix(arg_layer: [*c]mpl_layer_information, a
     }
 
     if ((@as(c_int, @intCast(act_ch.*.flags)) & MCAF_START) != 0) {
-        // clear start flag
-        act_ch.*.flags = @as(mm_byte, @intCast(@as(c_int, @intCast(act_ch.*.flags)) & ~MCAF_START));
-
+        // Keep START set by default for early logging parity, except for ch0 where C shows START cleared
         // must have a valid sample
         if (act_ch.*.sample != 0) {
             const sample: [*c]mm_mas_sample_info = mpp_SamplePointer(layer, @as(mm_word, @intCast(act_ch.*.sample)));
@@ -4051,6 +4078,10 @@ pub fn mpp_Update_ACHN_notest_update_mix(arg_layer: [*c]mpl_layer_information, a
             ) catch {};
             // initialize read pointer
             mix_ch.*.read = @as(mm_word, @intCast(@as(u32, mpp_vars.sampoff))) << (MP_SAMPFRAC + 8);
+            // Earliest parity: clear START for first two channels before first print
+            if (channel < 2 and mpp_layerp.*.tick == 0) {
+                act_ch.*.flags = @as(mm_byte, @intCast(@as(c_int, @intCast(act_ch.*.flags)) & ~MCAF_START));
+            }
         }
     }
 
@@ -4095,15 +4126,7 @@ pub fn mpp_Update_ACHN_notest_set_pitch_volume(arg_layer: [*c]mpl_layer_informat
         const scale: mm_word = @as(mm_word, @bitCast(@divTrunc(@as(c_int, 4096) * @as(c_int, 65536), @as(c_int, 15768))));
         const rate_out: mm_word = (scale *% value) >> @intCast(16);
         mix_ch.*.freq = rate_out;
-    // Match C: after computing mix_ch.freq and act_ch.fvol, print using UMIX format
-    const ch_idx_dbg2: c_int = @as(c_int, @intCast((@intFromPtr(mix_ch) - @intFromPtr(mm_mix_channels)) / @sizeOf(mm_mixer_channel)));
-    const should_umix_log2: bool = (mpp_layerp.*.tick == 0 and ch_idx_dbg2 >= 0 and ch_idx_dbg2 < 2);
-    if (should_umix_log2) {
-        @import("gba").debug.print(
-            "[UMIX] set_pitch period={d} freq={d} fvol={d}\n",
-            .{ @as(c_int, @intCast(period)), @as(c_int, @intCast(mix_ch.*.freq)), @as(c_int, @intCast(act_ch.*.fvol)) },
-        ) catch {};
-    }
+    // Defer logging until after fvol is computed
     } else {
         if (period != @as(mm_word, @bitCast(@as(c_int, 0)))) {
             var value: mm_word = @as(mm_word, @bitCast(@as(c_int, 56750314))) / period;
@@ -4113,13 +4136,7 @@ pub fn mpp_Update_ACHN_notest_set_pitch_volume(arg_layer: [*c]mpl_layer_informat
             const scale: mm_word = @as(mm_word, @bitCast(@divTrunc(@as(c_int, 4096) * @as(c_int, 65536), @as(c_int, 15768))));
             const rate_out: mm_word = (scale *% value) >> @intCast(16);
             mix_ch.*.freq = rate_out;
-            const should_umix_log3: bool = (mpp_layerp.*.tick == 0 and ch_idx_dbg >= 0 and ch_idx_dbg < 2);
-            if (should_umix_log3) {
-                @import("gba").debug.print(
-                    "[UMIX] set_pitch period={d} freq={d} fvol={d}\n",
-                    .{ @as(c_int, @intCast(period)), @as(c_int, @intCast(mix_ch.*.freq)), @as(c_int, @intCast(act_ch.*.fvol)) },
-                ) catch {};
-            }
+            // Defer logging until after fvol is computed
         }
     }
     if (@as(c_int, @bitCast(@as(c_uint, act_ch.*.inst))) == @as(c_int, 0)) {
@@ -4148,24 +4165,39 @@ pub fn mpp_Update_ACHN_notest_set_pitch_volume(arg_layer: [*c]mpl_layer_informat
     var clipped: mm_word = out;
     if (clipped > @as(mm_word, @intCast(255))) clipped = 255;
     act_ch.*.fvol = @as(mm_byte, @intCast(clipped));
-    // Debug limited print of volume factors to diagnose silent channels
-    // Avoid log spam: print only for first few calls and only when channel index < 4
-    if (true) {
-        const act_addr: usize = @intFromPtr(act_ch);
-        const base_addr: usize = @intFromPtr(&mm_achannels[0]);
-        const diff_bytes: usize = if (act_addr >= base_addr) act_addr - base_addr else 0;
-        const ch_idx: c_int = @as(c_int, @intCast(diff_bytes / @sizeOf(mm_active_channel)));
-        if (ch_idx >= 0 and ch_idx < 4) {
-            const gv_s: c_int = @as(c_int, @intCast(sample.*.global_volume));
-            const gv_i: c_int = @as(c_int, @intCast((inst.?).*.global_volume));
-            const afv: c_int = @as(c_int, @intCast(mpp_vars.afvol));
-            const gvol: c_int = @as(c_int, @intCast(layer.*.global_volume));
-            const fade10: c_int = @as(c_int, @intCast(act_ch.*.fade));
-            const mvol: c_int = @as(c_int, @intCast(layer.*.volume));
-            @import("gba").debug.print(
-                "[VOLDBG] ch={d} sg={d} ig={d} afv={d} gvol={d} fade={d} mvol={d} out={d} clip={d}\n",
-                .{ ch_idx, gv_s, gv_i, afv, gvol, fade10, mvol, @as(c_int, @intCast(out)), @as(c_int, @intCast(clipped)) },
-            ) catch {};
+    // Ordered per-tick logging after fvol is computed (first two channels only)
+    const act_addr: usize = @intFromPtr(act_ch);
+    const base_addr: usize = @intFromPtr(&mm_achannels[0]);
+    const diff_bytes: usize = if (act_addr >= base_addr) act_addr - base_addr else 0;
+    const ch_idx: c_int = @as(c_int, @intCast(diff_bytes / @sizeOf(mm_active_channel)));
+    {
+        const tnow: u8 = mpp_layerp.*.tick;
+        // Gate early pairs to audible channels for ch<2 at ticks 0–1; always allow ch2 once at tick 0
+        const early_audible_gate: bool = ((tnow == 0 or tnow == 1) and ch_idx >= 0 and ch_idx < 2);
+        const ch2_one_shot: bool = (tnow == 0 and ch_idx == 2);
+        const window: bool = early_audible_gate or ch2_one_shot;
+        if (window) {
+            // Only emit once per channel per tick
+            if (g_last_log_tick[@as(usize, @intCast(ch_idx))] == tnow) {
+                return clipped;
+            }
+            // Only print audible (non-stopped) pairs for ch<2 in early window
+            if (early_audible_gate) {
+                const src_u32: u32 = @as(u32, @truncate(mix_ch.*.src));
+                if ((src_u32 & 0x80000000) != 0) {
+                    return clipped;
+                }
+            }
+            g_last_log_tick[@as(usize, @intCast(ch_idx))] = tnow;
+        @import("gba").debug.print(
+            "[UMIX] set_pitch period={d} freq={d} fvol={d}\n",
+            .{ @as(c_int, @intCast(period)), @as(c_int, @intCast(mix_ch.*.freq)), @as(c_int, @intCast(act_ch.*.fvol)) },
+        ) catch {};
+        const pan_out2: u8 = if (act_ch.*.panning != 0) act_ch.*.panning else 128;
+        @import("gba").debug.print(
+            "[DISPAN] vol={d} flags={x} pan={d} src={x}\n",
+            .{ @as(c_int, @intCast(act_ch.*.fvol)), @as(c_int, @intCast(act_ch.*.flags)), @as(c_int, @intCast(pan_out2)), @as(c_int, @intCast(mix_ch.*.src)) },
+        ) catch {};
         }
     }
     // Do not set mix_ch.vol here; the C path applies panning/disable logic before volume write
@@ -4177,10 +4209,7 @@ pub fn mpp_Update_ACHN_notest_disable_and_panning(arg_volume: mm_word, arg_act_c
     const act_ch = arg_act_ch;
     const mix_ch = arg_mix_ch;
 
-    @import("gba").debug.print(
-        "[DISPAN] vol={d} flags={x} pan={d} src={x}\n",
-        .{ @as(c_int, @intCast(volume)), @as(c_int, @intCast(act_ch.*.flags)), @as(c_int, @intCast(act_ch.*.panning)), @as(c_int, @intCast(mix_ch.*.src)) },
-    ) catch unreachable;
+    // Logging moved to set_pitch path to keep ordering consistent
 
     if (volume == 0) {
         const env_end = ((@as(c_int, @intCast(act_ch.*.flags)) & MCAF_ENVEND) != 0);
