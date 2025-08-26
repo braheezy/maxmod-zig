@@ -89,8 +89,10 @@ fn zig_mmMixerMix(samples_count: u32) callconv(.C) void {
         if ((src_addr & 0x8000_0000) != 0) continue;
         if (ch.freq == 0) continue;
 
-        // Use frequency field as precomputed 20.12 step directly
-        const step: u32 = ch.freq;
+        // Apply mixer rate-scale to base rate (value << 2) to get final 20.12 step
+        // In original ASM: rfreq = (freq * mm_ratescale) >> 14
+        // Match that exactly to avoid 16x overspeeding
+        const step: u32 = (ch.freq * mm_ratescale) >> 14;
 
         // Volumes
         const vol: u32 = ch.vol;
@@ -123,9 +125,16 @@ fn zig_mmMixerMix(samples_count: u32) callconv(.C) void {
         vol_accum += vl;
         vol_accum += vr << 16;
     }
-    // Simplify: disable pre-volume DC subtraction for audibility while debugging XM
-    const prvolL: i32 = 0;
-    const prvolR: i32 = 0;
+    // Compute pre-volume DC subtraction terms like ASM:
+    // prvolL = (sum_left >> 1) << 3 = sum_left << 2; prvolR same
+    var sum_left: u32 = 0;
+    var sum_right: u32 = 0;
+    for (0..active_count) |k| {
+        sum_left += vol_l_list[k];
+        sum_right += vol_r_list[k];
+    }
+    const prvolL: i32 = @intCast(sum_left << 2);
+    const prvolR: i32 = @intCast(sum_right << 2);
     var n: u32 = 0;
     while (n < samples_count) : (n += 2) {
         var acc_l0: i32 = 0;
@@ -159,10 +168,10 @@ fn zig_mmMixerMix(samples_count: u32) callconv(.C) void {
                     idx0 = new_idx;
                 }
             }
+            // Use unsigned PCM (0..255) like ASM mixer; DC offset removed in post-process
             const s0: i32 = blk: {
                 const p: [*]const u8 = @ptrFromInt(src_addr + idx0);
-                // GBA 8-bit PCM is unsigned with 0x80 bias; convert to signed
-                break :blk (@as(i32, @intCast(p[0])) - 128);
+                break :blk @as(i32, @intCast(p[0]));
             };
             read_pos += step_fixed[k];
 
@@ -187,8 +196,7 @@ fn zig_mmMixerMix(samples_count: u32) callconv(.C) void {
             }
             const s1: i32 = blk: {
                 const p: [*]const u8 = @ptrFromInt(src_addr + idx1);
-                // GBA 8-bit PCM is unsigned with 0x80 bias; convert to signed
-                break :blk (@as(i32, @intCast(p[0])) - 128);
+                break :blk @as(i32, @intCast(p[0]));
             };
             read_pos += step_fixed[k];
             read_pos_list[k] = read_pos;
@@ -396,6 +404,15 @@ pub fn setChannelFromPcm8(channel_index: usize, pcm: []const u8, loop_len: u32, 
             .{ channel_index, pcm.len, s_loop_bytes[channel_index], vol, pan, step_fixed_20_12, first }) catch null;
         if (msg) |m| debug.write(m) catch {};
     }
+}
+
+// Set only the PCM source and loop parameters; do not modify freq/vol/pan
+pub fn setChannelSourceLoop(channel_index: usize, pcm: []const u8, loop_len: u32) void {
+    if (channel_index >= s_mix_channels.len) return;
+    s_mix_channels[channel_index].src = @intCast(@intFromPtr(pcm.ptr));
+    const eff_loop: u32 = if (loop_len == 0) 0x8000_0000 else loop_len;
+    s_len_bytes[channel_index] = @intCast(pcm.len);
+    s_loop_bytes[channel_index] = eff_loop;
 }
 
 pub fn setChannelFromPcm8WithOffset(channel_index: usize, pcm: []const u8, loop_len: u32, vol: u8, pan: u8, step_fixed_20_12: u32, start_offset_bytes: u32) void {

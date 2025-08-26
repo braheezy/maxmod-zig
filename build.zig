@@ -134,6 +134,8 @@ pub fn build(b: *std.Build) void {
 
     // The mod step builds the ROM
     mod_step.dependOn(&mod_example.step);
+    b.installArtifact(mod_example);
+    mod_step.dependOn(b.default_step);
 
     // Create a separate step for MOD processing that can be invoked manually
     const mod_process_step = b.step("mod-process", "Process MOD file and create soundbank");
@@ -163,6 +165,11 @@ pub fn build(b: *std.Build) void {
 
     // The mod-process step handles the MOD file processing
     mod_process_step.dependOn(&create_soundbank.step);
+
+    // If MOD args are provided, also run the processing step in the main mod step
+    if (mod_args.len > 0) {
+        mod_step.dependOn(&create_soundbank.step);
+    }
 
     // Optional: allow separate preprocessing step. MOD step does not require it.
 
@@ -201,8 +208,8 @@ pub fn build(b: *std.Build) void {
     xm_example.root_module.addImport("xm_core_adapter", xm_adapter);
 
     // Handle XM file argument (copy into example directory)
-    const xm_args = b.args orelse &[_][]const u8{};
-    const selected_xm: []const u8 = if (xm_args.len > 0) xm_args[0] else "bad_apple.xm";
+    // Hardcode bad_apple.xm from repo root for xm/xm-port demos
+    const selected_xm: []const u8 = "bad_apple.xm";
     const copy_xm = b.addSystemCommand(&.{ "cp", selected_xm, "examples/xm/song.xm" });
     xm_example.step.dependOn(&copy_xm.step);
 
@@ -229,4 +236,53 @@ pub fn build(b: *std.Build) void {
     xm_step.dependOn(&create_xm_soundbank.step);
     xm_step.dependOn(&xm_example.step);
     xm_step.dependOn(b.default_step);
+
+    // C reference ROM build: uses original Maxmod C (via a Makefile)
+    const xm_cref_step = b.step("xm-cref", "Build C reference XM demo ROM using original Maxmod C");
+    // Ensure soundbank is generated like the Zig XM demo
+    xm_cref_step.dependOn(&create_xm_soundbank.step);
+    // Run make in examples/xm_c_ref
+    const make_cref = b.addSystemCommand(&.{ "make", "-C", "examples/xm_c_ref" });
+    xm_cref_step.dependOn(&make_cref.step);
+
+    // XM (ported) demo: Build ROM using ported Maxmod translate-c files
+    const xm_port_step = b.step("xm-port", "Build XM demo ROM using ported Maxmod translate-c files");
+
+    // Reuse the same XM selection/copy and MAS generation as the regular XM demo
+    const xm_port_example = ziggba.addGBAExecutable(b, gba_mod, "xm-port", "examples/xm_port/main.zig");
+    // Do NOT link the Zig maxmod runtime; use only translated port files + asm mixer
+    xm_port_example.addObjectFile(b.path("mixer_asm.o"));
+
+    // Add translated Maxmod port modules only
+    const mm_port_core_mas = b.createModule(.{ .root_source_file = b.path("src/port/maxmod/core/mas.zig"), .target = gba_target, .optimize = optimize });
+    mm_port_core_mas.addImport("gba", gba_mod);
+    const mm_port_core_effect = b.createModule(.{ .root_source_file = b.path("src/port/maxmod/core/effect.zig"), .target = gba_target, .optimize = optimize });
+    const mm_port_core_mas_arm = b.createModule(.{ .root_source_file = b.path("src/port/maxmod/core/mas_arm.zig"), .target = gba_target, .optimize = optimize });
+    mm_port_core_mas_arm.addImport("gba", gba_mod);
+    const mm_port_gba_mixer = b.createModule(.{ .root_source_file = b.path("src/port/maxmod/gba/mixer.zig"), .target = gba_target, .optimize = optimize });
+    mm_port_gba_mixer.addImport("gba", gba_mod);
+    const mm_port_gba_main = b.createModule(.{ .root_source_file = b.path("src/port/maxmod/gba/main_gba.zig"), .target = gba_target, .optimize = optimize });
+    mm_port_gba_main.addImport("gba", gba_mod);
+    const mm_port_shim = b.createModule(.{ .root_source_file = b.path("src/port/shim.zig"), .target = gba_target, .optimize = optimize });
+    mm_port_shim.addImport("gba", gba_mod);
+    mm_port_shim.addImport("mm_port_core_mas", mm_port_core_mas);
+    mm_port_gba_main.addImport("gba", gba_mod);
+    xm_port_example.root_module.addImport("mm_port_core_mas", mm_port_core_mas);
+    xm_port_example.root_module.addImport("mm_port_core_effect", mm_port_core_effect);
+    xm_port_example.root_module.addImport("mm_port_core_mas_arm", mm_port_core_mas_arm);
+    xm_port_example.root_module.addImport("mm_port_gba_mixer", mm_port_gba_mixer);
+    xm_port_example.root_module.addImport("mm_port_gba_main", mm_port_gba_main);
+    xm_port_example.root_module.addImport("mm_port_shim", mm_port_shim);
+
+    // Share same XM args/options, but use the C-mmutil soundbank for ported ROM parity
+    xm_port_example.step.dependOn(&copy_xm.step);
+    // Copy the C reference soundbank into the xm_port directory so @embedFile can see it
+    const copy_bank_for_port = b.addSystemCommand(&.{ "cp", "examples/xm_c_ref/soundbank.bin", "examples/xm_port/soundbank.bin" });
+    xm_port_example.step.dependOn(&copy_bank_for_port.step);
+    xm_port_example.root_module.addOptions("build_options", xm_opts);
+
+    // Hook into top-level step and install artifact
+    xm_port_step.dependOn(&xm_port_example.step);
+
+    xm_port_step.dependOn(b.default_step);
 }

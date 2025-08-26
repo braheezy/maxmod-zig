@@ -1,0 +1,1883 @@
+qt.qpa.backingstore: Back buffer dpr of 2 doesn't match <NSViewBackingLayer: 0x11baad720> contents scale of 1 - updating layer to match.
+[INFO] GBA Debug: [main] start xm-port demo
+
+[INFO] GBA Debug: [main] registered VBlank IRQ handler mmVBlank()
+
+[INFO] GBA Debug: [main] bank_data.len=122020
+
+[INFO] GBA Debug: [main] bank_ptr=800a933
+
+[INFO] GBA Debug: [mmInitDefault] soundbank=800a933 nch=32
+
+[INFO] GBA Debug: [mmInit] mp_solution=800a933 sampleCount=12 moduleCount=1
+
+[INFO] GBA Debug: [mixer] init mixlen=264 ratescale=16384 timerfreq=64472 bpmdv=39420
+
+[INFO] GBA Debug: [mixer] DMA1=b6400000 DMA2=b6400000 SOUNDCNT_H=120c SOUNDCNT_X=80
+
+[INFO] GBA Debug: [mmInit] mix_ch base=2001268 end=2001468 bytes=512 count=32
+
+[INFO] GBA Debug: [mmInit] mmMixerInit done, mm_num_mch=32 mm_num_ach=32 mm_mixlen=264
+
+[INFO] GBA Debug: [mmInit] mm_ch_mask=ffffffff (nch=32)
+
+[INFO] GBA Debug: [mmInitDefault] done mm_mixlen=264
+
+[INFO] GBA Debug: [mmInitDefault] moduleCount=1 sampleCount=12
+
+[INFO] GBA Debug: [main] mmInitDefault() done; mm_mixlen=264
+
+[INFO] GBA Debug: [main] module_count=1
+
+[INFO] GBA Debug: [main] mmStart(0, MM_PLAY_LOOP)
+
+[INFO] GBA Debug: [mmStart] id=0 mode=0 mmGetModuleCount=1
+
+[INFO] GBA Debug: [mpps_backdoor] id=0 mode=0 layer=0 sampleCount=12
+
+[INFO] GBA Debug: [mpps_backdoor] moduleTable=800a96f entry_off=173b0
+
+[INFO] GBA Debug: [mpps_backdoor] moduleAddress=8021ceb
+
+[INFO] GBA Debug: [mmPlayModule] address=8021ceb mode=0 layer=0
+
+[INFO] GBA Debug: [mmPlayModule] hdr: orders=31 instr=11 sampl=12 pattn=31 flags=1e spd=6 tempo=137 gvol=64
+
+[INFO] GBA Debug: [mmPlayModule] num_ch=32 channels_ptr=20009e8 layer_info=2001748
+
+[INFO] GBA Debug: [mmPlayModule] before reset: isplaying=0 valid=0 main_ptr=2001748 sub_ptr=20015c8 mpp_layerp=2001748
+
+[INFO] GBA Debug: [mpp_resetchannels] num_ch=32 channels=20009e8 mm_num_ach=32
+
+[INFO] GBA Debug: [mmPlayModule] tables inst=8021dff samp=8021e2b patt=8021e5b
+
+[INFO] GBA Debug: [mpp_setposition] pos=0
+
+[INFO] GBA Debug: [mpp_setposition] entry=27
+
+[INFO] GBA Debug: [mpp_setposition] songadr=8021ceb insttable=8021dff samptable=8021e2b patttable=8021e5b
+
+[INFO] GBA Debug: [mpp_setposition] pattn_count=31
+
+[INFO] GBA Debug: [mpp_setposition] patttable[0..5]=3b0,3b8,699,9c2,d04,1219
+
+[INFO] GBA Debug: [mpp_setposition] entry=27 patt_off=5e75
+
+[INFO] GBA Debug: [mpp_setposition] patt_ptr=8027c60 patt_data=8027c61
+
+[INFO] GBA Debug: [mpp_setposition] set nrows=63 row=0 tick=0 pattread=8027c61
+
+[INFO] GBA Debug: [mmPlayModule] after setposition pos=0 row=0 tick=0
+
+[INFO] GBA Debug: [mpp_setbpm] bpm=137 clayer=0
+
+[INFO] GBA Debug: [mpp_setbpm] MAIN tickrate=286
+
+[INFO] GBA Debug: [mmPlayModule] set isplaying=1 valid=1
+
+[INFO] GBA Debug: [mmPlayModule] set isplaying=1 valid=1 speed=6 tempo=137
+
+[INFO] GBA Debug: [mmPlayModule] exit
+
+[INFO] GBA Debug: [mmPlayModule] end isplaying=1 valid=1 pos=0 row=0 tick=0
+
+[INFO] GBA Debug: [main] frame 0 mmFrame()
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=0 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [POSTMIX] ch0 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch1 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch2 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch3 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [main] frame 0 mmVBlank()
+
+[INFO] GBA Debug: [main] frame 1 mmFrame()
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=0 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] reading pattern at pos=0 row=0 tick=0
+
+[INFO] GBA Debug: [Z mmReadPattern] start pattread=8027c61 pattread_p=8027c61 nch=32 row=0
+
+[INFO] GBA Debug: [Z mmReadPattern] read_byte=81 at pos=8027c61
+
+[INFO] GBA Debug: [Z mmReadPattern] chan_calc=((81 & 127)-1)=0
+
+[INFO] GBA Debug: [Z mmReadPattern] reading cflags (bit7 in 81)
+
+[INFO] GBA Debug: [Z mmReadPattern] cflags=bb at pos=8027c62
+
+[INFO] GBA Debug: [Z mmReadPattern] compr_flags=bb
+
+[INFO] GBA Debug: [Z mmReadPattern] reading note (bit0 in bb)
+
+[INFO] GBA Debug: [Z mmReadPattern] note=41 at pos=8027c63
+
+[INFO] GBA Debug: [Z mmReadPattern] ch=0 set inst=11 (row=0)
+
+[INFO] GBA Debug: [Z mmReadPattern] reading eff+param (bit3 in bb)
+
+[INFO] GBA Debug: [Z mmReadPattern] effect=1 param=6 at pos=8027c65
+
+[INFO] GBA Debug: [Z mmReadPattern] end chan 0, pattern now 8027c67
+
+[INFO] GBA Debug: [Z mmReadPattern] read_byte=82 at pos=8027c67
+
+[INFO] GBA Debug: [Z mmReadPattern] chan_calc=((82 & 127)-1)=1
+
+[INFO] GBA Debug: [Z mmReadPattern] reading cflags (bit7 in 82)
+
+[INFO] GBA Debug: [Z mmReadPattern] cflags=bb at pos=8027c68
+
+[INFO] GBA Debug: [Z mmReadPattern] compr_flags=bb
+
+[INFO] GBA Debug: [Z mmReadPattern] reading note (bit0 in bb)
+
+[INFO] GBA Debug: [Z mmReadPattern] note=3c at pos=8027c69
+
+[INFO] GBA Debug: [Z mmReadPattern] ch=1 set inst=9 (row=0)
+
+[INFO] GBA Debug: [Z mmReadPattern] reading eff+param (bit3 in bb)
+
+[INFO] GBA Debug: [Z mmReadPattern] effect=14 param=89 at pos=8027c6b
+
+[INFO] GBA Debug: [Z mmReadPattern] end chan 1, pattern now 8027c6d
+
+[INFO] GBA Debug: [Z mmReadPattern] read_byte=8a at pos=8027c6d
+
+[INFO] GBA Debug: [Z mmReadPattern] chan_calc=((8a & 127)-1)=9
+
+[INFO] GBA Debug: [Z mmReadPattern] reading cflags (bit7 in 8a)
+
+[INFO] GBA Debug: [Z mmReadPattern] cflags=77 at pos=8027c6e
+
+[INFO] GBA Debug: [Z mmReadPattern] compr_flags=77
+
+[INFO] GBA Debug: [Z mmReadPattern] reading note (bit0 in 77)
+
+[INFO] GBA Debug: [Z mmReadPattern] note=39 at pos=8027c6f
+
+[INFO] GBA Debug: [Z mmReadPattern] ch=9 set inst=8 (row=0)
+
+[INFO] GBA Debug: [Z mmReadPattern] end chan 9, pattern now 8027c72
+
+[INFO] GBA Debug: [Z mmReadPattern] read_byte=0 at pos=8027c72
+
+[INFO] GBA Debug: [mmReadPattern] break: read_byte & 127 = 0
+
+[INFO] GBA Debug: [Z mmReadPattern] row end, pattread=8027c73 update_bits=203
+
+[INFO] GBA Debug: [UCT0] enter flags=1b alloc=255 vol=0 cvol=64 inst=11 note=65
+
+[INFO] GBA Debug: [UCT0] pre-NewNote inst=11 note=65
+
+[INFO] GBA Debug: [mmAllocChannel] mm_ch_mask=-1
+
+[INFO] GBA Debug: [UCT0] post-NewNote act?=1 sample=0 inst=0
+
+[INFO] GBA Debug: [UCT0] computed period=0 tuning=456 freq=3221225586
+
+[INFO] GBA Debug: [UCT0] -> TN
+
+[INFO] GBA Debug: [UTN] vol=0 afvol=0 panning=128 period=0 tick=0 inst=11 sample=12
+
+[INFO] GBA Debug: [UMIX] ch=0 flags=c sample=12 src0=-80000000 read0=0
+
+[INFO] GBA Debug: [UMIX] -> src=149ac read=0
+
+[INFO] GBA Debug: [DISPAN] vol=0 flags=1a pan=128 src=149ac
+
+[INFO] GBA Debug: [UCT0] enter flags=1b alloc=255 vol=0 cvol=64 inst=9 note=60
+
+[INFO] GBA Debug: [UCT0] pre-NewNote inst=9 note=60
+
+[INFO] GBA Debug: [mmAllocChannel] mm_ch_mask=-1
+
+[INFO] GBA Debug: [UCT0] post-NewNote act?=1 sample=12 inst=11
+
+[INFO] GBA Debug: [UCT0] computed period=11585 tuning=028 freq=3221225479
+
+[INFO] GBA Debug: [UCT0] -> TN
+
+[INFO] GBA Debug: [mpp_setbpm] bpm=137 clayer=0
+
+[INFO] GBA Debug: [mpp_setbpm] MAIN tickrate=286
+
+[INFO] GBA Debug: [UTN] vol=0 afvol=0 panning=128 period=11585 tick=0 inst=9 sample=10
+
+[INFO] GBA Debug: [UMIX] ch=0 flags=1e sample=10 src0=-80000000 read0=0
+
+[INFO] GBA Debug: [UMIX] -> src=1948 read=0
+
+[INFO] GBA Debug: [DISPAN] vol=0 flags=1a pan=128 src=1948
+
+[INFO] GBA Debug: [UCT0] enter flags=17 alloc=255 vol=0 cvol=64 inst=8 note=57
+
+[INFO] GBA Debug: [UCT0] pre-NewNote inst=8 note=57
+
+[INFO] GBA Debug: [mmAllocChannel] mm_ch_mask=-1
+
+[INFO] GBA Debug: [UCT0] post-NewNote act?=1 sample=10 inst=9
+
+[INFO] GBA Debug: [UCT0] computed period=0 tuning=268436124 freq=3288334503
+
+[INFO] GBA Debug: [UCT0] -> TN
+
+[INFO] GBA Debug: [UTN] vol=16 afvol=16 panning=128 period=0 tick=0 inst=8 sample=9
+
+[INFO] GBA Debug: [UMIX] ch=0 flags=1e sample=9 src0=-80000000 read0=0
+
+[INFO] GBA Debug: [UMIX] -> src=1664 read=0
+
+[INFO] GBA Debug: [DISPAN] vol=0 flags=1a pan=128 src=1664
+
+[INFO] GBA Debug: [mppProcessTick] tick: 0 -> 1, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick updated, returning without row advance
+
+[INFO] GBA Debug: [PREMIX] ch0 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch0 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch1 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch2 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch3 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [main] frame 1 mmVBlank()
+
+[INFO] GBA Debug: [main] frame 2 mmFrame()
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=0 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] tick: 1 -> 2, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick updated, returning without row advance
+
+[INFO] GBA Debug: [PREMIX] ch0 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch0 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch1 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch2 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch3 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [main] frame 2 mmVBlank()
+
+[INFO] GBA Debug: [main] frame 3 mmFrame()
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=0 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] tick: 2 -> 3, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick updated, returning without row advance
+
+[INFO] GBA Debug: [PREMIX] ch0 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch0 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch1 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch2 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch3 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [main] frame 3 mmVBlank()
+
+[INFO] GBA Debug: [main] frame 4 mmFrame()
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=0 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] tick: 3 -> 4, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick updated, returning without row advance
+
+[INFO] GBA Debug: [PREMIX] ch0 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch0 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch1 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch2 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch3 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [main] frame 4 mmVBlank()
+
+[INFO] GBA Debug: [main] frame 5 mmFrame()
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=0 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] tick: 4 -> 5, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick updated, returning without row advance
+
+[INFO] GBA Debug: [PREMIX] ch0 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch0 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch1 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch2 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch3 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [main] frame 5 mmVBlank()
+
+[INFO] GBA Debug: [main] frame 6 mmFrame()
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=0 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] tick: 5 -> 6, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick reset to 0, advancing row
+
+[INFO] GBA Debug: [PREMIX] ch0 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch0 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch1 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch2 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch3 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [main] frame 6 mmVBlank()
+
+[INFO] GBA Debug: [main] frame 7 mmFrame()
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=1 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] reading pattern at pos=0 row=1 tick=0
+
+[INFO] GBA Debug: [Z mmReadPattern] start pattread=8027c73 pattread_p=8027c73 nch=32 row=1
+
+[INFO] GBA Debug: [Z mmReadPattern] read_byte=0 at pos=8027c73
+
+[INFO] GBA Debug: [mmReadPattern] break: read_byte & 127 = 0
+
+[INFO] GBA Debug: [Z mmReadPattern] row end, pattread=8027c74 update_bits=0
+
+[INFO] GBA Debug: [mppProcessTick] tick: 0 -> 1, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick updated, returning without row advance
+
+[INFO] GBA Debug: [PREMIX] ch0 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch0 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch1 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch2 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch3 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [main] frame 7 mmVBlank()
+
+[INFO] GBA Debug: [main] frame 8 mmFrame()
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=1 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] tick: 1 -> 2, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick updated, returning without row advance
+
+[INFO] GBA Debug: [PREMIX] ch0 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch0 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch1 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch2 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch3 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [main] frame 8 mmVBlank()
+
+[INFO] GBA Debug: [main] frame 9 mmFrame()
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=1 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] tick: 2 -> 3, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick updated, returning without row advance
+
+[INFO] GBA Debug: [PREMIX] ch0 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch0 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch1 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch2 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch3 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [main] frame 9 mmVBlank()
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=1 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] tick: 3 -> 4, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick updated, returning without row advance
+
+[INFO] GBA Debug: [PREMIX] ch0 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch0 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch1 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch2 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch3 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=1 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] tick: 4 -> 5, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick updated, returning without row advance
+
+[INFO] GBA Debug: [PREMIX] ch0 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch0 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch1 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch2 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch3 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=1 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [POSTMIX] ch0 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch1 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch2 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch3 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=1 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] tick: 5 -> 6, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick reset to 0, advancing row
+
+[INFO] GBA Debug: [PREMIX] ch0 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch0 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch1 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch2 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch3 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=2 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] reading pattern at pos=0 row=2 tick=0
+
+[INFO] GBA Debug: [Z mmReadPattern] start pattread=8027c74 pattread_p=8027c74 nch=32 row=2
+
+[INFO] GBA Debug: [Z mmReadPattern] ch=0 set inst=10 (row=2)
+
+[INFO] GBA Debug: [mmReadPattern] break: read_byte & 127 = 0
+
+[INFO] GBA Debug: [Z mmReadPattern] row end, pattread=8027c7d update_bits=201
+
+[INFO] GBA Debug: [UCT0] enter flags=13 alloc=255 vol=0 cvol=64 inst=10 note=80
+
+[INFO] GBA Debug: [UCT0] pre-NewNote inst=10 note=80
+
+[INFO] GBA Debug: [mmAllocChannel] mm_ch_mask=-1
+
+[INFO] GBA Debug: [UCT0] post-NewNote act?=1 sample=9 inst=8
+
+[INFO] GBA Debug: [UCT0] computed period=20643 tuning=168 freq=3221225514
+
+[INFO] GBA Debug: [UCT0] -> TN
+
+[INFO] GBA Debug: [UTN] vol=0 afvol=0 panning=128 period=20643 tick=0 inst=10 sample=11
+
+[INFO] GBA Debug: [UMIX] ch=0 flags=1e sample=11 src0=-80000000 read0=0
+
+[INFO] GBA Debug: [UMIX] -> src=4a1c read=0
+
+[INFO] GBA Debug: [DISPAN] vol=0 flags=1a pan=128 src=4a1c
+
+[INFO] GBA Debug: [UCT0] enter flags=7 alloc=255 vol=8 cvol=64 inst=8 note=60
+
+[INFO] GBA Debug: [UCT0] pre-NewNote inst=8 note=60
+
+[INFO] GBA Debug: [mmAllocChannel] mm_ch_mask=-1
+
+[INFO] GBA Debug: [UCT0] post-NewNote act?=1 sample=11 inst=10
+
+[INFO] GBA Debug: [UCT0] computed period=11585 tuning=268436124 freq=3288334503
+
+[INFO] GBA Debug: [UCT0] -> TN
+
+[INFO] GBA Debug: [UTN] vol=6 afvol=6 panning=128 period=11585 tick=0 inst=8 sample=9
+
+[INFO] GBA Debug: [UMIX] ch=0 flags=1e sample=9 src0=-80000000 read0=0
+
+[INFO] GBA Debug: [UMIX] -> src=1664 read=0
+
+[INFO] GBA Debug: [DISPAN] vol=0 flags=1a pan=128 src=1664
+
+[INFO] GBA Debug: [mppProcessTick] tick: 0 -> 1, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick updated, returning without row advance
+
+[INFO] GBA Debug: [PREMIX] ch0 src=80000000 read=0 vol=0 freq=10270
+
+[INFO] GBA Debug: [POSTMIX] ch0 src=80000000 read=0 vol=0 freq=10270
+
+[INFO] GBA Debug: [POSTMIX] ch1 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch2 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch3 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=2 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] tick: 1 -> 2, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick updated, returning without row advance
+
+[INFO] GBA Debug: [PREMIX] ch0 src=80000000 read=0 vol=0 freq=10270
+
+[INFO] GBA Debug: [POSTMIX] ch0 src=80000000 read=0 vol=0 freq=10270
+
+[INFO] GBA Debug: [POSTMIX] ch1 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch2 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch3 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=2 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] tick: 2 -> 3, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick updated, returning without row advance
+
+[INFO] GBA Debug: [PREMIX] ch0 src=80000000 read=0 vol=0 freq=10270
+
+[INFO] GBA Debug: [POSTMIX] ch0 src=80000000 read=0 vol=0 freq=10270
+
+[INFO] GBA Debug: [POSTMIX] ch1 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch2 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch3 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=2 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] tick: 3 -> 4, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick updated, returning without row advance
+
+[INFO] GBA Debug: [PREMIX] ch0 src=80000000 read=0 vol=0 freq=10270
+
+[INFO] GBA Debug: [POSTMIX] ch0 src=80000000 read=0 vol=0 freq=10270
+
+[INFO] GBA Debug: [POSTMIX] ch1 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch2 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch3 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=2 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] tick: 4 -> 5, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick updated, returning without row advance
+
+[INFO] GBA Debug: [PREMIX] ch0 src=80000000 read=0 vol=0 freq=10270
+
+[INFO] GBA Debug: [POSTMIX] ch0 src=80000000 read=0 vol=0 freq=10270
+
+[INFO] GBA Debug: [POSTMIX] ch1 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch2 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch3 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=2 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] tick: 5 -> 6, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick reset to 0, advancing row
+
+[INFO] GBA Debug: [PREMIX] ch0 src=80000000 read=0 vol=0 freq=10270
+
+[INFO] GBA Debug: [POSTMIX] ch0 src=80000000 read=0 vol=0 freq=10270
+
+[INFO] GBA Debug: [POSTMIX] ch1 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch2 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch3 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=3 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] reading pattern at pos=0 row=3 tick=0
+
+[INFO] GBA Debug: [Z mmReadPattern] start pattread=8027c7d pattread_p=8027c7d nch=32 row=3
+
+[INFO] GBA Debug: [mmReadPattern] break: read_byte & 127 = 0
+
+[INFO] GBA Debug: [Z mmReadPattern] row end, pattread=8027c81 update_bits=200
+
+[INFO] GBA Debug: [UCT0] enter flags=7 alloc=255 vol=3 cvol=64 inst=8 note=60
+
+[INFO] GBA Debug: [UCT0] pre-NewNote inst=8 note=60
+
+[INFO] GBA Debug: [mmAllocChannel] mm_ch_mask=-1
+
+[INFO] GBA Debug: [UCT0] post-NewNote act?=1 sample=9 inst=8
+
+[INFO] GBA Debug: [UCT0] computed period=11585 tuning=268436124 freq=3288334503
+
+[INFO] GBA Debug: [UCT0] -> TN
+
+[INFO] GBA Debug: [UTN] vol=8 afvol=8 panning=128 period=11585 tick=0 inst=8 sample=9
+
+[INFO] GBA Debug: [UMIX] ch=0 flags=1e sample=9 src0=-80000000 read0=0
+
+[INFO] GBA Debug: [UMIX] -> src=1664 read=0
+
+[INFO] GBA Debug: [DISPAN] vol=0 flags=1a pan=128 src=1664
+
+[INFO] GBA Debug: [mppProcessTick] tick: 0 -> 1, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick updated, returning without row advance
+
+[INFO] GBA Debug: [PREMIX] ch0 src=80000000 read=0 vol=0 freq=10270
+
+[INFO] GBA Debug: [POSTMIX] ch0 src=80000000 read=0 vol=0 freq=10270
+
+[INFO] GBA Debug: [POSTMIX] ch1 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch2 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch3 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=3 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] tick: 1 -> 2, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick updated, returning without row advance
+
+[INFO] GBA Debug: [PREMIX] ch0 src=80000000 read=0 vol=0 freq=10270
+
+[INFO] GBA Debug: [POSTMIX] ch0 src=80000000 read=0 vol=0 freq=10270
+
+[INFO] GBA Debug: [POSTMIX] ch1 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch2 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch3 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=3 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] tick: 2 -> 3, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick updated, returning without row advance
+
+[INFO] GBA Debug: [PREMIX] ch0 src=80000000 read=0 vol=0 freq=10270
+
+[INFO] GBA Debug: [POSTMIX] ch0 src=80000000 read=0 vol=0 freq=10270
+
+[INFO] GBA Debug: [POSTMIX] ch1 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch2 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch3 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=3 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] tick: 3 -> 4, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick updated, returning without row advance
+
+[INFO] GBA Debug: [PREMIX] ch0 src=80000000 read=0 vol=0 freq=10270
+
+[INFO] GBA Debug: [POSTMIX] ch0 src=80000000 read=0 vol=0 freq=10270
+
+[INFO] GBA Debug: [POSTMIX] ch1 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch2 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch3 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=3 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] tick: 4 -> 5, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick updated, returning without row advance
+
+[INFO] GBA Debug: [PREMIX] ch0 src=80000000 read=0 vol=0 freq=10270
+
+[INFO] GBA Debug: [POSTMIX] ch0 src=80000000 read=0 vol=0 freq=10270
+
+[INFO] GBA Debug: [POSTMIX] ch1 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch2 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch3 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=3 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [POSTMIX] ch0 src=80000000 read=0 vol=0 freq=10270
+
+[INFO] GBA Debug: [POSTMIX] ch1 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch2 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch3 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=3 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] tick: 5 -> 6, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick reset to 0, advancing row
+
+[INFO] GBA Debug: [PREMIX] ch0 src=80000000 read=0 vol=0 freq=10270
+
+[INFO] GBA Debug: [POSTMIX] ch0 src=80000000 read=0 vol=0 freq=10270
+
+[INFO] GBA Debug: [POSTMIX] ch1 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch2 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch3 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=4 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] reading pattern at pos=0 row=4 tick=0
+
+[INFO] GBA Debug: [Z mmReadPattern] start pattread=8027c81 pattread_p=8027c81 nch=32 row=4
+
+[INFO] GBA Debug: [Z mmReadPattern] ch=0 set inst=11 (row=4)
+
+[INFO] GBA Debug: [mmReadPattern] break: read_byte & 127 = 0
+
+[INFO] GBA Debug: [Z mmReadPattern] row end, pattread=8027c85 update_bits=1
+
+[INFO] GBA Debug: [UCT0] enter flags=13 alloc=255 vol=0 cvol=64 inst=11 note=65
+
+[INFO] GBA Debug: [UCT0] pre-NewNote inst=11 note=65
+
+[INFO] GBA Debug: [mmAllocChannel] mm_ch_mask=-1
+
+[INFO] GBA Debug: [UCT0] post-NewNote act?=1 sample=9 inst=8
+
+[INFO] GBA Debug: [UCT0] computed period=0 tuning=456 freq=3221225586
+
+[INFO] GBA Debug: [UCT0] -> TN
+
+[INFO] GBA Debug: [UTN] vol=0 afvol=0 panning=128 period=0 tick=0 inst=11 sample=12
+
+[INFO] GBA Debug: [UMIX] ch=0 flags=1e sample=12 src0=-80000000 read0=0
+
+[INFO] GBA Debug: [UMIX] -> src=149ac read=0
+
+[INFO] GBA Debug: [DISPAN] vol=0 flags=1a pan=128 src=149ac
+
+[INFO] GBA Debug: [mppProcessTick] tick: 0 -> 1, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick updated, returning without row advance
+
+[INFO] GBA Debug: [PREMIX] ch0 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch0 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch1 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch2 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch3 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=4 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] tick: 1 -> 2, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick updated, returning without row advance
+
+[INFO] GBA Debug: [PREMIX] ch0 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch0 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch1 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch2 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch3 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=4 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] tick: 2 -> 3, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick updated, returning without row advance
+
+[INFO] GBA Debug: [PREMIX] ch0 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch0 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch1 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch2 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch3 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=4 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] tick: 3 -> 4, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick updated, returning without row advance
+
+[INFO] GBA Debug: [PREMIX] ch0 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch0 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch1 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch2 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch3 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=4 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] tick: 4 -> 5, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick updated, returning without row advance
+
+[INFO] GBA Debug: [PREMIX] ch0 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch0 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch1 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch2 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch3 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=4 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] tick: 5 -> 6, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick reset to 0, advancing row
+
+[INFO] GBA Debug: [PREMIX] ch0 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch0 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch1 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch2 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch3 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=5 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] reading pattern at pos=0 row=5 tick=0
+
+[INFO] GBA Debug: [Z mmReadPattern] start pattread=8027c85 pattread_p=8027c85 nch=32 row=5
+
+[INFO] GBA Debug: [mmReadPattern] break: read_byte & 127 = 0
+
+[INFO] GBA Debug: [Z mmReadPattern] row end, pattread=8027c86 update_bits=0
+
+[INFO] GBA Debug: [mppProcessTick] tick: 0 -> 1, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick updated, returning without row advance
+
+[INFO] GBA Debug: [PREMIX] ch0 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch0 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch1 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch2 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch3 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=5 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] tick: 1 -> 2, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick updated, returning without row advance
+
+[INFO] GBA Debug: [PREMIX] ch0 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch0 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch1 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch2 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch3 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=5 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] tick: 2 -> 3, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick updated, returning without row advance
+
+[INFO] GBA Debug: [PREMIX] ch0 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch0 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch1 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch2 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch3 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=5 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] tick: 3 -> 4, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick updated, returning without row advance
+
+[INFO] GBA Debug: [PREMIX] ch0 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch0 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch1 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch2 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch3 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=5 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] tick: 4 -> 5, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick updated, returning without row advance
+
+[INFO] GBA Debug: [PREMIX] ch0 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch0 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch1 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch2 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch3 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=5 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [POSTMIX] ch0 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch1 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch2 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch3 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=5 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] tick: 5 -> 6, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick reset to 0, advancing row
+
+[INFO] GBA Debug: [PREMIX] ch0 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch0 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch1 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch2 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch3 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=6 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] reading pattern at pos=0 row=6 tick=0
+
+[INFO] GBA Debug: [Z mmReadPattern] start pattread=8027c86 pattread_p=8027c86 nch=32 row=6
+
+[INFO] GBA Debug: [Z mmReadPattern] ch=0 set inst=10 (row=6)
+
+[INFO] GBA Debug: [mmReadPattern] break: read_byte & 127 = 0
+
+[INFO] GBA Debug: [Z mmReadPattern] row end, pattread=8027c8e update_bits=201
+
+[INFO] GBA Debug: [UCT0] enter flags=13 alloc=255 vol=0 cvol=64 inst=10 note=80
+
+[INFO] GBA Debug: [UCT0] pre-NewNote inst=10 note=80
+
+[INFO] GBA Debug: [mmAllocChannel] mm_ch_mask=-1
+
+[INFO] GBA Debug: [UCT0] post-NewNote act?=1 sample=12 inst=11
+
+[INFO] GBA Debug: [UCT0] computed period=20643 tuning=168 freq=3221225514
+
+[INFO] GBA Debug: [UCT0] -> TN
+
+[INFO] GBA Debug: [UTN] vol=0 afvol=0 panning=128 period=20643 tick=0 inst=10 sample=11
+
+[INFO] GBA Debug: [UMIX] ch=0 flags=1e sample=11 src0=-80000000 read0=0
+
+[INFO] GBA Debug: [UMIX] -> src=4a1c read=0
+
+[INFO] GBA Debug: [DISPAN] vol=0 flags=1a pan=128 src=4a1c
+
+[INFO] GBA Debug: [UCT0] enter flags=7 alloc=255 vol=4 cvol=64 inst=8 note=68
+
+[INFO] GBA Debug: [UCT0] pre-NewNote inst=8 note=68
+
+[INFO] GBA Debug: [mmAllocChannel] mm_ch_mask=-1
+
+[INFO] GBA Debug: [UCT0] post-NewNote act?=1 sample=11 inst=10
+
+[INFO] GBA Debug: [UCT0] computed period=14596 tuning=268436124 freq=3288334503
+
+[INFO] GBA Debug: [UCT0] -> TN
+
+[INFO] GBA Debug: [UTN] vol=48 afvol=48 panning=128 period=14596 tick=0 inst=8 sample=9
+
+[INFO] GBA Debug: [UMIX] ch=0 flags=1e sample=9 src0=-80000000 read0=0
+
+[INFO] GBA Debug: [UMIX] -> src=1664 read=0
+
+[INFO] GBA Debug: [DISPAN] vol=0 flags=1a pan=128 src=1664
+
+[INFO] GBA Debug: [mppProcessTick] tick: 0 -> 1, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick updated, returning without row advance
+
+[INFO] GBA Debug: [PREMIX] ch0 src=80000000 read=0 vol=0 freq=10278
+
+[INFO] GBA Debug: [POSTMIX] ch0 src=80000000 read=0 vol=0 freq=10278
+
+[INFO] GBA Debug: [POSTMIX] ch1 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch2 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch3 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=6 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] tick: 1 -> 2, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick updated, returning without row advance
+
+[INFO] GBA Debug: [PREMIX] ch0 src=80000000 read=0 vol=0 freq=10278
+
+[INFO] GBA Debug: [POSTMIX] ch0 src=80000000 read=0 vol=0 freq=10278
+
+[INFO] GBA Debug: [POSTMIX] ch1 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch2 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch3 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=6 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] tick: 2 -> 3, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick updated, returning without row advance
+
+[INFO] GBA Debug: [PREMIX] ch0 src=80000000 read=0 vol=0 freq=10278
+
+[INFO] GBA Debug: [POSTMIX] ch0 src=80000000 read=0 vol=0 freq=10278
+
+[INFO] GBA Debug: [POSTMIX] ch1 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch2 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch3 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=6 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] tick: 3 -> 4, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick updated, returning without row advance
+
+[INFO] GBA Debug: [PREMIX] ch0 src=80000000 read=0 vol=0 freq=10278
+
+[INFO] GBA Debug: [POSTMIX] ch0 src=80000000 read=0 vol=0 freq=10278
+
+[INFO] GBA Debug: [POSTMIX] ch1 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch2 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch3 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=6 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] tick: 4 -> 5, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick updated, returning without row advance
+
+[INFO] GBA Debug: [PREMIX] ch0 src=80000000 read=0 vol=0 freq=10278
+
+[INFO] GBA Debug: [POSTMIX] ch0 src=80000000 read=0 vol=0 freq=10278
+
+[INFO] GBA Debug: [POSTMIX] ch1 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch2 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch3 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=6 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] tick: 5 -> 6, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick reset to 0, advancing row
+
+[INFO] GBA Debug: [PREMIX] ch0 src=80000000 read=0 vol=0 freq=10278
+
+[INFO] GBA Debug: [POSTMIX] ch0 src=80000000 read=0 vol=0 freq=10278
+
+[INFO] GBA Debug: [POSTMIX] ch1 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch2 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch3 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=7 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] reading pattern at pos=0 row=7 tick=0
+
+[INFO] GBA Debug: [Z mmReadPattern] start pattread=8027c8e pattread_p=8027c8e nch=32 row=7
+
+[INFO] GBA Debug: [mmReadPattern] break: read_byte & 127 = 0
+
+[INFO] GBA Debug: [Z mmReadPattern] row end, pattread=8027c92 update_bits=200
+
+[INFO] GBA Debug: [UCT0] enter flags=7 alloc=255 vol=24 cvol=64 inst=8 note=68
+
+[INFO] GBA Debug: [UCT0] pre-NewNote inst=8 note=68
+
+[INFO] GBA Debug: [mmAllocChannel] mm_ch_mask=-1
+
+[INFO] GBA Debug: [UCT0] post-NewNote act?=1 sample=9 inst=8
+
+[INFO] GBA Debug: [UCT0] computed period=14596 tuning=268436124 freq=3288334503
+
+[INFO] GBA Debug: [UCT0] -> TN
+
+[INFO] GBA Debug: [UTN] vol=64 afvol=64 panning=128 period=14596 tick=0 inst=8 sample=9
+
+[INFO] GBA Debug: [UMIX] ch=0 flags=1e sample=9 src0=-80000000 read0=0
+
+[INFO] GBA Debug: [UMIX] -> src=1664 read=0
+
+[INFO] GBA Debug: [DISPAN] vol=0 flags=1a pan=128 src=1664
+
+[INFO] GBA Debug: [mppProcessTick] tick: 0 -> 1, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick updated, returning without row advance
+
+[INFO] GBA Debug: [PREMIX] ch0 src=80000000 read=0 vol=0 freq=10278
+
+[INFO] GBA Debug: [POSTMIX] ch0 src=80000000 read=0 vol=0 freq=10278
+
+[INFO] GBA Debug: [POSTMIX] ch1 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch2 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch3 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=7 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] tick: 1 -> 2, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick updated, returning without row advance
+
+[INFO] GBA Debug: [PREMIX] ch0 src=80000000 read=0 vol=0 freq=10278
+
+[INFO] GBA Debug: [POSTMIX] ch0 src=80000000 read=0 vol=0 freq=10278
+
+[INFO] GBA Debug: [POSTMIX] ch1 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch2 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch3 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=7 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] tick: 2 -> 3, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick updated, returning without row advance
+
+[INFO] GBA Debug: [PREMIX] ch0 src=80000000 read=0 vol=0 freq=10278
+
+[INFO] GBA Debug: [POSTMIX] ch0 src=80000000 read=0 vol=0 freq=10278
+
+[INFO] GBA Debug: [POSTMIX] ch1 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch2 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch3 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=7 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] tick: 3 -> 4, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick updated, returning without row advance
+
+[INFO] GBA Debug: [PREMIX] ch0 src=80000000 read=0 vol=0 freq=10278
+
+[INFO] GBA Debug: [POSTMIX] ch0 src=80000000 read=0 vol=0 freq=10278
+
+[INFO] GBA Debug: [POSTMIX] ch1 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch2 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch3 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=7 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] tick: 4 -> 5, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick updated, returning without row advance
+
+[INFO] GBA Debug: [PREMIX] ch0 src=80000000 read=0 vol=0 freq=10278
+
+[INFO] GBA Debug: [POSTMIX] ch0 src=80000000 read=0 vol=0 freq=10278
+
+[INFO] GBA Debug: [POSTMIX] ch1 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch2 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch3 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=7 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [POSTMIX] ch0 src=80000000 read=0 vol=0 freq=10278
+
+[INFO] GBA Debug: [POSTMIX] ch1 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch2 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch3 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=7 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] tick: 5 -> 6, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick reset to 0, advancing row
+
+[INFO] GBA Debug: [PREMIX] ch0 src=80000000 read=0 vol=0 freq=10278
+
+[INFO] GBA Debug: [POSTMIX] ch0 src=80000000 read=0 vol=0 freq=10278
+
+[INFO] GBA Debug: [POSTMIX] ch1 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch2 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch3 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=8 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] reading pattern at pos=0 row=8 tick=0
+
+[INFO] GBA Debug: [Z mmReadPattern] start pattread=8027c92 pattread_p=8027c92 nch=32 row=8
+
+[INFO] GBA Debug: [Z mmReadPattern] ch=0 set inst=11 (row=8)
+
+[INFO] GBA Debug: [mmReadPattern] break: read_byte & 127 = 0
+
+[INFO] GBA Debug: [Z mmReadPattern] row end, pattread=8027c9a update_bits=201
+
+[INFO] GBA Debug: [UCT0] enter flags=13 alloc=255 vol=0 cvol=64 inst=11 note=65
+
+[INFO] GBA Debug: [UCT0] pre-NewNote inst=11 note=65
+
+[INFO] GBA Debug: [mmAllocChannel] mm_ch_mask=-1
+
+[INFO] GBA Debug: [UCT0] post-NewNote act?=1 sample=9 inst=8
+
+[INFO] GBA Debug: [UCT0] computed period=0 tuning=456 freq=3221225586
+
+[INFO] GBA Debug: [UCT0] -> TN
+
+[INFO] GBA Debug: [UTN] vol=0 afvol=0 panning=128 period=0 tick=0 inst=11 sample=12
+
+[INFO] GBA Debug: [UMIX] ch=0 flags=1e sample=12 src0=-80000000 read0=0
+
+[INFO] GBA Debug: [UMIX] -> src=149ac read=0
+
+[INFO] GBA Debug: [DISPAN] vol=0 flags=1a pan=128 src=149ac
+
+[INFO] GBA Debug: [UCT0] enter flags=7 alloc=255 vol=32 cvol=64 inst=8 note=60
+
+[INFO] GBA Debug: [UCT0] pre-NewNote inst=8 note=60
+
+[INFO] GBA Debug: [mmAllocChannel] mm_ch_mask=-1
+
+[INFO] GBA Debug: [UCT0] post-NewNote act?=1 sample=12 inst=11
+
+[INFO] GBA Debug: [UCT0] computed period=11585 tuning=268436124 freq=3288334503
+
+[INFO] GBA Debug: [UCT0] -> TN
+
+[INFO] GBA Debug: [UTN] vol=32 afvol=32 panning=128 period=11585 tick=0 inst=8 sample=9
+
+[INFO] GBA Debug: [UMIX] ch=0 flags=1e sample=9 src0=-80000000 read0=0
+
+[INFO] GBA Debug: [UMIX] -> src=1664 read=0
+
+[INFO] GBA Debug: [DISPAN] vol=0 flags=1a pan=128 src=1664
+
+[INFO] GBA Debug: [mppProcessTick] tick: 0 -> 1, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick updated, returning without row advance
+
+[INFO] GBA Debug: [PREMIX] ch0 src=80000000 read=0 vol=0 freq=10270
+
+[INFO] GBA Debug: [POSTMIX] ch0 src=80000000 read=0 vol=0 freq=10270
+
+[INFO] GBA Debug: [POSTMIX] ch1 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch2 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch3 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=8 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] tick: 1 -> 2, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick updated, returning without row advance
+
+[INFO] GBA Debug: [PREMIX] ch0 src=80000000 read=0 vol=0 freq=10270
+
+[INFO] GBA Debug: [POSTMIX] ch0 src=80000000 read=0 vol=0 freq=10270
+
+[INFO] GBA Debug: [POSTMIX] ch1 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch2 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch3 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=8 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] tick: 2 -> 3, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick updated, returning without row advance
+
+[INFO] GBA Debug: [PREMIX] ch0 src=80000000 read=0 vol=0 freq=10270
+
+[INFO] GBA Debug: [POSTMIX] ch0 src=80000000 read=0 vol=0 freq=10270
+
+[INFO] GBA Debug: [POSTMIX] ch1 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch2 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch3 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=8 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] tick: 3 -> 4, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick updated, returning without row advance
+
+[INFO] GBA Debug: [PREMIX] ch0 src=80000000 read=0 vol=0 freq=10270
+
+[INFO] GBA Debug: [POSTMIX] ch0 src=80000000 read=0 vol=0 freq=10270
+
+[INFO] GBA Debug: [POSTMIX] ch1 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch2 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch3 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=8 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] tick: 4 -> 5, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick updated, returning without row advance
+
+[INFO] GBA Debug: [PREMIX] ch0 src=80000000 read=0 vol=0 freq=10270
+
+[INFO] GBA Debug: [POSTMIX] ch0 src=80000000 read=0 vol=0 freq=10270
+
+[INFO] GBA Debug: [POSTMIX] ch1 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch2 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch3 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=8 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] tick: 5 -> 6, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick reset to 0, advancing row
+
+[INFO] GBA Debug: [PREMIX] ch0 src=80000000 read=0 vol=0 freq=10270
+
+[INFO] GBA Debug: [POSTMIX] ch0 src=80000000 read=0 vol=0 freq=10270
+
+[INFO] GBA Debug: [POSTMIX] ch1 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch2 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch3 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=9 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] reading pattern at pos=0 row=9 tick=0
+
+[INFO] GBA Debug: [Z mmReadPattern] start pattread=8027c9a pattread_p=8027c9a nch=32 row=9
+
+[INFO] GBA Debug: [mmReadPattern] break: read_byte & 127 = 0
+
+[INFO] GBA Debug: [Z mmReadPattern] row end, pattread=8027c9b update_bits=0
+
+[INFO] GBA Debug: [mppProcessTick] tick: 0 -> 1, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick updated, returning without row advance
+
+[INFO] GBA Debug: [PREMIX] ch0 src=80000000 read=0 vol=0 freq=10270
+
+[INFO] GBA Debug: [POSTMIX] ch0 src=80000000 read=0 vol=0 freq=10270
+
+[INFO] GBA Debug: [POSTMIX] ch1 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch2 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch3 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=9 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] tick: 1 -> 2, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick updated, returning without row advance
+
+[INFO] GBA Debug: [PREMIX] ch0 src=80000000 read=0 vol=0 freq=10270
+
+[INFO] GBA Debug: [POSTMIX] ch0 src=80000000 read=0 vol=0 freq=10270
+
+[INFO] GBA Debug: [POSTMIX] ch1 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch2 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch3 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=9 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] tick: 2 -> 3, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick updated, returning without row advance
+
+[INFO] GBA Debug: [PREMIX] ch0 src=80000000 read=0 vol=0 freq=10270
+
+[INFO] GBA Debug: [POSTMIX] ch0 src=80000000 read=0 vol=0 freq=10270
+
+[INFO] GBA Debug: [POSTMIX] ch1 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch2 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch3 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=9 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] tick: 3 -> 4, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick updated, returning without row advance
+
+[INFO] GBA Debug: [PREMIX] ch0 src=80000000 read=0 vol=0 freq=10270
+
+[INFO] GBA Debug: [POSTMIX] ch0 src=80000000 read=0 vol=0 freq=10270
+
+[INFO] GBA Debug: [POSTMIX] ch1 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch2 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch3 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=9 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] tick: 4 -> 5, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick updated, returning without row advance
+
+[INFO] GBA Debug: [PREMIX] ch0 src=80000000 read=0 vol=0 freq=10270
+
+[INFO] GBA Debug: [POSTMIX] ch0 src=80000000 read=0 vol=0 freq=10270
+
+[INFO] GBA Debug: [POSTMIX] ch1 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch2 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [POSTMIX] ch3 src=80000000 read=0 vol=0 freq=0
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=9 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=9 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] tick: 5 -> 6, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick reset to 0, advancing row
+
+[INFO] GBA Debug: [PREMIX] ch0 src=80000000 read=0 vol=0 freq=10270
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=10 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] reading pattern at pos=0 row=10 tick=0
+
+[INFO] GBA Debug: [Z mmReadPattern] start pattread=8027c9b pattread_p=8027c9b nch=32 row=10
+
+[INFO] GBA Debug: [Z mmReadPattern] ch=0 set inst=10 (row=10)
+
+[INFO] GBA Debug: [mmReadPattern] break: read_byte & 127 = 0
+
+[INFO] GBA Debug: [Z mmReadPattern] row end, pattread=8027ca2 update_bits=201
+
+[INFO] GBA Debug: [UCT0] enter flags=13 alloc=255 vol=0 cvol=64 inst=10 note=80
+
+[INFO] GBA Debug: [UCT0] pre-NewNote inst=10 note=80
+
+[INFO] GBA Debug: [mmAllocChannel] mm_ch_mask=-1
+
+[INFO] GBA Debug: [UCT0] post-NewNote act?=1 sample=9 inst=8
+
+[INFO] GBA Debug: [UCT0] computed period=20643 tuning=168 freq=3221225514
+
+[INFO] GBA Debug: [UCT0] -> TN
+
+[INFO] GBA Debug: [UTN] vol=0 afvol=0 panning=128 period=20643 tick=0 inst=10 sample=11
+
+[INFO] GBA Debug: [UMIX] ch=0 flags=1e sample=11 src0=-80000000 read0=0
+
+[INFO] GBA Debug: [UMIX] -> src=4a1c read=0
+
+[INFO] GBA Debug: [DISPAN] vol=0 flags=1a pan=128 src=4a1c
+
+[INFO] GBA Debug: [UCT0] enter flags=7 alloc=255 vol=16 cvol=64 inst=8 note=68
+
+[INFO] GBA Debug: [UCT0] pre-NewNote inst=8 note=68
+
+[INFO] GBA Debug: [mmAllocChannel] mm_ch_mask=-1
+
+[INFO] GBA Debug: [UCT0] post-NewNote act?=1 sample=11 inst=10
+
+[INFO] GBA Debug: [UCT0] computed period=14596 tuning=268436124 freq=3288334503
+
+[INFO] GBA Debug: [UCT0] -> TN
+
+[INFO] GBA Debug: [UTN] vol=12 afvol=12 panning=128 period=14596 tick=0 inst=8 sample=9
+
+[INFO] GBA Debug: [UMIX] ch=0 flags=1e sample=9 src0=-80000000 read0=0
+
+[INFO] GBA Debug: [UMIX] -> src=1664 read=0
+
+[INFO] GBA Debug: [DISPAN] vol=0 flags=1a pan=128 src=1664
+
+[INFO] GBA Debug: [mppProcessTick] tick: 0 -> 1, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick updated, returning without row advance
+
+[INFO] GBA Debug: [PREMIX] ch0 src=80000000 read=0 vol=0 freq=10278
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=10 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] tick: 1 -> 2, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick updated, returning without row advance
+
+[INFO] GBA Debug: [PREMIX] ch0 src=80000000 read=0 vol=0 freq=10278
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=10 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] tick: 2 -> 3, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick updated, returning without row advance
+
+[INFO] GBA Debug: [PREMIX] ch0 src=80000000 read=0 vol=0 freq=10278
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=10 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] tick: 3 -> 4, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick updated, returning without row advance
+
+[INFO] GBA Debug: [PREMIX] ch0 src=80000000 read=0 vol=0 freq=10278
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=10 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] tick: 4 -> 5, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick updated, returning without row advance
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=10 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] tick: 5 -> 6, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick reset to 0, advancing row
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=11 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] reading pattern at pos=0 row=11 tick=0
+
+[INFO] GBA Debug: [Z mmReadPattern] start pattread=8027ca2 pattread_p=8027ca2 nch=32 row=11
+
+[INFO] GBA Debug: [mmReadPattern] break: read_byte & 127 = 0
+
+[INFO] GBA Debug: [Z mmReadPattern] row end, pattread=8027ca6 update_bits=200
+
+[INFO] GBA Debug: [UCT0] enter flags=7 alloc=255 vol=6 cvol=64 inst=8 note=68
+
+[INFO] GBA Debug: [UCT0] pre-NewNote inst=8 note=68
+
+[INFO] GBA Debug: [mmAllocChannel] mm_ch_mask=-1
+
+[INFO] GBA Debug: [UCT0] post-NewNote act?=1 sample=9 inst=8
+
+[INFO] GBA Debug: [UCT0] computed period=14596 tuning=268436124 freq=3288334503
+
+[INFO] GBA Debug: [UCT0] -> TN
+
+[INFO] GBA Debug: [UTN] vol=16 afvol=16 panning=128 period=14596 tick=0 inst=8 sample=9
+
+[INFO] GBA Debug: [UMIX] ch=0 flags=1e sample=9 src0=-80000000 read0=0
+
+[INFO] GBA Debug: [UMIX] -> src=1664 read=0
+
+[INFO] GBA Debug: [DISPAN] vol=0 flags=1a pan=128 src=1664
+
+[INFO] GBA Debug: [mppProcessTick] tick: 0 -> 1, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick updated, returning without row advance
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=11 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] tick: 1 -> 2, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick updated, returning without row advance
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=11 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] tick: 2 -> 3, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick updated, returning without row advance
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=11 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] tick: 3 -> 4, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick updated, returning without row advance
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=11 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] tick: 4 -> 5, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick updated, returning without row advance
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=11 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=11 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] tick: 5 -> 6, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick reset to 0, advancing row
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=12 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] reading pattern at pos=0 row=12 tick=0
+
+[INFO] GBA Debug: [Z mmReadPattern] start pattread=8027ca6 pattread_p=8027ca6 nch=32 row=12
+
+[INFO] GBA Debug: [Z mmReadPattern] ch=0 set inst=11 (row=12)
+
+[INFO] GBA Debug: [mmReadPattern] break: read_byte & 127 = 0
+
+[INFO] GBA Debug: [Z mmReadPattern] row end, pattread=8027caa update_bits=1
+
+[INFO] GBA Debug: [UCT0] enter flags=13 alloc=255 vol=0 cvol=64 inst=11 note=65
+
+[INFO] GBA Debug: [UCT0] pre-NewNote inst=11 note=65
+
+[INFO] GBA Debug: [mmAllocChannel] mm_ch_mask=-1
+
+[INFO] GBA Debug: [UCT0] post-NewNote act?=1 sample=9 inst=8
+
+[INFO] GBA Debug: [UCT0] computed period=0 tuning=456 freq=3221225586
+
+[INFO] GBA Debug: [UCT0] -> TN
+
+[INFO] GBA Debug: [UTN] vol=0 afvol=0 panning=128 period=0 tick=0 inst=11 sample=12
+
+[INFO] GBA Debug: [UMIX] ch=0 flags=1e sample=12 src0=-80000000 read0=0
+
+[INFO] GBA Debug: [UMIX] -> src=149ac read=0
+
+[INFO] GBA Debug: [DISPAN] vol=0 flags=1a pan=128 src=149ac
+
+[INFO] GBA Debug: [mppProcessTick] tick: 0 -> 1, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick updated, returning without row advance
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=12 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] tick: 1 -> 2, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick updated, returning without row advance
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=12 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] tick: 2 -> 3, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick updated, returning without row advance
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=12 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] tick: 3 -> 4, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick updated, returning without row advance
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=12 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] tick: 4 -> 5, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick updated, returning without row advance
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=12 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] tick: 5 -> 6, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick reset to 0, advancing row
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=13 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] reading pattern at pos=0 row=13 tick=0
+
+[INFO] GBA Debug: [Z mmReadPattern] start pattread=8027caa pattread_p=8027caa nch=32 row=13
+
+[INFO] GBA Debug: [mmReadPattern] break: read_byte & 127 = 0
+
+[INFO] GBA Debug: [Z mmReadPattern] row end, pattread=8027cad update_bits=1
+
+[INFO] GBA Debug: [UCT0] enter flags=3 alloc=255 vol=0 cvol=64 inst=11 note=65
+
+[INFO] GBA Debug: [UCT0] pre-NewNote inst=11 note=65
+
+[INFO] GBA Debug: [mmAllocChannel] mm_ch_mask=-1
+
+[INFO] GBA Debug: [UCT0] post-NewNote act?=1 sample=12 inst=11
+
+[INFO] GBA Debug: [UCT0] computed period=0 tuning=456 freq=3221225586
+
+[INFO] GBA Debug: [UCT0] -> TN
+
+[INFO] GBA Debug: [UTN] vol=0 afvol=0 panning=128 period=0 tick=0 inst=11 sample=12
+
+[INFO] GBA Debug: [UMIX] ch=0 flags=1e sample=12 src0=-80000000 read0=0
+
+[INFO] GBA Debug: [UMIX] -> src=149ac read=0
+
+[INFO] GBA Debug: [DISPAN] vol=0 flags=1a pan=128 src=149ac
+
+[INFO] GBA Debug: [mppProcessTick] tick: 0 -> 1, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick updated, returning without row advance
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=13 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] tick: 1 -> 2, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick updated, returning without row advance
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=13 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] tick: 2 -> 3, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick updated, returning without row advance
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=13 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] tick: 3 -> 4, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick updated, returning without row advance
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=13 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] tick: 4 -> 5, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick updated, returning without row advance
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=13 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=13 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] tick: 5 -> 6, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick reset to 0, advancing row
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=14 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] reading pattern at pos=0 row=14 tick=0
+
+[INFO] GBA Debug: [Z mmReadPattern] start pattread=8027cad pattread_p=8027cad nch=32 row=14
+
+[INFO] GBA Debug: [mmReadPattern] break: read_byte & 127 = 0
+
+[INFO] GBA Debug: [Z mmReadPattern] row end, pattread=8027cb1 update_bits=201
+
+[INFO] GBA Debug: [UCT0] enter flags=3 alloc=255 vol=0 cvol=64 inst=11 note=65
+
+[INFO] GBA Debug: [UCT0] pre-NewNote inst=11 note=65
+
+[INFO] GBA Debug: [mmAllocChannel] mm_ch_mask=-1
+
+[INFO] GBA Debug: [UCT0] post-NewNote act?=1 sample=12 inst=11
+
+[INFO] GBA Debug: [UCT0] computed period=0 tuning=456 freq=3221225586
+
+[INFO] GBA Debug: [UCT0] -> TN
+
+[INFO] GBA Debug: [UTN] vol=0 afvol=0 panning=128 period=0 tick=0 inst=11 sample=12
+
+[INFO] GBA Debug: [UMIX] ch=0 flags=1e sample=12 src0=-80000000 read0=0
+
+[INFO] GBA Debug: [UMIX] -> src=149ac read=0
+
+[INFO] GBA Debug: [DISPAN] vol=0 flags=1a pan=128 src=149ac
+
+[INFO] GBA Debug: [UCT0] enter flags=7 alloc=255 vol=8 cvol=64 inst=8 note=68
+
+[INFO] GBA Debug: [UCT0] pre-NewNote inst=8 note=68
+
+[INFO] GBA Debug: [mmAllocChannel] mm_ch_mask=-1
+
+[INFO] GBA Debug: [UCT0] post-NewNote act?=1 sample=12 inst=11
+
+[INFO] GBA Debug: [UCT0] computed period=14596 tuning=268436124 freq=3288334503
+
+[INFO] GBA Debug: [UCT0] -> TN
+
+[INFO] GBA Debug: [UTN] vol=6 afvol=6 panning=128 period=14596 tick=0 inst=8 sample=9
+
+[INFO] GBA Debug: [UMIX] ch=0 flags=1e sample=9 src0=-80000000 read0=0
+
+[INFO] GBA Debug: [UMIX] -> src=1664 read=0
+
+[INFO] GBA Debug: [DISPAN] vol=0 flags=1a pan=128 src=1664
+
+[INFO] GBA Debug: [mppProcessTick] tick: 0 -> 1, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick updated, returning without row advance
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=14 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] tick: 1 -> 2, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick updated, returning without row advance
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=14 main_ptr=2001748 sub_ptr=20015c8 mpp=2001748
+
+[INFO] GBA Debug: [mppProcessTick] tick: 2 -> 3, speed: 6
+
+[INFO] GBA Debug: [mppProcessTick] tick updated, returning without row advance
+

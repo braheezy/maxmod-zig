@@ -1,0 +1,545 @@
+qt.qpa.backingstore: Back buffer dpr of 2 doesn't match <NSViewBackingLayer: 0x11d7af160> contents scale of 1 - updating layer to match.
+[INFO] GBA Debug: [MOD] Debug init
+
+[INFO] GBA Debug: [MOD] UI ready
+
+[INFO] GBA Debug: [MIX INIT] DAD1=0x91069106 DAD2=0x68016801 SAD1=0x68C068C0 SAD2=0xA824A824
+
+[INFO] GBA Debug: [TEST] isolate check
+
+[INFO] GBA Debug: [TEST] isolate=false path
+
+[INFO] GBA Debug: [MOD] GBSAMP loaded
+
+[INFO] GBA Debug: [MOD] Module parsed
+
+[INFO] GBA Debug: [MOD] Playback started
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=4370 loop=0x2 vol=255 pan=128 step=200 b0=0x4
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=4370 loop=0x2 vol=255 pan=128 step=200 b0=0x4
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=4370 loop=0x2 vol=255 pan=128 step=200 b0=0x4
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=4370 loop=0x2 vol=255 pan=128 step=200 b0=0x4
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=4370 loop=0x2 vol=255 pan=128 step=200 b0=0x4
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=4370 loop=0x2 vol=255 pan=128 step=200 b0=0x4
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=4370 loop=0x2 vol=255 pan=128 step=200 b0=0x4
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=4370 loop=0x2 vol=255 pan=128 step=200 b0=0x4
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=4370 loop=0x2 vol=255 pan=128 step=200 b0=0x4
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=4370 loop=0x2 vol=255 pan=128 step=200 b0=0x4
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=4370 loop=0x2 vol=255 pan=128 step=200 b0=0x4
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=4370 loop=0x2 vol=255 pan=128 step=200 b0=0x4
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=4370 loop=0x2 vol=255 pan=128 step=200 b0=0x4
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=4370 loop=0x2 vol=255 pan=128 step=200 b0=0x4
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=4370 loop=0x2 vol=255 pan=128 step=200 b0=0x4
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=4370 loop=0x2 vol=255 pan=128 step=200 b0=0x4
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=4370 loop=0x2 vol=255 pan=128 step=200 b0=0x4
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=4370 loop=0x2 vol=255 pan=128 step=200 b0=0x4
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=4370 loop=0x2 vol=255 pan=128 step=200 b0=0x4
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=4370 loop=0x2 vol=255 pan=128 step=200 b0=0x4
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=4370 loop=0x2 vol=255 pan=128 step=200 b0=0x4
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=4370 loop=0x2 vol=255 pan=128 step=200 b0=0x4
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=4370 loop=0x2 vol=255 pan=128 step=200 b0=0x4
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=4370 loop=0x2 vol=255 pan=128 step=200 b0=0x4
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=4370 loop=0x2 vol=255 pan=128 step=200 b0=0x4
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=4370 loop=0x2 vol=255 pan=128 step=200 b0=0x4
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=4370 loop=0x2 vol=255 pan=128 step=200 b0=0x4
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=4370 loop=0x2 vol=255 pan=128 step=200 b0=0x4
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=4370 loop=0x2 vol=255 pan=128 step=200 b0=0x4
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=4370 loop=0x2 vol=255 pan=128 step=200 b0=0x4
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=4370 loop=0x2 vol=255 pan=128 step=200 b0=0x4
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=4370 loop=0x2 vol=255 pan=128 step=200 b0=0x4
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=4370 loop=0x2 vol=255 pan=128 step=200 b0=0x4
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=4370 loop=0x2 vol=255 pan=128 step=200 b0=0x4
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=4370 loop=0x2 vol=255 pan=128 step=200 b0=0x4
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=4370 loop=0x2 vol=255 pan=128 step=200 b0=0x4
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=4370 loop=0x2 vol=255 pan=128 step=200 b0=0x4
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=4370 loop=0x2 vol=255 pan=128 step=200 b0=0x4
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=4370 loop=0x2 vol=255 pan=128 step=200 b0=0x4
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=4370 loop=0x2 vol=255 pan=128 step=200 b0=0x4
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=4370 loop=0x2 vol=255 pan=128 step=200 b0=0x4
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=4370 loop=0x2 vol=255 pan=128 step=200 b0=0x4
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=4370 loop=0x2 vol=255 pan=128 step=200 b0=0x4
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=4370 loop=0x2 vol=255 pan=128 step=200 b0=0x4
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=4370 loop=0x2 vol=255 pan=128 step=200 b0=0x4
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=4370 loop=0x2 vol=255 pan=128 step=200 b0=0x4
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=4370 loop=0x2 vol=255 pan=128 step=200 b0=0x4
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=4370 loop=0x2 vol=255 pan=128 step=200 b0=0x4
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=4370 loop=0x2 vol=255 pan=128 step=200 b0=0x4
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=4370 loop=0x2 vol=255 pan=128 step=200 b0=0x4
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=4370 loop=0x2 vol=255 pan=128 step=200 b0=0x4
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=4370 loop=0x2 vol=255 pan=128 step=200 b0=0x4
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=4370 loop=0x2 vol=255 pan=128 step=200 b0=0x4
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=4370 loop=0x2 vol=255 pan=128 step=200 b0=0x4
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=4370 loop=0x2 vol=255 pan=128 step=200 b0=0x4
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=4370 loop=0x2 vol=255 pan=128 step=200 b0=0x4
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=4370 loop=0x2 vol=255 pan=128 step=200 b0=0x4
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=4370 loop=0x2 vol=255 pan=128 step=200 b0=0x4
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=4370 loop=0x2 vol=255 pan=128 step=200 b0=0x4
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=67437573 loop=0x4040505 vol=255 pan=128 step=250 b0=0x5
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=67437573 loop=0x4040505 vol=255 pan=128 step=250 b0=0x5
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=67437573 loop=0x4040505 vol=255 pan=128 step=250 b0=0x5
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=67437573 loop=0x4040505 vol=255 pan=128 step=250 b0=0x5
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=67437573 loop=0x4040505 vol=255 pan=128 step=250 b0=0x5
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=67437573 loop=0x4040505 vol=255 pan=128 step=250 b0=0x5
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=67437573 loop=0x4040505 vol=255 pan=128 step=250 b0=0x5
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=67437573 loop=0x4040505 vol=255 pan=128 step=250 b0=0x5
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=67437573 loop=0x4040505 vol=255 pan=128 step=250 b0=0x5
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=67437573 loop=0x4040505 vol=255 pan=128 step=250 b0=0x5
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=67437573 loop=0x4040505 vol=255 pan=128 step=250 b0=0x5
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=67437573 loop=0x4040505 vol=255 pan=128 step=250 b0=0x5
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=67437573 loop=0x4040505 vol=255 pan=128 step=250 b0=0x5
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=67437573 loop=0x4040505 vol=255 pan=128 step=250 b0=0x5
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=67437573 loop=0x4040505 vol=255 pan=128 step=250 b0=0x5
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=67437573 loop=0x4040505 vol=255 pan=128 step=250 b0=0x5
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=67437573 loop=0x4040505 vol=255 pan=128 step=250 b0=0x5
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=67437573 loop=0x4040505 vol=255 pan=128 step=250 b0=0x5
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=67437573 loop=0x4040505 vol=255 pan=128 step=250 b0=0x5
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=67437573 loop=0x4040505 vol=255 pan=128 step=250 b0=0x5
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=67437573 loop=0x4040505 vol=255 pan=128 step=250 b0=0x5
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=67437573 loop=0x4040505 vol=255 pan=128 step=250 b0=0x5
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=67437573 loop=0x4040505 vol=255 pan=128 step=250 b0=0x5
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=67437573 loop=0x4040505 vol=255 pan=128 step=250 b0=0x5
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=67437573 loop=0x4040505 vol=255 pan=128 step=250 b0=0x5
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=67437573 loop=0x4040505 vol=255 pan=128 step=250 b0=0x5
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=67437573 loop=0x4040505 vol=255 pan=128 step=250 b0=0x5
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=67437573 loop=0x4040505 vol=255 pan=128 step=250 b0=0x5
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=67437573 loop=0x4040505 vol=255 pan=128 step=250 b0=0x5
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=67437573 loop=0x4040505 vol=255 pan=128 step=250 b0=0x5
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=67437573 loop=0x4040505 vol=255 pan=128 step=250 b0=0x5
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=67437573 loop=0x4040505 vol=255 pan=128 step=250 b0=0x5
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=67437573 loop=0x4040505 vol=255 pan=128 step=250 b0=0x5
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=67437573 loop=0x4040505 vol=255 pan=128 step=250 b0=0x5
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=67437573 loop=0x4040505 vol=255 pan=128 step=250 b0=0x5
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=67437573 loop=0x4040505 vol=255 pan=128 step=250 b0=0x5
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=67437573 loop=0x4040505 vol=255 pan=128 step=250 b0=0x5
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=67437573 loop=0x4040505 vol=255 pan=128 step=250 b0=0x5
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=67437573 loop=0x4040505 vol=255 pan=128 step=250 b0=0x5
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=67437573 loop=0x4040505 vol=255 pan=128 step=250 b0=0x5
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=67437573 loop=0x4040505 vol=255 pan=128 step=250 b0=0x5
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=67437573 loop=0x4040505 vol=255 pan=128 step=250 b0=0x5
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=67437573 loop=0x4040505 vol=255 pan=128 step=250 b0=0x5
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=67437573 loop=0x4040505 vol=255 pan=128 step=250 b0=0x5
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=67437573 loop=0x4040505 vol=255 pan=128 step=250 b0=0x5
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=67437573 loop=0x4040505 vol=255 pan=128 step=250 b0=0x5
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=67437573 loop=0x4040505 vol=255 pan=128 step=250 b0=0x5
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=67437573 loop=0x4040505 vol=255 pan=128 step=250 b0=0x5
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=67437573 loop=0x4040505 vol=255 pan=128 step=250 b0=0x5
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=67437573 loop=0x4040505 vol=255 pan=128 step=250 b0=0x5
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=67437573 loop=0x4040505 vol=255 pan=128 step=250 b0=0x5
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=67437573 loop=0x4040505 vol=255 pan=128 step=250 b0=0x5
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=67437573 loop=0x4040505 vol=255 pan=128 step=250 b0=0x5
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=67437573 loop=0x4040505 vol=255 pan=128 step=250 b0=0x5
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=67437573 loop=0x4040505 vol=255 pan=128 step=250 b0=0x5
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=67437573 loop=0x4040505 vol=255 pan=128 step=250 b0=0x5
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=67437573 loop=0x4040505 vol=255 pan=128 step=250 b0=0x5
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=67437573 loop=0x4040505 vol=255 pan=128 step=250 b0=0x5
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=67437573 loop=0x4040505 vol=255 pan=128 step=250 b0=0x5
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=67437573 loop=0x4040505 vol=255 pan=128 step=250 b0=0x5
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=84214789 loop=0x7060606 vol=255 pan=128 step=300 b0=0x8
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=84214789 loop=0x7060606 vol=255 pan=128 step=300 b0=0x8
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=84214789 loop=0x7060606 vol=255 pan=128 step=300 b0=0x8
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=84214789 loop=0x7060606 vol=255 pan=128 step=300 b0=0x8
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=84214789 loop=0x7060606 vol=255 pan=128 step=300 b0=0x8
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=84214789 loop=0x7060606 vol=255 pan=128 step=300 b0=0x8
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=84214789 loop=0x7060606 vol=255 pan=128 step=300 b0=0x8
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=84214789 loop=0x7060606 vol=255 pan=128 step=300 b0=0x8
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=84214789 loop=0x7060606 vol=255 pan=128 step=300 b0=0x8
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=84214789 loop=0x7060606 vol=255 pan=128 step=300 b0=0x8
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=84214789 loop=0x7060606 vol=255 pan=128 step=300 b0=0x8
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=84214789 loop=0x7060606 vol=255 pan=128 step=300 b0=0x8
+
+[INFO] GBA Debug: [AFTER MIX] seg=264
+
+[INFO] GBA Debug: [MX SET] ch=0 len=84214789 loop=0x7060606 vol=255 pan=128 step=300 b0=0x8
+

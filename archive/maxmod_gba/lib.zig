@@ -2,7 +2,7 @@ const std = @import("std");
 const audio = @import("audio.zig");
 const player = @import("player.zig");
 const gba = @import("gba");
-const mixer = @import("mixer_asm.zig");
+pub const mixer = @import("mixer_asm.zig");
 const xm = @import("xm.zig");
 const mas = @import("mas.zig");
 // XM core is provided by the XM demo via a pre-mix hook; keep runtime independent here.
@@ -103,6 +103,8 @@ var s_use_asm: bool = false;
 var s_mas_pre_mix_hook: ?*const fn () void = null;
 pub fn setMasPreMixHook(hook: ?*const fn () void) void {
     s_mas_pre_mix_hook = hook;
+    var b: [64]u8 = undefined;
+    if (std.fmt.bufPrint(&b, "[HOOK SET] hook=0x{X}\n", .{ @intFromPtr(hook) }) catch null) |m| dbgWrite(m);
 }
 pub fn enableAsmFrame(on: bool) void {
     s_use_asm = on;

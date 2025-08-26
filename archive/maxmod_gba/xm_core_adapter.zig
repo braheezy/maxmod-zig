@@ -29,8 +29,8 @@ pub fn minimalInit() void {
     shim.mpp_nchannels = 32;
     shim.mpp_channels = shim.mm_pchannels;
     shim.initBpmDivisor();
-    // Allow allocation on first N channels
-    shim.mm_ch_mask = (@as(shim.mm_word, 1) << @as(u5, @intCast(shim.mm_num_mch))) - 1;
+    // Allow allocation on first mm_num_ach active channels
+    shim.mm_ch_mask = (@as(shim.mm_word, 1) << @as(u5, @intCast(shim.mm_num_ach))) - 1;
     // Point core channel buffer to ASM mixer's channels (via runtime shim)
     tc_mm.mm_mix_channels_core = @ptrFromInt(maxmod.getMixerChannelsPtr());
 
@@ -62,14 +62,21 @@ pub fn startWithMas(head: []const u8) void {
         tc_mm.mm_ch_mask = (@as(tc_mm.mm_word, 1) << @as(u5, 8)) - 1; // allow 8 mixer channels
         tc_mm.mpp_layerp = &tc_mm.mmLayerMain;
         tc_mm.mpp_resetchannels(tc_mm.mpp_channels, tc_mm.mpp_nchannels);
-        // Derive and assign patttable and songadr from header before starting
+        // Derive and assign tables and songadr from header before starting (mirror C mmPlayModule)
         const header_ptr: [*c]tc_mm.mm_mas_head = @ptrFromInt(@intFromPtr(head.ptr));
         tc_mm.mmLayerMain.songadr = header_ptr;
         const instn_size: tc_mm.mm_word = @as(tc_mm.mm_word, header_ptr.*.instr_count);
         const sampn_size: tc_mm.mm_word = @as(tc_mm.mm_word, header_ptr.*.sampl_count);
         // tables(): instrument offsets, then sample offsets, then pattern offsets
+        tc_mm.mmLayerMain.insttable = @as([*c]tc_mm.mm_word, @ptrCast(@alignCast(&header_ptr.*.tables()[0])));
+        tc_mm.mmLayerMain.samptable = @as([*c]tc_mm.mm_word, @ptrCast(@alignCast(&header_ptr.*.tables()[instn_size])));
         const patt_table_ptr: [*c]tc_mm.mm_word = @ptrCast(@alignCast(&header_ptr.*.tables()[instn_size +% sampn_size]));
         tc_mm.mmLayerMain.patttable = patt_table_ptr;
+        // Log table addresses
+        {
+            var tbuf: [96]u8 = undefined;
+            if (std.fmt.bufPrint(&tbuf, "[TABLES] inst=0x{X} samp=0x{X} patt=0x{X}\n", .{ @intFromPtr(tc_mm.mmLayerMain.insttable), @intFromPtr(tc_mm.mmLayerMain.samptable), @intFromPtr(tc_mm.mmLayerMain.patttable) }) catch null) |tm| debugWrite(tm);
+        }
         // If header speed/tempo stalls, the core will set a default after mmPlayModule.
         tc_mm.mmPlayModule(
             @intFromPtr(head.ptr),
@@ -97,6 +104,7 @@ pub fn startWithMas(head: []const u8) void {
         // Seed from header explicit values and seed first pattern read
         tc_mm.mmLayerMain.speed = if (header_ptr.*.initial_speed != 0) header_ptr.*.initial_speed else 6;
         const init_bpm: u8 = if (header_ptr.*.initial_tempo != 0) header_ptr.*.initial_tempo else 125;
+        tc_mm.mm_mastertempo = 1024; // neutral tempo multiplier (1.0)
         tc_mm.mmLayerMain.bpm = init_bpm;
         tc_mm.mpp_setbpm(&tc_mm.mmLayerMain, @as(tc_mm.mm_word, init_bpm));
         tc_mm.mpp_setposition(&tc_mm.mmLayerMain, @as(tc_mm.mm_word, 0));
@@ -132,37 +140,37 @@ pub fn startWithMas(head: []const u8) void {
             }
         };
 
-        // Preferred: resolve mm_mas_pattern via core helper, then use pattern_data() pointer
+        // Preferred: resolve mm_mas_pattern via core helper; seed using pattern_data()
         const patt_ptr: [*c]tc_mm.mm_mas_pattern = tc_mm.mpp_PatternPointer(&tc_mm.mmLayerMain, @as(tc_mm.mm_word, @intCast(chosen_pat)));
         const patt_addr0: usize = @intFromPtr(patt_ptr);
         const rowc: u8 = patt_ptr.*.row_count;
-        // Primary seed: pattern_data starts at +1
-        const seed_addr_primary: usize = patt_addr0 + 1;
-        // Fallbacks: +5, +9 in case of unexpected embedded words
-        const candidate_addrs: [3]usize = .{ seed_addr_primary, patt_addr0 + 5, patt_addr0 + 9 };
+        const data_ptr: [*]const u8 = patt_ptr.*.pattern_data();
+        const data_addr: usize = @intFromPtr(data_ptr);
         {
             var ibuf: [96]u8 = undefined;
-            if (std.fmt.bufPrint(&ibuf, "[PAT] ptr=0x{X} rowc={d}\n", .{ patt_addr0, rowc }) catch null) |pm| debugWrite(pm);
+            if (std.fmt.bufPrint(&ibuf, "[PAT] ptr=0x{X} rowc={d} data=0x{X}\n", .{ patt_addr0, rowc, data_addr }) catch null) |pm| debugWrite(pm);
         }
+        // Probe exact pattern_data() start and a couple of safe fallbacks (+4, +8)
+        const candidate_addrs: [3]usize = .{ data_addr, data_addr + 4, data_addr + 8 };
         var seeded = false;
         var ci: usize = 0;
         while (ci < candidate_addrs.len) : (ci += 1) {
             const addr = candidate_addrs[ci];
             const hdr32 = peekU32.at(addr);
             var pbuf: [96]u8 = undefined;
-            if (std.fmt.bufPrint(&pbuf, "[PROBE] patt=0x{X} +{d} hdr=0x{X}\n", .{ patt_addr0, @as(usize, addr - patt_addr0), hdr32 }) catch null) |pm| debugWrite(pm);
+            if (std.fmt.bufPrint(&pbuf, "[PROBE] data=0x{X} +{d} hdr=0x{X}\n", .{ data_addr, @as(usize, addr - data_addr), hdr32 }) catch null) |pm| debugWrite(pm);
             tc_mm.mmLayerMain.pattread = @ptrFromInt(addr);
+            tc_mm.mmLayerMain.ploop_adr = @ptrFromInt(addr);
             tc_mm.mpp_vars.pattread_p = @ptrFromInt(addr);
-            // Ensure playing flag before read
             tc_mm.mmLayerMain.isplaying = 1;
             const ok = tc_mm.mmReadPattern(&tc_mm.mmLayerMain);
             var sbuf: [96]u8 = undefined;
-            if (std.fmt.bufPrint(&sbuf, "[SEED] ok={d} base=+{d} row={d} pos={d} upd=0x{X}\n", .{ @intFromBool(ok != 0), @as(usize, addr - patt_addr0), tc_mm.mmLayerMain.row, tc_mm.mmLayerMain.position, tc_mm.mmLayerMain.mch_update }) catch null) |sm| debugWrite(sm);
+            if (std.fmt.bufPrint(&sbuf, "[SEED] ok={d} base=+{d} row={d} pos={d} upd=0x{X}\n", .{ @intFromBool(ok != 0), @as(usize, addr - data_addr), tc_mm.mmLayerMain.row, tc_mm.mmLayerMain.position, tc_mm.mmLayerMain.mch_update }) catch null) |sm| debugWrite(sm);
             if (ok != 0) { seeded = true; break; }
         }
         if (!seeded) {
-            // Dump first 16 bytes at primary candidate to help diagnose
-            const p: [*]const u8 = @ptrFromInt(seed_addr_primary);
+            // Dump first 16 bytes at pattern_data() to help diagnose
+            const p: [*]const u8 = @ptrFromInt(data_addr);
             var hex: [64]u8 = undefined;
             var idx: usize = 0;
             var w: usize = 0;
@@ -172,7 +180,7 @@ pub fn startWithMas(head: []const u8) void {
                 w += n.len;
             }
             var dbuf: [96]u8 = undefined;
-            if (std.fmt.bufPrint(&dbuf, "[DUMP] patt+1: {s}\n", .{ hex[0..w] }) catch null) |dm| debugWrite(dm);
+            if (std.fmt.bufPrint(&dbuf, "[DUMP] patt_data: {s}\n", .{ hex[0..w] }) catch null) |dm| debugWrite(dm);
         }
         // Report channel limits
         {
@@ -215,6 +223,15 @@ pub fn startWithMas(head: []const u8) void {
         while (k < 8) : (k += 1) {
             tc_mm.mppProcessTick();
         }
+        // One-time dump of mixer channels right after seeding
+        {
+            const mix_ptr: [*]tc_types.mm_mixer_channel = @ptrCast(tc_mm.mm_mix_channels_core);
+            var i: usize = 0;
+            while (i < 8) : (i += 1) {
+                var b: [96]u8 = undefined;
+                if (std.fmt.bufPrint(&b, "[MIX0] i={d} vol={d} pan={d} freq={d} src=0x{X}\n", .{ i, mix_ptr[i].vol, mix_ptr[i].pan, mix_ptr[i].freq, mix_ptr[i].src }) catch null) |mm| debugWrite(mm);
+            }
+        }
 
         // Ensure song 0 mapping is available; do not inject fallback audio here
         _ = @import("maxmod_gba").setActiveGbsSong(0);
@@ -231,15 +248,22 @@ comptime {
 }
 
 pub fn preMixUpdate() void {
-    // Drive one tick using the translated C driver, which handles tick gating,
-    // pattern read, and T0/TN updates internally.
+    // Drive one full tick via translated core (includes T0/TN and ACHN mapping)
     if (tc_mm.mmLayerMain.valid != 0) {
         tc_mm.mpp_layerp = &tc_mm.mmLayerMain;
         if (tc_mm.mmLayerMain.isplaying == 0) tc_mm.mmLayerMain.isplaying = 1;
         tc_mm.mppProcessTick();
-        // Log mch_update mask to see if any channel updates are scheduled
         var ubuf: [96]u8 = undefined;
         if (std.fmt.bufPrint(&ubuf, "[UPD] mask=0x{X}\n", .{ tc_mm.mmLayerMain.mch_update }) catch null) |m| debugWrite(m);
+        // Early after a few ticks, dump mixer channels to confirm ACHN runs
+        if (s_tick_log_count < 8) {
+            const mix_ptr: [*]tc_types.mm_mixer_channel = @ptrCast(tc_mm.mm_mix_channels_core);
+            var i: usize = 0;
+            while (i < 8) : (i += 1) {
+                var b: [96]u8 = undefined;
+                if (std.fmt.bufPrint(&b, "[MIX] i={d} vol={d} pan={d} freq={d} src=0x{X}\n", .{ i, mix_ptr[i].vol, mix_ptr[i].pan, mix_ptr[i].freq, mix_ptr[i].src }) catch null) |mm| debugWrite(mm);
+            }
+        }
     }
     // Dump layer state for first few ticks to confirm advancement
     if (s_tick_log_count < 64) {

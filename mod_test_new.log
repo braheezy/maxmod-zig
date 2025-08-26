@@ -1,0 +1,1 @@
+qt.qpa.backingstore: Back buffer dpr of 2 doesn't match <NSViewBackingLayer: 0x128f7e820> contents scale of 1 - updating layer to match.
