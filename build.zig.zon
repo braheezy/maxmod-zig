@@ -8,9 +8,12 @@
     .minimum_zig_version = "0.14.1",
 
     .dependencies = .{
+        // .ziggba = .{
+        //     .url = "git+https://github.com/braheezy/ZigGBA.git#13fd985c13881a46d0b2fd8c54c9ff8a45eef798",
+        //     .hash = "ziggba-0.0.0-t2qCXqEFBACiS7kFT28YBRkvZWo6JsZ2HEGRRcn1Poqc",
+        // },
         .ziggba = .{
-            .url = "git+https://github.com/braheezy/ZigGBA.git#13fd985c13881a46d0b2fd8c54c9ff8a45eef798",
-            .hash = "ziggba-0.0.0-t2qCXqEFBACiS7kFT28YBRkvZWo6JsZ2HEGRRcn1Poqc",
+            .path = "my-ZigGBA",
         },
     },
     .paths = .{

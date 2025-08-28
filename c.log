@@ -1,7 +1,7 @@
-qt.qpa.backingstore: Back buffer dpr of 2 doesn't match <NSViewBackingLayer: 0x11c2d0b20> contents scale of 1 - updating layer to match.
-[INFO] GBA Debug: [mmInitDefault] soundbank=0x80101f8 nch=32
+qt.qpa.backingstore: Back buffer dpr of 2 doesn't match <NSViewBackingLayer: 0x159757f50> contents scale of 1 - updating layer to match.
+[INFO] GBA Debug: [mmInitDefault] soundbank=0x8010200 nch=32
 
-[INFO] GBA Debug: [mmInit] mp_solution=0x80101f8 sampleCount=12 moduleCount=1
+[INFO] GBA Debug: [mmInit] mp_solution=0x8010200 sampleCount=12 moduleCount=1
 
 [INFO] GBA Debug: [mmInit] mmMixerInit done, mm_num_mch=32 mm_num_ach=32 mm_mixlen=264
 
@@ -9,17 +9,17 @@ qt.qpa.backingstore: Back buffer dpr of 2 doesn't match <NSViewBackingLayer: 0x1
 
 [INFO] GBA Debug: [mpps_backdoor] id=0 mode=0 layer=0 sampleCount=12
 
-[INFO] GBA Debug: [mpps_backdoor] moduleTable=0x8010234 entry_off=173b0
+[INFO] GBA Debug: [mpps_backdoor] moduleTable=0x801023c entry_off=173b0
 
-[INFO] GBA Debug: [mpps_backdoor] moduleAddress=0x80275b0
+[INFO] GBA Debug: [mpps_backdoor] moduleAddress=0x80275b8
 
-[INFO] GBA Debug: [mmPlayModule] address=0x80275b0 mode=0 layer=0
+[INFO] GBA Debug: [mmPlayModule] address=0x80275b8 mode=0 layer=0
 
-[INFO] GBA Debug: [mmPlayModule] num_ch=32 channels_ptr=0x2000428 layer_info=0x3001718
+[INFO] GBA Debug: [mmPlayModule] num_ch=32 channels_ptr=0x2000428 layer_info=0x30015b8
 
 [INFO] GBA Debug: [mmPlayModule] hdr: orders=31 instr=11 sampl=12 pattn=31 flags=1e spd=6 tempo=137 gvol=64
 
-[INFO] GBA Debug: [mmPlayModule] tables inst=0x80276c4 samp=0x80276f0 patt=0x8027720
+[INFO] GBA Debug: [mmPlayModule] tables inst=0x80276cc samp=0x80276f8 patt=0x8027728
 
 [INFO] GBA Debug: [mmPlayModule] after setposition pos=0 row=0 tick=0
 
@@ -29,77 +29,59 @@ qt.qpa.backingstore: Back buffer dpr of 2 doesn't match <NSViewBackingLayer: 0x1
 
 [INFO] GBA Debug: [mmPlayModule] end isplaying=1 valid=1 pos=0 row=0 tick=0
 
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=0 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x0
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=0 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x0
 
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=0 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
-
-[INFO] GBA Debug: [Z mmReadPattern] start pattread=0x802d526 pattread_p=0x802d526 nch=32 row=0
-
-[INFO] GBA Debug: [Z mmReadPattern] read_byte=81 at pos=0x802d526
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=0 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
 
 [INFO] GBA Debug: [Z mmReadPattern] chan_calc=((81 & 0x7F)-1)=0
 
-[INFO] GBA Debug: [Z mmReadPattern] cflags=bb at pos=0x802d527
+[INFO] GBA Debug: [Z mmReadPattern] cflags=bb at pos=0x802d52f
 
-[INFO] GBA Debug: [Z mmReadPattern] note=41 at pos=0x802d528
+[INFO] GBA Debug: [Z mmReadPattern] note=41 at pos=0x802d530
 
-[INFO] GBA Debug: [Z mmReadPattern] effect=01 param=06 at pos=0x802d52a
+[INFO] GBA Debug: [Z mmReadPattern] effect=01 param=06 at pos=0x802d532
 
-[INFO] GBA Debug: [Z mmReadPattern] end chan 0, pattern now 0x802d52c
-
-[INFO] GBA Debug: [Z mmReadPattern] read_byte=82 at pos=0x802d52c
+[INFO] GBA Debug: [Z mmReadPattern] end chan 0, pattern now 0x802d534
 
 [INFO] GBA Debug: [Z mmReadPattern] chan_calc=((82 & 0x7F)-1)=1
 
-[INFO] GBA Debug: [Z mmReadPattern] cflags=bb at pos=0x802d52d
+[INFO] GBA Debug: [Z mmReadPattern] cflags=bb at pos=0x802d535
 
-[INFO] GBA Debug: [Z mmReadPattern] note=3c at pos=0x802d52e
+[INFO] GBA Debug: [Z mmReadPattern] note=3c at pos=0x802d536
 
-[INFO] GBA Debug: [Z mmReadPattern] effect=14 param=89 at pos=0x802d530
+[INFO] GBA Debug: [Z mmReadPattern] effect=14 param=89 at pos=0x802d538
 
-[INFO] GBA Debug: [Z mmReadPattern] end chan 1, pattern now 0x802d532
-
-[INFO] GBA Debug: [Z mmReadPattern] read_byte=8a at pos=0x802d532
+[INFO] GBA Debug: [Z mmReadPattern] end chan 1, pattern now 0x802d53a
 
 [INFO] GBA Debug: [Z mmReadPattern] chan_calc=((8a & 0x7F)-1)=9
 
-[INFO] GBA Debug: [Z mmReadPattern] cflags=77 at pos=0x802d533
+[INFO] GBA Debug: [Z mmReadPattern] cflags=77 at pos=0x802d53b
 
-[INFO] GBA Debug: [Z mmReadPattern] note=39 at pos=0x802d534
+[INFO] GBA Debug: [Z mmReadPattern] note=39 at pos=0x802d53c
 
-[INFO] GBA Debug: [Z mmReadPattern] end chan 9, pattern now 0x802d537
+[INFO] GBA Debug: [Z mmReadPattern] end chan 9, pattern now 0x802d53f
 
-[INFO] GBA Debug: [Z mmReadPattern] read_byte=00 at pos=0x802d537
+[INFO] GBA Debug: [Z mmReadPattern] row end, pattread=0x802d540 update_bits=00000203
 
-[INFO] GBA Debug: [Z mmReadPattern] row end, pattread=0x802d538 update_bits=00000203
-
-[INFO] GBA Debug: [INST] ch=0 inst_ptr=0x80278c4 bytes: 80 00 00 00 00 00 00 00 nm=000c invalid=1 reserved=0000
-
-[INFO] GBA Debug: [MAPDBG] ch=0 inst_ptr=0x80278c4 nmap_off=c map_ptr=0x80278d0 pnoter=65 entry=a invalid=1
-
-[INFO] GBA Debug: [BINDMAP] ch=0 inst=11 pnoter=65 invalid=1 nmap_off=c note=65 sample=12
+[INFO] GBA Debug: [CHSTART] ch=0 inst=11 sample=12 src=0x802795c flags=1b
 
 [INFO] GBA Debug: [ENVDBG2] ch=0 env_flags=0x0 vol_enabled=0
 
 [INFO] GBA Debug: [UMIX] ch=0 flags=0d sample=12 src0=80000000 read0=0
 
-[INFO] GBA Debug: [BIND] ch=0 id=11 src=80255a4 def_freq=2025 len=8192
+[INFO] GBA Debug: [BIND] ch=0 id=11 src=80255ac def_freq=2025 len=8192
 
 [INFO] GBA Debug: [HDR] w0=2000 w1=ffffffff w2=7e9ba00 len=8192 loop=4294967295 fmt=0 def=2025
 
-[INFO] GBA Debug: [UMIX] -> src=080255a4 read=0 idx=0 len=8192 loop=4294967295
+[INFO] GBA Debug: [UMIX] -> src=080255ac read=0 idx=0 len=8192 loop=4294967295
 
 [INFO] GBA Debug: [UMIX] set_pitch period=87480 freq=10787 fvol=255
 
-[INFO] GBA Debug: [DISPAN] vol=255 flags=9 pan=128 src=80255a4
+[INFO] GBA Debug: [DISPAN] ch=0 vol=255 flags=9 pan=128 src=80255ac
 
 [INFO] GBA Debug: [UMIX] audible vol=255 pan=128 stopped=0
 
-[INFO] GBA Debug: [INST] ch=1 inst_ptr=0x802789c bytes: 80 ff 00 00 00 09 00 00 nm=000a invalid=1 reserved=0000
-
-[INFO] GBA Debug: [MAPDBG] ch=1 inst_ptr=0x802789c nmap_off=a map_ptr=0x80278a6 pnoter=60 entry=4000 invalid=1
-
-[INFO] GBA Debug: [BINDMAP] ch=1 inst=9 pnoter=60 invalid=1 nmap_off=a note=60 sample=10
+[INFO] GBA Debug: [CHSTART] ch=1 inst=9 sample=10 src=0x8027944 flags=1b
 
 [INFO] GBA Debug: [ENVDBG2] ch=1 env_flags=0x9 vol_enabled=1
 
@@ -107,15 +89,15 @@ qt.qpa.backingstore: Back buffer dpr of 2 doesn't match <NSViewBackingLayer: 0x1
 
 [INFO] GBA Debug: [UMIX] ch=1 flags=2d sample=10 src0=80000000 read0=0
 
-[INFO] GBA Debug: [BIND] ch=1 id=9 src=8014c40 def_freq=1797 len=65210
+[INFO] GBA Debug: [BIND] ch=1 id=9 src=8014c48 def_freq=1797 len=65210
 
 [INFO] GBA Debug: [HDR] w0=feba w1=ffffffff w2=705ba00 len=65210 loop=4294967295 fmt=0 def=1797
 
-[INFO] GBA Debug: [UMIX] -> src=08014c40 read=0 idx=0 len=65210 loop=4294967295
+[INFO] GBA Debug: [UMIX] -> src=08014c48 read=0 idx=0 len=65210 loop=4294967295
 
 [INFO] GBA Debug: [UMIX] set_pitch period=65536 freq=7189 fvol=255
 
-[INFO] GBA Debug: [DISPAN] vol=255 flags=29 pan=128 src=8014c40
+[INFO] GBA Debug: [DISPAN] ch=1 vol=255 flags=29 pan=128 src=8014c48
 
 [INFO] GBA Debug: [UMIX] audible vol=255 pan=128 stopped=0
 
@@ -125,37 +107,33 @@ qt.qpa.backingstore: Back buffer dpr of 2 doesn't match <NSViewBackingLayer: 0x1
 
 [INFO] GBA Debug: [C AFVDBG] ch=1 act_vol=128
 
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=0 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=0 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
 
 [INFO] GBA Debug: [RATEC] ch=2 msl_id=8 c5=5543 period=55109 value=18621 scale=17024 rate=4837
 
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=0 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=0 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
 
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=0 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=0 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
 
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=0 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=0 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
 
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=0 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=0 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
 
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=1 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=1 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
 
-[INFO] GBA Debug: [Z mmReadPattern] start pattread=0x802d538 pattread_p=0x802d538 nch=32 row=1
-
-[INFO] GBA Debug: [Z mmReadPattern] read_byte=00 at pos=0x802d538
-
-[INFO] GBA Debug: [Z mmReadPattern] row end, pattread=0x802d539 update_bits=00000000
+[INFO] GBA Debug: [Z mmReadPattern] row end, pattread=0x802d541 update_bits=00000000
 
 [INFO] GBA Debug: [C AFVDBG] ch=0 act_vol=128
 
 [INFO] GBA Debug: [ENVDBG2] ch=0 env_flags=0x0 vol_enabled=0
 
-[INFO] GBA Debug: [UMIX] ch=0 flags=01 sample=12 src0=080255a4 read0=18510492
+[INFO] GBA Debug: [UMIX] ch=0 flags=01 sample=12 src0=080255ac read0=18510492
 
-[INFO] GBA Debug: [UMIX] -> src=080255a4 read=18510492 idx=17 len=8192 loop=4294967295
+[INFO] GBA Debug: [UMIX] -> src=080255ac read=18510492 idx=17 len=8192 loop=4294967295
 
 [INFO] GBA Debug: [UMIX] set_pitch period=87480 freq=10787 fvol=255
 
-[INFO] GBA Debug: [DISPAN] vol=255 flags=1 pan=128 src=80255a4
+[INFO] GBA Debug: [DISPAN] ch=0 vol=255 flags=1 pan=128 src=80255ac
 
 [INFO] GBA Debug: [UMIX] audible vol=255 pan=128 stopped=0
 
@@ -165,79 +143,67 @@ qt.qpa.backingstore: Back buffer dpr of 2 doesn't match <NSViewBackingLayer: 0x1
 
 [INFO] GBA Debug: [ENVDBG] ch=1 exit=2 flags=0x21
 
-[INFO] GBA Debug: [UMIX] ch=1 flags=21 sample=10 src0=08014c40 read0=12336324
+[INFO] GBA Debug: [UMIX] ch=1 flags=21 sample=10 src0=08014c48 read0=12336324
 
-[INFO] GBA Debug: [UMIX] -> src=08014c40 read=12336324 idx=11 len=65210 loop=4294967295
+[INFO] GBA Debug: [UMIX] -> src=08014c48 read=12336324 idx=11 len=65210 loop=4294967295
 
 [INFO] GBA Debug: [UMIX] set_pitch period=65536 freq=7189 fvol=208
 
-[INFO] GBA Debug: [DISPAN] vol=208 flags=21 pan=128 src=8014c40
+[INFO] GBA Debug: [DISPAN] ch=1 vol=208 flags=21 pan=128 src=8014c48
 
 [INFO] GBA Debug: [UMIX] audible vol=208 pan=128 stopped=0
 
 [INFO] GBA Debug: [RATEC] ch=2 msl_id=8 c5=5543 period=55109 value=18621 scale=17024 rate=4837
 
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=1 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=1 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
 
 [INFO] GBA Debug: [RATEC] ch=2 msl_id=8 c5=5543 period=55109 value=18621 scale=17024 rate=4837
 
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=1 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=1 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
 
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=1 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=1 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
 
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=1 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=1 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
 
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=1 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=1 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
 
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=1 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=1 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
 
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=2 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
-
-[INFO] GBA Debug: [Z mmReadPattern] start pattread=0x802d539 pattread_p=0x802d539 nch=32 row=2
-
-[INFO] GBA Debug: [Z mmReadPattern] read_byte=81 at pos=0x802d539
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=2 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
 
 [INFO] GBA Debug: [Z mmReadPattern] chan_calc=((81 & 0x7F)-1)=0
 
-[INFO] GBA Debug: [Z mmReadPattern] cflags=33 at pos=0x802d53a
+[INFO] GBA Debug: [Z mmReadPattern] cflags=33 at pos=0x802d542
 
-[INFO] GBA Debug: [Z mmReadPattern] note=50 at pos=0x802d53b
+[INFO] GBA Debug: [Z mmReadPattern] note=50 at pos=0x802d543
 
-[INFO] GBA Debug: [Z mmReadPattern] end chan 0, pattern now 0x802d53d
-
-[INFO] GBA Debug: [Z mmReadPattern] read_byte=8a at pos=0x802d53d
+[INFO] GBA Debug: [Z mmReadPattern] end chan 0, pattern now 0x802d545
 
 [INFO] GBA Debug: [Z mmReadPattern] chan_calc=((8a & 0x7F)-1)=9
 
-[INFO] GBA Debug: [Z mmReadPattern] cflags=75 at pos=0x802d53e
+[INFO] GBA Debug: [Z mmReadPattern] cflags=75 at pos=0x802d546
 
-[INFO] GBA Debug: [Z mmReadPattern] note=3c at pos=0x802d53f
+[INFO] GBA Debug: [Z mmReadPattern] note=3c at pos=0x802d547
 
-[INFO] GBA Debug: [Z mmReadPattern] end chan 9, pattern now 0x802d541
+[INFO] GBA Debug: [Z mmReadPattern] end chan 9, pattern now 0x802d549
 
-[INFO] GBA Debug: [Z mmReadPattern] read_byte=00 at pos=0x802d541
+[INFO] GBA Debug: [Z mmReadPattern] row end, pattread=0x802d54a update_bits=00000201
 
-[INFO] GBA Debug: [Z mmReadPattern] row end, pattread=0x802d542 update_bits=00000201
-
-[INFO] GBA Debug: [INST] ch=0 inst_ptr=0x80278b8 bytes: 80 00 00 00 00 00 00 00 nm=000b invalid=1 reserved=0000
-
-[INFO] GBA Debug: [MAPDBG] ch=0 inst_ptr=0x80278b8 nmap_off=b map_ptr=0x80278c3 pnoter=80 entry=bb000041 invalid=1
-
-[INFO] GBA Debug: [BINDMAP] ch=0 inst=10 pnoter=80 invalid=1 nmap_off=b note=80 sample=11
+[INFO] GBA Debug: [CHSTART] ch=0 inst=10 sample=11 src=0x8027950 flags=13
 
 [INFO] GBA Debug: [ENVDBG2] ch=0 env_flags=0x0 vol_enabled=0
 
 [INFO] GBA Debug: [UMIX] ch=0 flags=0d sample=11 src0=80000000 read0=0
 
-[INFO] GBA Debug: [BIND] ch=0 id=10 src=8024b14 def_freq=543 len=2680
+[INFO] GBA Debug: [BIND] ch=0 id=10 src=8024b1c def_freq=543 len=2680
 
 [INFO] GBA Debug: [HDR] w0=a78 w1=ffffffff w2=21fba00 len=2680 loop=4294967295 fmt=0 def=543
 
-[INFO] GBA Debug: [UMIX] -> src=08024b14 read=0 idx=0 len=2680 loop=4294967295
+[INFO] GBA Debug: [UMIX] -> src=08024b1c read=0 idx=0 len=2680 loop=4294967295
 
 [INFO] GBA Debug: [UMIX] set_pitch period=208064 freq=6887 fvol=128
 
-[INFO] GBA Debug: [DISPAN] vol=128 flags=9 pan=128 src=8024b14
+[INFO] GBA Debug: [DISPAN] ch=0 vol=128 flags=9 pan=128 src=8024b1c
 
 [INFO] GBA Debug: [UMIX] audible vol=128 pan=128 stopped=0
 
@@ -251,43 +217,37 @@ qt.qpa.backingstore: Back buffer dpr of 2 doesn't match <NSViewBackingLayer: 0x1
 
 [INFO] GBA Debug: [ENVDBG] ch=1 exit=2 flags=0x21
 
-[INFO] GBA Debug: [UMIX] ch=1 flags=21 sample=10 src0=08014c40 read0=24672648
+[INFO] GBA Debug: [UMIX] ch=1 flags=21 sample=10 src0=08014c48 read0=24672648
 
-[INFO] GBA Debug: [UMIX] -> src=08014c40 read=24672648 idx=23 len=65210 loop=4294967295
+[INFO] GBA Debug: [UMIX] -> src=08014c48 read=24672648 idx=23 len=65210 loop=4294967295
 
 [INFO] GBA Debug: [UMIX] set_pitch period=65536 freq=7189 fvol=208
 
-[INFO] GBA Debug: [DISPAN] vol=208 flags=21 pan=128 src=8014c40
+[INFO] GBA Debug: [DISPAN] ch=1 vol=208 flags=21 pan=128 src=8014c48
 
 [INFO] GBA Debug: [UMIX] audible vol=208 pan=128 stopped=0
 
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=2 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=2 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
 
 [INFO] GBA Debug: [RATEC] ch=2 msl_id=8 c5=5543 period=65536 value=22172 scale=17024 rate=5759
 
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=2 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=2 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
 
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=2 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=2 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
 
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=2 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=2 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
 
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=2 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=2 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
 
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=3 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
-
-[INFO] GBA Debug: [Z mmReadPattern] start pattread=0x802d542 pattread_p=0x802d542 nch=32 row=3
-
-[INFO] GBA Debug: [Z mmReadPattern] read_byte=8a at pos=0x802d542
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=3 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
 
 [INFO] GBA Debug: [Z mmReadPattern] chan_calc=((8a & 0x7F)-1)=9
 
-[INFO] GBA Debug: [Z mmReadPattern] cflags=74 at pos=0x802d543
+[INFO] GBA Debug: [Z mmReadPattern] cflags=74 at pos=0x802d54b
 
-[INFO] GBA Debug: [Z mmReadPattern] end chan 9, pattern now 0x802d545
+[INFO] GBA Debug: [Z mmReadPattern] end chan 9, pattern now 0x802d54d
 
-[INFO] GBA Debug: [Z mmReadPattern] read_byte=00 at pos=0x802d545
-
-[INFO] GBA Debug: [Z mmReadPattern] row end, pattread=0x802d546 update_bits=00000200
+[INFO] GBA Debug: [Z mmReadPattern] row end, pattread=0x802d54e update_bits=00000200
 
 [INFO] GBA Debug: [C AFVDBG] ch=0 act_vol=64
 
@@ -299,7 +259,7 @@ qt.qpa.backingstore: Back buffer dpr of 2 doesn't match <NSViewBackingLayer: 0x1
 
 [INFO] GBA Debug: [UMIX] set_pitch period=208064 freq=6887 fvol=128
 
-[INFO] GBA Debug: [DISPAN] vol=128 flags=1 pan=128 src=80000000
+[INFO] GBA Debug: [DISPAN] ch=0 vol=128 flags=1 pan=128 src=80000000
 
 [INFO] GBA Debug: [C AFVDBG] ch=1 act_vol=128
 
@@ -307,63 +267,53 @@ qt.qpa.backingstore: Back buffer dpr of 2 doesn't match <NSViewBackingLayer: 0x1
 
 [INFO] GBA Debug: [ENVDBG] ch=1 exit=2 flags=0x21
 
-[INFO] GBA Debug: [UMIX] ch=1 flags=21 sample=10 src0=08014c40 read0=37008972
+[INFO] GBA Debug: [UMIX] ch=1 flags=21 sample=10 src0=08014c48 read0=37008972
 
-[INFO] GBA Debug: [UMIX] -> src=08014c40 read=37008972 idx=35 len=65210 loop=4294967295
+[INFO] GBA Debug: [UMIX] -> src=08014c48 read=37008972 idx=35 len=65210 loop=4294967295
 
 [INFO] GBA Debug: [UMIX] set_pitch period=65536 freq=7189 fvol=208
 
-[INFO] GBA Debug: [DISPAN] vol=208 flags=21 pan=128 src=8014c40
+[INFO] GBA Debug: [DISPAN] ch=1 vol=208 flags=21 pan=128 src=8014c48
 
 [INFO] GBA Debug: [UMIX] audible vol=208 pan=128 stopped=0
 
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=3 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=3 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
 
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=3 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=3 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
 
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=3 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=3 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
 
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=3 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=3 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
 
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=3 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=3 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
 
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=3 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=3 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
 
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=4 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
-
-[INFO] GBA Debug: [Z mmReadPattern] start pattread=0x802d546 pattread_p=0x802d546 nch=32 row=4
-
-[INFO] GBA Debug: [Z mmReadPattern] read_byte=01 at pos=0x802d546
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=4 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
 
 [INFO] GBA Debug: [Z mmReadPattern] chan_calc=((01 & 0x7F)-1)=0
 
-[INFO] GBA Debug: [Z mmReadPattern] note=41 at pos=0x802d547
+[INFO] GBA Debug: [Z mmReadPattern] note=41 at pos=0x802d54f
 
-[INFO] GBA Debug: [Z mmReadPattern] end chan 0, pattern now 0x802d549
+[INFO] GBA Debug: [Z mmReadPattern] end chan 0, pattern now 0x802d551
 
-[INFO] GBA Debug: [Z mmReadPattern] read_byte=00 at pos=0x802d549
+[INFO] GBA Debug: [Z mmReadPattern] row end, pattread=0x802d552 update_bits=00000001
 
-[INFO] GBA Debug: [Z mmReadPattern] row end, pattread=0x802d54a update_bits=00000001
-
-[INFO] GBA Debug: [INST] ch=0 inst_ptr=0x80278c4 bytes: 80 00 00 00 00 00 00 00 nm=000c invalid=1 reserved=0000
-
-[INFO] GBA Debug: [MAPDBG] ch=0 inst_ptr=0x80278c4 nmap_off=c map_ptr=0x80278d0 pnoter=65 entry=a invalid=1
-
-[INFO] GBA Debug: [BINDMAP] ch=0 inst=11 pnoter=65 invalid=1 nmap_off=c note=65 sample=12
+[INFO] GBA Debug: [CHSTART] ch=0 inst=11 sample=12 src=0x802795c flags=13
 
 [INFO] GBA Debug: [ENVDBG2] ch=0 env_flags=0x0 vol_enabled=0
 
 [INFO] GBA Debug: [UMIX] ch=0 flags=0d sample=12 src0=80000000 read0=0
 
-[INFO] GBA Debug: [BIND] ch=0 id=11 src=80255a4 def_freq=2025 len=8192
+[INFO] GBA Debug: [BIND] ch=0 id=11 src=80255ac def_freq=2025 len=8192
 
 [INFO] GBA Debug: [HDR] w0=2000 w1=ffffffff w2=7e9ba00 len=8192 loop=4294967295 fmt=0 def=2025
 
-[INFO] GBA Debug: [UMIX] -> src=080255a4 read=0 idx=0 len=8192 loop=4294967295
+[INFO] GBA Debug: [UMIX] -> src=080255ac read=0 idx=0 len=8192 loop=4294967295
 
 [INFO] GBA Debug: [UMIX] set_pitch period=87480 freq=10787 fvol=255
 
-[INFO] GBA Debug: [DISPAN] vol=255 flags=9 pan=128 src=80255a4
+[INFO] GBA Debug: [DISPAN] ch=0 vol=255 flags=9 pan=128 src=80255ac
 
 [INFO] GBA Debug: [UMIX] audible vol=255 pan=128 stopped=0
 
@@ -375,45 +325,41 @@ qt.qpa.backingstore: Back buffer dpr of 2 doesn't match <NSViewBackingLayer: 0x1
 
 [INFO] GBA Debug: [ENVDBG] ch=1 exit=2 flags=0x21
 
-[INFO] GBA Debug: [UMIX] ch=1 flags=21 sample=10 src0=08014c40 read0=49345296
+[INFO] GBA Debug: [UMIX] ch=1 flags=21 sample=10 src0=08014c48 read0=49345296
 
-[INFO] GBA Debug: [UMIX] -> src=08014c40 read=49345296 idx=47 len=65210 loop=4294967295
+[INFO] GBA Debug: [UMIX] -> src=08014c48 read=49345296 idx=47 len=65210 loop=4294967295
 
 [INFO] GBA Debug: [UMIX] set_pitch period=65536 freq=7189 fvol=208
 
-[INFO] GBA Debug: [DISPAN] vol=208 flags=21 pan=128 src=8014c40
+[INFO] GBA Debug: [DISPAN] ch=1 vol=208 flags=21 pan=128 src=8014c48
 
 [INFO] GBA Debug: [UMIX] audible vol=208 pan=128 stopped=0
 
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=4 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=4 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
 
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=4 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=4 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
 
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=4 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=4 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
 
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=4 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=4 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
 
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=4 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=4 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
 
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=5 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=5 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
 
-[INFO] GBA Debug: [Z mmReadPattern] start pattread=0x802d54a pattread_p=0x802d54a nch=32 row=5
-
-[INFO] GBA Debug: [Z mmReadPattern] read_byte=00 at pos=0x802d54a
-
-[INFO] GBA Debug: [Z mmReadPattern] row end, pattread=0x802d54b update_bits=00000000
+[INFO] GBA Debug: [Z mmReadPattern] row end, pattread=0x802d553 update_bits=00000000
 
 [INFO] GBA Debug: [C AFVDBG] ch=0 act_vol=128
 
 [INFO] GBA Debug: [ENVDBG2] ch=0 env_flags=0x0 vol_enabled=0
 
-[INFO] GBA Debug: [UMIX] ch=0 flags=01 sample=12 src0=080255a4 read0=18510492
+[INFO] GBA Debug: [UMIX] ch=0 flags=01 sample=12 src0=080255ac read0=18510492
 
-[INFO] GBA Debug: [UMIX] -> src=080255a4 read=18510492 idx=17 len=8192 loop=4294967295
+[INFO] GBA Debug: [UMIX] -> src=080255ac read=18510492 idx=17 len=8192 loop=4294967295
 
 [INFO] GBA Debug: [UMIX] set_pitch period=87480 freq=10787 fvol=255
 
-[INFO] GBA Debug: [DISPAN] vol=255 flags=1 pan=128 src=80255a4
+[INFO] GBA Debug: [DISPAN] ch=0 vol=255 flags=1 pan=128 src=80255ac
 
 [INFO] GBA Debug: [UMIX] audible vol=255 pan=128 stopped=0
 
@@ -423,73 +369,61 @@ qt.qpa.backingstore: Back buffer dpr of 2 doesn't match <NSViewBackingLayer: 0x1
 
 [INFO] GBA Debug: [ENVDBG] ch=1 exit=2 flags=0x21
 
-[INFO] GBA Debug: [UMIX] ch=1 flags=21 sample=10 src0=08014c40 read0=61681620
+[INFO] GBA Debug: [UMIX] ch=1 flags=21 sample=10 src0=08014c48 read0=61681620
 
-[INFO] GBA Debug: [UMIX] -> src=08014c40 read=61681620 idx=58 len=65210 loop=4294967295
+[INFO] GBA Debug: [UMIX] -> src=08014c48 read=61681620 idx=58 len=65210 loop=4294967295
 
 [INFO] GBA Debug: [UMIX] set_pitch period=65536 freq=7189 fvol=208
 
-[INFO] GBA Debug: [DISPAN] vol=208 flags=21 pan=128 src=8014c40
+[INFO] GBA Debug: [DISPAN] ch=1 vol=208 flags=21 pan=128 src=8014c48
 
 [INFO] GBA Debug: [UMIX] audible vol=208 pan=128 stopped=0
 
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=5 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=5 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
 
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=5 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=5 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
 
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=5 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=5 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
 
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=5 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=5 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
 
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=5 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=5 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
 
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=5 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=5 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
 
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=6 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
-
-[INFO] GBA Debug: [Z mmReadPattern] start pattread=0x802d54b pattread_p=0x802d54b nch=32 row=6
-
-[INFO] GBA Debug: [Z mmReadPattern] read_byte=01 at pos=0x802d54b
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=6 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
 
 [INFO] GBA Debug: [Z mmReadPattern] chan_calc=((01 & 0x7F)-1)=0
 
-[INFO] GBA Debug: [Z mmReadPattern] note=50 at pos=0x802d54c
+[INFO] GBA Debug: [Z mmReadPattern] note=50 at pos=0x802d554
 
-[INFO] GBA Debug: [Z mmReadPattern] end chan 0, pattern now 0x802d54e
-
-[INFO] GBA Debug: [Z mmReadPattern] read_byte=8a at pos=0x802d54e
+[INFO] GBA Debug: [Z mmReadPattern] end chan 0, pattern now 0x802d556
 
 [INFO] GBA Debug: [Z mmReadPattern] chan_calc=((8a & 0x7F)-1)=9
 
-[INFO] GBA Debug: [Z mmReadPattern] cflags=75 at pos=0x802d54f
+[INFO] GBA Debug: [Z mmReadPattern] cflags=75 at pos=0x802d557
 
-[INFO] GBA Debug: [Z mmReadPattern] note=44 at pos=0x802d550
+[INFO] GBA Debug: [Z mmReadPattern] note=44 at pos=0x802d558
 
-[INFO] GBA Debug: [Z mmReadPattern] end chan 9, pattern now 0x802d552
+[INFO] GBA Debug: [Z mmReadPattern] end chan 9, pattern now 0x802d55a
 
-[INFO] GBA Debug: [Z mmReadPattern] read_byte=00 at pos=0x802d552
+[INFO] GBA Debug: [Z mmReadPattern] row end, pattread=0x802d55b update_bits=00000201
 
-[INFO] GBA Debug: [Z mmReadPattern] row end, pattread=0x802d553 update_bits=00000201
-
-[INFO] GBA Debug: [INST] ch=0 inst_ptr=0x80278b8 bytes: 80 00 00 00 00 00 00 00 nm=000b invalid=1 reserved=0000
-
-[INFO] GBA Debug: [MAPDBG] ch=0 inst_ptr=0x80278b8 nmap_off=b map_ptr=0x80278c3 pnoter=80 entry=bb000041 invalid=1
-
-[INFO] GBA Debug: [BINDMAP] ch=0 inst=10 pnoter=80 invalid=1 nmap_off=b note=80 sample=11
+[INFO] GBA Debug: [CHSTART] ch=0 inst=10 sample=11 src=0x8027950 flags=13
 
 [INFO] GBA Debug: [ENVDBG2] ch=0 env_flags=0x0 vol_enabled=0
 
 [INFO] GBA Debug: [UMIX] ch=0 flags=0d sample=11 src0=80000000 read0=0
 
-[INFO] GBA Debug: [BIND] ch=0 id=10 src=8024b14 def_freq=543 len=2680
+[INFO] GBA Debug: [BIND] ch=0 id=10 src=8024b1c def_freq=543 len=2680
 
 [INFO] GBA Debug: [HDR] w0=a78 w1=ffffffff w2=21fba00 len=2680 loop=4294967295 fmt=0 def=543
 
-[INFO] GBA Debug: [UMIX] -> src=08024b14 read=0 idx=0 len=2680 loop=4294967295
+[INFO] GBA Debug: [UMIX] -> src=08024b1c read=0 idx=0 len=2680 loop=4294967295
 
 [INFO] GBA Debug: [UMIX] set_pitch period=208064 freq=6887 fvol=128
 
-[INFO] GBA Debug: [DISPAN] vol=128 flags=9 pan=128 src=8024b14
+[INFO] GBA Debug: [DISPAN] ch=0 vol=128 flags=9 pan=128 src=8024b1c
 
 [INFO] GBA Debug: [UMIX] audible vol=128 pan=128 stopped=0
 
@@ -497,281 +431,35 @@ qt.qpa.backingstore: Back buffer dpr of 2 doesn't match <NSViewBackingLayer: 0x1
 
 [INFO] GBA Debug: [ENVDBG] ch=1 exit=2 flags=0x21
 
-[INFO] GBA Debug: [UMIX] ch=1 flags=21 sample=10 src0=08014c40 read0=74017944
+[INFO] GBA Debug: [UMIX] ch=1 flags=21 sample=10 src0=08014c48 read0=74017944
 
-[INFO] GBA Debug: [UMIX] -> src=08014c40 read=74017944 idx=70 len=65210 loop=4294967295
-
-[INFO] GBA Debug: [UMIX] set_pitch period=65536 freq=7189 fvol=208
-
-[INFO] GBA Debug: [DISPAN] vol=208 flags=21 pan=128 src=8014c40
-
-[INFO] GBA Debug: [UMIX] audible vol=208 pan=128 stopped=0
-
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=6 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
-
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=6 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
-
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=6 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
-
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=6 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
-
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=6 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
-
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=7 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
-
-[INFO] GBA Debug: [Z mmReadPattern] start pattread=0x802d553 pattread_p=0x802d553 nch=32 row=7
-
-[INFO] GBA Debug: [Z mmReadPattern] read_byte=8a at pos=0x802d553
-
-[INFO] GBA Debug: [Z mmReadPattern] chan_calc=((8a & 0x7F)-1)=9
-
-[INFO] GBA Debug: [Z mmReadPattern] cflags=74 at pos=0x802d554
-
-[INFO] GBA Debug: [Z mmReadPattern] end chan 9, pattern now 0x802d556
-
-[INFO] GBA Debug: [Z mmReadPattern] read_byte=00 at pos=0x802d556
-
-[INFO] GBA Debug: [Z mmReadPattern] row end, pattread=0x802d557 update_bits=00000200
-
-[INFO] GBA Debug: [ENVDBG2] ch=0 env_flags=0x0 vol_enabled=0
-
-[INFO] GBA Debug: [UMIX] ch=0 flags=01 sample=11 src0=80000000 read0=0
-
-[INFO] GBA Debug: [UMIX] -> src=80000000 read=0 idx=0 len=2680 loop=4294967295
-
-[INFO] GBA Debug: [UMIX] set_pitch period=208064 freq=6887 fvol=128
-
-[INFO] GBA Debug: [DISPAN] vol=128 flags=1 pan=128 src=80000000
-
-[INFO] GBA Debug: [ENVDBG2] ch=1 env_flags=0x9 vol_enabled=1
-
-[INFO] GBA Debug: [ENVDBG] ch=1 exit=2 flags=0x21
-
-[INFO] GBA Debug: [UMIX] ch=1 flags=21 sample=10 src0=08014c40 read0=86354268
-
-[INFO] GBA Debug: [UMIX] -> src=08014c40 read=86354268 idx=82 len=65210 loop=4294967295
+[INFO] GBA Debug: [UMIX] -> src=08014c48 read=74017944 idx=70 len=65210 loop=4294967295
 
 [INFO] GBA Debug: [UMIX] set_pitch period=65536 freq=7189 fvol=208
 
-[INFO] GBA Debug: [DISPAN] vol=208 flags=21 pan=128 src=8014c40
+[INFO] GBA Debug: [DISPAN] ch=1 vol=208 flags=21 pan=128 src=8014c48
 
 [INFO] GBA Debug: [UMIX] audible vol=208 pan=128 stopped=0
 
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=7 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=6 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
 
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=7 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=6 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
 
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=7 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=6 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
 
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=7 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=6 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
 
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=7 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=6 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
 
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=7 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
-
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=8 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
-
-[INFO] GBA Debug: [Z mmReadPattern] start pattread=0x802d557 pattread_p=0x802d557 nch=32 row=8
-
-[INFO] GBA Debug: [Z mmReadPattern] read_byte=01 at pos=0x802d557
-
-[INFO] GBA Debug: [Z mmReadPattern] chan_calc=((01 & 0x7F)-1)=0
-
-[INFO] GBA Debug: [Z mmReadPattern] note=41 at pos=0x802d558
-
-[INFO] GBA Debug: [Z mmReadPattern] end chan 0, pattern now 0x802d55a
-
-[INFO] GBA Debug: [Z mmReadPattern] read_byte=8a at pos=0x802d55a
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=7 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
 
 [INFO] GBA Debug: [Z mmReadPattern] chan_calc=((8a & 0x7F)-1)=9
 
-[INFO] GBA Debug: [Z mmReadPattern] cflags=75 at pos=0x802d55b
-
-[INFO] GBA Debug: [Z mmReadPattern] note=3c at pos=0x802d55c
+[INFO] GBA Debug: [Z mmReadPattern] cflags=74 at pos=0x802d55c
 
 [INFO] GBA Debug: [Z mmReadPattern] end chan 9, pattern now 0x802d55e
 
-[INFO] GBA Debug: [Z mmReadPattern] read_byte=00 at pos=0x802d55e
-
-[INFO] GBA Debug: [Z mmReadPattern] row end, pattread=0x802d55f update_bits=00000201
-
-[INFO] GBA Debug: [INST] ch=0 inst_ptr=0x80278c4 bytes: 80 00 00 00 00 00 00 00 nm=000c invalid=1 reserved=0000
-
-[INFO] GBA Debug: [MAPDBG] ch=0 inst_ptr=0x80278c4 nmap_off=c map_ptr=0x80278d0 pnoter=65 entry=a invalid=1
-
-[INFO] GBA Debug: [BINDMAP] ch=0 inst=11 pnoter=65 invalid=1 nmap_off=c note=65 sample=12
-
-[INFO] GBA Debug: [ENVDBG2] ch=0 env_flags=0x0 vol_enabled=0
-
-[INFO] GBA Debug: [UMIX] ch=0 flags=0d sample=12 src0=80000000 read0=0
-
-[INFO] GBA Debug: [BIND] ch=0 id=11 src=80255a4 def_freq=2025 len=8192
-
-[INFO] GBA Debug: [HDR] w0=2000 w1=ffffffff w2=7e9ba00 len=8192 loop=4294967295 fmt=0 def=2025
-
-[INFO] GBA Debug: [UMIX] -> src=080255a4 read=0 idx=0 len=8192 loop=4294967295
-
-[INFO] GBA Debug: [UMIX] set_pitch period=87480 freq=10787 fvol=255
-
-[INFO] GBA Debug: [DISPAN] vol=255 flags=9 pan=128 src=80255a4
-
-[INFO] GBA Debug: [UMIX] audible vol=255 pan=128 stopped=0
-
-[INFO] GBA Debug: [ENVDBG2] ch=1 env_flags=0x9 vol_enabled=1
-
-[INFO] GBA Debug: [ENVDBG] ch=1 exit=2 flags=0x21
-
-[INFO] GBA Debug: [UMIX] ch=1 flags=21 sample=10 src0=08014c40 read0=98690592
-
-[INFO] GBA Debug: [UMIX] -> src=08014c40 read=98690592 idx=94 len=65210 loop=4294967295
-
-[INFO] GBA Debug: [UMIX] set_pitch period=65536 freq=7189 fvol=208
-
-[INFO] GBA Debug: [DISPAN] vol=208 flags=21 pan=128 src=8014c40
-
-[INFO] GBA Debug: [UMIX] audible vol=208 pan=128 stopped=0
-
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=8 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
-
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=8 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
-
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=8 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
-
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=8 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
-
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=8 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
-
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=9 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
-
-[INFO] GBA Debug: [Z mmReadPattern] start pattread=0x802d55f pattread_p=0x802d55f nch=32 row=9
-
-[INFO] GBA Debug: [Z mmReadPattern] read_byte=00 at pos=0x802d55f
-
-[INFO] GBA Debug: [Z mmReadPattern] row end, pattread=0x802d560 update_bits=00000000
-
-[INFO] GBA Debug: [ENVDBG2] ch=0 env_flags=0x0 vol_enabled=0
-
-[INFO] GBA Debug: [UMIX] ch=0 flags=01 sample=12 src0=080255a4 read0=18510492
-
-[INFO] GBA Debug: [UMIX] -> src=080255a4 read=18510492 idx=17 len=8192 loop=4294967295
-
-[INFO] GBA Debug: [UMIX] set_pitch period=87480 freq=10787 fvol=255
-
-[INFO] GBA Debug: [DISPAN] vol=255 flags=1 pan=128 src=80255a4
-
-[INFO] GBA Debug: [UMIX] audible vol=255 pan=128 stopped=0
-
-[INFO] GBA Debug: [ENVDBG2] ch=1 env_flags=0x9 vol_enabled=1
-
-[INFO] GBA Debug: [ENVDBG] ch=1 exit=2 flags=0x21
-
-[INFO] GBA Debug: [UMIX] ch=1 flags=21 sample=10 src0=08014c40 read0=111026916
-
-[INFO] GBA Debug: [UMIX] -> src=08014c40 read=111026916 idx=105 len=65210 loop=4294967295
-
-[INFO] GBA Debug: [UMIX] set_pitch period=65536 freq=7189 fvol=208
-
-[INFO] GBA Debug: [DISPAN] vol=208 flags=21 pan=128 src=8014c40
-
-[INFO] GBA Debug: [UMIX] audible vol=208 pan=128 stopped=0
-
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=9 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
-
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=9 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
-
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=9 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
-
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=9 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
-
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=9 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
-
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=9 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
-
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=10 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
-
-[INFO] GBA Debug: [Z mmReadPattern] start pattread=0x802d560 pattread_p=0x802d560 nch=32 row=10
-
-[INFO] GBA Debug: [Z mmReadPattern] read_byte=01 at pos=0x802d560
-
-[INFO] GBA Debug: [Z mmReadPattern] chan_calc=((01 & 0x7F)-1)=0
-
-[INFO] GBA Debug: [Z mmReadPattern] note=50 at pos=0x802d561
-
-[INFO] GBA Debug: [Z mmReadPattern] end chan 0, pattern now 0x802d563
-
-[INFO] GBA Debug: [Z mmReadPattern] read_byte=0a at pos=0x802d563
-
-[INFO] GBA Debug: [Z mmReadPattern] chan_calc=((0a & 0x7F)-1)=9
-
-[INFO] GBA Debug: [Z mmReadPattern] note=44 at pos=0x802d564
-
-[INFO] GBA Debug: [Z mmReadPattern] end chan 9, pattern now 0x802d566
-
-[INFO] GBA Debug: [Z mmReadPattern] read_byte=00 at pos=0x802d566
-
-[INFO] GBA Debug: [Z mmReadPattern] row end, pattread=0x802d567 update_bits=00000201
-
-[INFO] GBA Debug: [INST] ch=0 inst_ptr=0x80278b8 bytes: 80 00 00 00 00 00 00 00 nm=000b invalid=1 reserved=0000
-
-[INFO] GBA Debug: [MAPDBG] ch=0 inst_ptr=0x80278b8 nmap_off=b map_ptr=0x80278c3 pnoter=80 entry=bb000041 invalid=1
-
-[INFO] GBA Debug: [BINDMAP] ch=0 inst=10 pnoter=80 invalid=1 nmap_off=b note=80 sample=11
-
-[INFO] GBA Debug: [ENVDBG2] ch=0 env_flags=0x0 vol_enabled=0
-
-[INFO] GBA Debug: [UMIX] ch=0 flags=0d sample=11 src0=80000000 read0=0
-
-[INFO] GBA Debug: [BIND] ch=0 id=10 src=8024b14 def_freq=543 len=2680
-
-[INFO] GBA Debug: [HDR] w0=a78 w1=ffffffff w2=21fba00 len=2680 loop=4294967295 fmt=0 def=543
-
-[INFO] GBA Debug: [UMIX] -> src=08024b14 read=0 idx=0 len=2680 loop=4294967295
-
-[INFO] GBA Debug: [UMIX] set_pitch period=208064 freq=6887 fvol=128
-
-[INFO] GBA Debug: [DISPAN] vol=128 flags=9 pan=128 src=8024b14
-
-[INFO] GBA Debug: [UMIX] audible vol=128 pan=128 stopped=0
-
-[INFO] GBA Debug: [ENVDBG2] ch=1 env_flags=0x9 vol_enabled=1
-
-[INFO] GBA Debug: [ENVDBG] ch=1 exit=2 flags=0x21
-
-[INFO] GBA Debug: [UMIX] ch=1 flags=21 sample=10 src0=08014c40 read0=123363240
-
-[INFO] GBA Debug: [UMIX] -> src=08014c40 read=123363240 idx=117 len=65210 loop=4294967295
-
-[INFO] GBA Debug: [UMIX] set_pitch period=65536 freq=7189 fvol=208
-
-[INFO] GBA Debug: [DISPAN] vol=208 flags=21 pan=128 src=8014c40
-
-[INFO] GBA Debug: [UMIX] audible vol=208 pan=128 stopped=0
-
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=10 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
-
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=10 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
-
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=10 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
-
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=10 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
-
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=10 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
-
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=11 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
-
-[INFO] GBA Debug: [Z mmReadPattern] start pattread=0x802d567 pattread_p=0x802d567 nch=32 row=11
-
-[INFO] GBA Debug: [Z mmReadPattern] read_byte=8a at pos=0x802d567
-
-[INFO] GBA Debug: [Z mmReadPattern] chan_calc=((8a & 0x7F)-1)=9
-
-[INFO] GBA Debug: [Z mmReadPattern] cflags=74 at pos=0x802d568
-
-[INFO] GBA Debug: [Z mmReadPattern] end chan 9, pattern now 0x802d56a
-
-[INFO] GBA Debug: [Z mmReadPattern] read_byte=00 at pos=0x802d56a
-
-[INFO] GBA Debug: [Z mmReadPattern] row end, pattread=0x802d56b update_bits=00000200
+[INFO] GBA Debug: [Z mmReadPattern] row end, pattread=0x802d55f update_bits=00000200
 
 [INFO] GBA Debug: [ENVDBG2] ch=0 env_flags=0x0 vol_enabled=0
 
@@ -781,69 +469,67 @@ qt.qpa.backingstore: Back buffer dpr of 2 doesn't match <NSViewBackingLayer: 0x1
 
 [INFO] GBA Debug: [UMIX] set_pitch period=208064 freq=6887 fvol=128
 
-[INFO] GBA Debug: [DISPAN] vol=128 flags=1 pan=128 src=80000000
+[INFO] GBA Debug: [DISPAN] ch=0 vol=128 flags=1 pan=128 src=80000000
 
 [INFO] GBA Debug: [ENVDBG2] ch=1 env_flags=0x9 vol_enabled=1
 
 [INFO] GBA Debug: [ENVDBG] ch=1 exit=2 flags=0x21
 
-[INFO] GBA Debug: [UMIX] ch=1 flags=21 sample=10 src0=08014c40 read0=135699564
+[INFO] GBA Debug: [UMIX] ch=1 flags=21 sample=10 src0=08014c48 read0=86354268
 
-[INFO] GBA Debug: [UMIX] -> src=08014c40 read=135699564 idx=129 len=65210 loop=4294967295
+[INFO] GBA Debug: [UMIX] -> src=08014c48 read=86354268 idx=82 len=65210 loop=4294967295
 
 [INFO] GBA Debug: [UMIX] set_pitch period=65536 freq=7189 fvol=208
 
-[INFO] GBA Debug: [DISPAN] vol=208 flags=21 pan=128 src=8014c40
+[INFO] GBA Debug: [DISPAN] ch=1 vol=208 flags=21 pan=128 src=8014c48
 
 [INFO] GBA Debug: [UMIX] audible vol=208 pan=128 stopped=0
 
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=11 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=7 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
 
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=11 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=7 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
 
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=11 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=7 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
 
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=11 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=7 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
 
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=11 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=7 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
 
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=11 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=7 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
 
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=12 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
-
-[INFO] GBA Debug: [Z mmReadPattern] start pattread=0x802d56b pattread_p=0x802d56b nch=32 row=12
-
-[INFO] GBA Debug: [Z mmReadPattern] read_byte=01 at pos=0x802d56b
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=8 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
 
 [INFO] GBA Debug: [Z mmReadPattern] chan_calc=((01 & 0x7F)-1)=0
 
-[INFO] GBA Debug: [Z mmReadPattern] note=41 at pos=0x802d56c
+[INFO] GBA Debug: [Z mmReadPattern] note=41 at pos=0x802d560
 
-[INFO] GBA Debug: [Z mmReadPattern] end chan 0, pattern now 0x802d56e
+[INFO] GBA Debug: [Z mmReadPattern] end chan 0, pattern now 0x802d562
 
-[INFO] GBA Debug: [Z mmReadPattern] read_byte=00 at pos=0x802d56e
+[INFO] GBA Debug: [Z mmReadPattern] chan_calc=((8a & 0x7F)-1)=9
 
-[INFO] GBA Debug: [Z mmReadPattern] row end, pattread=0x802d56f update_bits=00000001
+[INFO] GBA Debug: [Z mmReadPattern] cflags=75 at pos=0x802d563
 
-[INFO] GBA Debug: [INST] ch=0 inst_ptr=0x80278c4 bytes: 80 00 00 00 00 00 00 00 nm=000c invalid=1 reserved=0000
+[INFO] GBA Debug: [Z mmReadPattern] note=3c at pos=0x802d564
 
-[INFO] GBA Debug: [MAPDBG] ch=0 inst_ptr=0x80278c4 nmap_off=c map_ptr=0x80278d0 pnoter=65 entry=a invalid=1
+[INFO] GBA Debug: [Z mmReadPattern] end chan 9, pattern now 0x802d566
 
-[INFO] GBA Debug: [BINDMAP] ch=0 inst=11 pnoter=65 invalid=1 nmap_off=c note=65 sample=12
+[INFO] GBA Debug: [Z mmReadPattern] row end, pattread=0x802d567 update_bits=00000201
+
+[INFO] GBA Debug: [CHSTART] ch=0 inst=11 sample=12 src=0x802795c flags=13
 
 [INFO] GBA Debug: [ENVDBG2] ch=0 env_flags=0x0 vol_enabled=0
 
 [INFO] GBA Debug: [UMIX] ch=0 flags=0d sample=12 src0=80000000 read0=0
 
-[INFO] GBA Debug: [BIND] ch=0 id=11 src=80255a4 def_freq=2025 len=8192
+[INFO] GBA Debug: [BIND] ch=0 id=11 src=80255ac def_freq=2025 len=8192
 
 [INFO] GBA Debug: [HDR] w0=2000 w1=ffffffff w2=7e9ba00 len=8192 loop=4294967295 fmt=0 def=2025
 
-[INFO] GBA Debug: [UMIX] -> src=080255a4 read=0 idx=0 len=8192 loop=4294967295
+[INFO] GBA Debug: [UMIX] -> src=080255ac read=0 idx=0 len=8192 loop=4294967295
 
 [INFO] GBA Debug: [UMIX] set_pitch period=87480 freq=10787 fvol=255
 
-[INFO] GBA Debug: [DISPAN] vol=255 flags=9 pan=128 src=80255a4
+[INFO] GBA Debug: [DISPAN] ch=0 vol=255 flags=9 pan=128 src=80255ac
 
 [INFO] GBA Debug: [UMIX] audible vol=255 pan=128 stopped=0
 
@@ -851,61 +537,249 @@ qt.qpa.backingstore: Back buffer dpr of 2 doesn't match <NSViewBackingLayer: 0x1
 
 [INFO] GBA Debug: [ENVDBG] ch=1 exit=2 flags=0x21
 
-[INFO] GBA Debug: [UMIX] ch=1 flags=21 sample=10 src0=08014c40 read0=148035888
+[INFO] GBA Debug: [UMIX] ch=1 flags=21 sample=10 src0=08014c48 read0=98690592
 
-[INFO] GBA Debug: [UMIX] -> src=08014c40 read=148035888 idx=141 len=65210 loop=4294967295
+[INFO] GBA Debug: [UMIX] -> src=08014c48 read=98690592 idx=94 len=65210 loop=4294967295
 
 [INFO] GBA Debug: [UMIX] set_pitch period=65536 freq=7189 fvol=208
 
-[INFO] GBA Debug: [DISPAN] vol=208 flags=21 pan=128 src=8014c40
+[INFO] GBA Debug: [DISPAN] ch=1 vol=208 flags=21 pan=128 src=8014c48
 
 [INFO] GBA Debug: [UMIX] audible vol=208 pan=128 stopped=0
 
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=12 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=8 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
 
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=12 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=8 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
 
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=12 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=8 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
 
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=12 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=8 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
 
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=12 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=8 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
 
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=13 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=9 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
 
-[INFO] GBA Debug: [Z mmReadPattern] start pattread=0x802d56f pattread_p=0x802d56f nch=32 row=13
+[INFO] GBA Debug: [Z mmReadPattern] row end, pattread=0x802d568 update_bits=00000000
 
-[INFO] GBA Debug: [Z mmReadPattern] read_byte=81 at pos=0x802d56f
+[INFO] GBA Debug: [ENVDBG2] ch=0 env_flags=0x0 vol_enabled=0
+
+[INFO] GBA Debug: [UMIX] ch=0 flags=01 sample=12 src0=080255ac read0=18510492
+
+[INFO] GBA Debug: [UMIX] -> src=080255ac read=18510492 idx=17 len=8192 loop=4294967295
+
+[INFO] GBA Debug: [UMIX] set_pitch period=87480 freq=10787 fvol=255
+
+[INFO] GBA Debug: [DISPAN] ch=0 vol=255 flags=1 pan=128 src=80255ac
+
+[INFO] GBA Debug: [UMIX] audible vol=255 pan=128 stopped=0
+
+[INFO] GBA Debug: [ENVDBG2] ch=1 env_flags=0x9 vol_enabled=1
+
+[INFO] GBA Debug: [ENVDBG] ch=1 exit=2 flags=0x21
+
+[INFO] GBA Debug: [UMIX] ch=1 flags=21 sample=10 src0=08014c48 read0=111026916
+
+[INFO] GBA Debug: [UMIX] -> src=08014c48 read=111026916 idx=105 len=65210 loop=4294967295
+
+[INFO] GBA Debug: [UMIX] set_pitch period=65536 freq=7189 fvol=208
+
+[INFO] GBA Debug: [DISPAN] ch=1 vol=208 flags=21 pan=128 src=8014c48
+
+[INFO] GBA Debug: [UMIX] audible vol=208 pan=128 stopped=0
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=9 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=9 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=9 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=9 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=9 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=9 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=10 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
+
+[INFO] GBA Debug: [Z mmReadPattern] chan_calc=((01 & 0x7F)-1)=0
+
+[INFO] GBA Debug: [Z mmReadPattern] note=50 at pos=0x802d569
+
+[INFO] GBA Debug: [Z mmReadPattern] end chan 0, pattern now 0x802d56b
+
+[INFO] GBA Debug: [Z mmReadPattern] chan_calc=((0a & 0x7F)-1)=9
+
+[INFO] GBA Debug: [Z mmReadPattern] note=44 at pos=0x802d56c
+
+[INFO] GBA Debug: [Z mmReadPattern] end chan 9, pattern now 0x802d56e
+
+[INFO] GBA Debug: [Z mmReadPattern] row end, pattread=0x802d56f update_bits=00000201
+
+[INFO] GBA Debug: [CHSTART] ch=0 inst=10 sample=11 src=0x8027950 flags=13
+
+[INFO] GBA Debug: [ENVDBG2] ch=0 env_flags=0x0 vol_enabled=0
+
+[INFO] GBA Debug: [UMIX] ch=0 flags=0d sample=11 src0=80000000 read0=0
+
+[INFO] GBA Debug: [BIND] ch=0 id=10 src=8024b1c def_freq=543 len=2680
+
+[INFO] GBA Debug: [HDR] w0=a78 w1=ffffffff w2=21fba00 len=2680 loop=4294967295 fmt=0 def=543
+
+[INFO] GBA Debug: [UMIX] -> src=08024b1c read=0 idx=0 len=2680 loop=4294967295
+
+[INFO] GBA Debug: [UMIX] set_pitch period=208064 freq=6887 fvol=128
+
+[INFO] GBA Debug: [DISPAN] ch=0 vol=128 flags=9 pan=128 src=8024b1c
+
+[INFO] GBA Debug: [UMIX] audible vol=128 pan=128 stopped=0
+
+[INFO] GBA Debug: [ENVDBG2] ch=1 env_flags=0x9 vol_enabled=1
+
+[INFO] GBA Debug: [ENVDBG] ch=1 exit=2 flags=0x21
+
+[INFO] GBA Debug: [UMIX] ch=1 flags=21 sample=10 src0=08014c48 read0=123363240
+
+[INFO] GBA Debug: [UMIX] -> src=08014c48 read=123363240 idx=117 len=65210 loop=4294967295
+
+[INFO] GBA Debug: [UMIX] set_pitch period=65536 freq=7189 fvol=208
+
+[INFO] GBA Debug: [DISPAN] ch=1 vol=208 flags=21 pan=128 src=8014c48
+
+[INFO] GBA Debug: [UMIX] audible vol=208 pan=128 stopped=0
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=10 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=10 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=10 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=10 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=10 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=11 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
+
+[INFO] GBA Debug: [Z mmReadPattern] chan_calc=((8a & 0x7F)-1)=9
+
+[INFO] GBA Debug: [Z mmReadPattern] cflags=74 at pos=0x802d570
+
+[INFO] GBA Debug: [Z mmReadPattern] end chan 9, pattern now 0x802d572
+
+[INFO] GBA Debug: [Z mmReadPattern] row end, pattread=0x802d573 update_bits=00000200
+
+[INFO] GBA Debug: [ENVDBG2] ch=0 env_flags=0x0 vol_enabled=0
+
+[INFO] GBA Debug: [UMIX] ch=0 flags=01 sample=11 src0=80000000 read0=0
+
+[INFO] GBA Debug: [UMIX] -> src=80000000 read=0 idx=0 len=2680 loop=4294967295
+
+[INFO] GBA Debug: [UMIX] set_pitch period=208064 freq=6887 fvol=128
+
+[INFO] GBA Debug: [DISPAN] ch=0 vol=128 flags=1 pan=128 src=80000000
+
+[INFO] GBA Debug: [ENVDBG2] ch=1 env_flags=0x9 vol_enabled=1
+
+[INFO] GBA Debug: [ENVDBG] ch=1 exit=2 flags=0x21
+
+[INFO] GBA Debug: [UMIX] ch=1 flags=21 sample=10 src0=08014c48 read0=135699564
+
+[INFO] GBA Debug: [UMIX] -> src=08014c48 read=135699564 idx=129 len=65210 loop=4294967295
+
+[INFO] GBA Debug: [UMIX] set_pitch period=65536 freq=7189 fvol=208
+
+[INFO] GBA Debug: [DISPAN] ch=1 vol=208 flags=21 pan=128 src=8014c48
+
+[INFO] GBA Debug: [UMIX] audible vol=208 pan=128 stopped=0
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=11 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=11 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=11 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=11 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=11 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=11 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=12 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
+
+[INFO] GBA Debug: [Z mmReadPattern] chan_calc=((01 & 0x7F)-1)=0
+
+[INFO] GBA Debug: [Z mmReadPattern] note=41 at pos=0x802d574
+
+[INFO] GBA Debug: [Z mmReadPattern] end chan 0, pattern now 0x802d576
+
+[INFO] GBA Debug: [Z mmReadPattern] row end, pattread=0x802d577 update_bits=00000001
+
+[INFO] GBA Debug: [CHSTART] ch=0 inst=11 sample=12 src=0x802795c flags=13
+
+[INFO] GBA Debug: [ENVDBG2] ch=0 env_flags=0x0 vol_enabled=0
+
+[INFO] GBA Debug: [UMIX] ch=0 flags=0d sample=12 src0=80000000 read0=0
+
+[INFO] GBA Debug: [BIND] ch=0 id=11 src=80255ac def_freq=2025 len=8192
+
+[INFO] GBA Debug: [HDR] w0=2000 w1=ffffffff w2=7e9ba00 len=8192 loop=4294967295 fmt=0 def=2025
+
+[INFO] GBA Debug: [UMIX] -> src=080255ac read=0 idx=0 len=8192 loop=4294967295
+
+[INFO] GBA Debug: [UMIX] set_pitch period=87480 freq=10787 fvol=255
+
+[INFO] GBA Debug: [DISPAN] ch=0 vol=255 flags=9 pan=128 src=80255ac
+
+[INFO] GBA Debug: [UMIX] audible vol=255 pan=128 stopped=0
+
+[INFO] GBA Debug: [ENVDBG2] ch=1 env_flags=0x9 vol_enabled=1
+
+[INFO] GBA Debug: [ENVDBG] ch=1 exit=2 flags=0x21
+
+[INFO] GBA Debug: [UMIX] ch=1 flags=21 sample=10 src0=08014c48 read0=148035888
+
+[INFO] GBA Debug: [UMIX] -> src=08014c48 read=148035888 idx=141 len=65210 loop=4294967295
+
+[INFO] GBA Debug: [UMIX] set_pitch period=65536 freq=7189 fvol=208
+
+[INFO] GBA Debug: [DISPAN] ch=1 vol=208 flags=21 pan=128 src=8014c48
+
+[INFO] GBA Debug: [UMIX] audible vol=208 pan=128 stopped=0
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=12 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=12 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=12 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=12 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=12 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=13 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
 
 [INFO] GBA Debug: [Z mmReadPattern] chan_calc=((81 & 0x7F)-1)=0
 
-[INFO] GBA Debug: [Z mmReadPattern] cflags=30 at pos=0x802d570
+[INFO] GBA Debug: [Z mmReadPattern] cflags=30 at pos=0x802d578
 
-[INFO] GBA Debug: [Z mmReadPattern] end chan 0, pattern now 0x802d571
+[INFO] GBA Debug: [Z mmReadPattern] end chan 0, pattern now 0x802d579
 
-[INFO] GBA Debug: [Z mmReadPattern] read_byte=00 at pos=0x802d571
+[INFO] GBA Debug: [Z mmReadPattern] row end, pattread=0x802d57a update_bits=00000001
 
-[INFO] GBA Debug: [Z mmReadPattern] row end, pattread=0x802d572 update_bits=00000001
-
-[INFO] GBA Debug: [INST] ch=0 inst_ptr=0x80278c4 bytes: 80 00 00 00 00 00 00 00 nm=000c invalid=1 reserved=0000
-
-[INFO] GBA Debug: [MAPDBG] ch=0 inst_ptr=0x80278c4 nmap_off=c map_ptr=0x80278d0 pnoter=65 entry=a invalid=1
-
-[INFO] GBA Debug: [BINDMAP] ch=0 inst=11 pnoter=65 invalid=1 nmap_off=c note=65 sample=12
+[INFO] GBA Debug: [CHSTART] ch=0 inst=11 sample=12 src=0x802795c flags=3
 
 [INFO] GBA Debug: [ENVDBG2] ch=0 env_flags=0x0 vol_enabled=0
 
-[INFO] GBA Debug: [UMIX] ch=0 flags=0d sample=12 src0=080255a4 read0=18510492
+[INFO] GBA Debug: [UMIX] ch=0 flags=0d sample=12 src0=080255ac read0=18510492
 
-[INFO] GBA Debug: [BIND] ch=0 id=11 src=80255a4 def_freq=2025 len=8192
+[INFO] GBA Debug: [BIND] ch=0 id=11 src=80255ac def_freq=2025 len=8192
 
 [INFO] GBA Debug: [HDR] w0=2000 w1=ffffffff w2=7e9ba00 len=8192 loop=4294967295 fmt=0 def=2025
 
-[INFO] GBA Debug: [UMIX] -> src=080255a4 read=0 idx=0 len=8192 loop=4294967295
+[INFO] GBA Debug: [UMIX] -> src=080255ac read=0 idx=0 len=8192 loop=4294967295
 
 [INFO] GBA Debug: [UMIX] set_pitch period=87480 freq=10787 fvol=255
 
-[INFO] GBA Debug: [DISPAN] vol=255 flags=9 pan=128 src=80255a4
+[INFO] GBA Debug: [DISPAN] ch=0 vol=255 flags=9 pan=128 src=80255ac
 
 [INFO] GBA Debug: [UMIX] audible vol=255 pan=128 stopped=0
 
@@ -913,67 +787,55 @@ qt.qpa.backingstore: Back buffer dpr of 2 doesn't match <NSViewBackingLayer: 0x1
 
 [INFO] GBA Debug: [ENVDBG] ch=1 exit=2 flags=0x21
 
-[INFO] GBA Debug: [UMIX] ch=1 flags=21 sample=10 src0=08014c40 read0=160372212
+[INFO] GBA Debug: [UMIX] ch=1 flags=21 sample=10 src0=08014c48 read0=160372212
 
-[INFO] GBA Debug: [UMIX] -> src=08014c40 read=160372212 idx=152 len=65210 loop=4294967295
+[INFO] GBA Debug: [UMIX] -> src=08014c48 read=160372212 idx=152 len=65210 loop=4294967295
 
 [INFO] GBA Debug: [UMIX] set_pitch period=65536 freq=7189 fvol=208
 
-[INFO] GBA Debug: [DISPAN] vol=208 flags=21 pan=128 src=8014c40
+[INFO] GBA Debug: [DISPAN] ch=1 vol=208 flags=21 pan=128 src=8014c48
 
 [INFO] GBA Debug: [UMIX] audible vol=208 pan=128 stopped=0
 
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=13 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=13 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
 
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=13 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=13 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
 
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=13 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=13 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
 
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=13 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=13 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
 
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=13 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=13 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
 
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=13 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=13 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
 
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=14 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
-
-[INFO] GBA Debug: [Z mmReadPattern] start pattread=0x802d572 pattread_p=0x802d572 nch=32 row=14
-
-[INFO] GBA Debug: [Z mmReadPattern] read_byte=01 at pos=0x802d572
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=14 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
 
 [INFO] GBA Debug: [Z mmReadPattern] chan_calc=((01 & 0x7F)-1)=0
 
-[INFO] GBA Debug: [Z mmReadPattern] end chan 0, pattern now 0x802d573
-
-[INFO] GBA Debug: [Z mmReadPattern] read_byte=0a at pos=0x802d573
+[INFO] GBA Debug: [Z mmReadPattern] end chan 0, pattern now 0x802d57b
 
 [INFO] GBA Debug: [Z mmReadPattern] chan_calc=((0a & 0x7F)-1)=9
 
-[INFO] GBA Debug: [Z mmReadPattern] end chan 9, pattern now 0x802d575
+[INFO] GBA Debug: [Z mmReadPattern] end chan 9, pattern now 0x802d57d
 
-[INFO] GBA Debug: [Z mmReadPattern] read_byte=00 at pos=0x802d575
+[INFO] GBA Debug: [Z mmReadPattern] row end, pattread=0x802d57e update_bits=00000201
 
-[INFO] GBA Debug: [Z mmReadPattern] row end, pattread=0x802d576 update_bits=00000201
-
-[INFO] GBA Debug: [INST] ch=0 inst_ptr=0x80278c4 bytes: 80 00 00 00 00 00 00 00 nm=000c invalid=1 reserved=0000
-
-[INFO] GBA Debug: [MAPDBG] ch=0 inst_ptr=0x80278c4 nmap_off=c map_ptr=0x80278d0 pnoter=65 entry=a invalid=1
-
-[INFO] GBA Debug: [BINDMAP] ch=0 inst=11 pnoter=65 invalid=1 nmap_off=c note=65 sample=12
+[INFO] GBA Debug: [CHSTART] ch=0 inst=11 sample=12 src=0x802795c flags=3
 
 [INFO] GBA Debug: [ENVDBG2] ch=0 env_flags=0x0 vol_enabled=0
 
-[INFO] GBA Debug: [UMIX] ch=0 flags=0d sample=12 src0=080255a4 read0=18510492
+[INFO] GBA Debug: [UMIX] ch=0 flags=0d sample=12 src0=080255ac read0=18510492
 
-[INFO] GBA Debug: [BIND] ch=0 id=11 src=80255a4 def_freq=2025 len=8192
+[INFO] GBA Debug: [BIND] ch=0 id=11 src=80255ac def_freq=2025 len=8192
 
 [INFO] GBA Debug: [HDR] w0=2000 w1=ffffffff w2=7e9ba00 len=8192 loop=4294967295 fmt=0 def=2025
 
-[INFO] GBA Debug: [UMIX] -> src=080255a4 read=0 idx=0 len=8192 loop=4294967295
+[INFO] GBA Debug: [UMIX] -> src=080255ac read=0 idx=0 len=8192 loop=4294967295
 
 [INFO] GBA Debug: [UMIX] set_pitch period=87480 freq=10787 fvol=255
 
-[INFO] GBA Debug: [DISPAN] vol=255 flags=9 pan=128 src=80255a4
+[INFO] GBA Debug: [DISPAN] ch=0 vol=255 flags=9 pan=128 src=80255ac
 
 [INFO] GBA Debug: [UMIX] audible vol=255 pan=128 stopped=0
 
@@ -981,47 +843,294 @@ qt.qpa.backingstore: Back buffer dpr of 2 doesn't match <NSViewBackingLayer: 0x1
 
 [INFO] GBA Debug: [ENVDBG] ch=1 exit=2 flags=0x21
 
-[INFO] GBA Debug: [UMIX] ch=1 flags=21 sample=10 src0=08014c40 read0=172708536
+[INFO] GBA Debug: [UMIX] ch=1 flags=21 sample=10 src0=08014c48 read0=172708536
 
-[INFO] GBA Debug: [UMIX] -> src=08014c40 read=172708536 idx=164 len=65210 loop=4294967295
+[INFO] GBA Debug: [UMIX] -> src=08014c48 read=172708536 idx=164 len=65210 loop=4294967295
 
 [INFO] GBA Debug: [UMIX] set_pitch period=65536 freq=7189 fvol=208
 
-[INFO] GBA Debug: [DISPAN] vol=208 flags=21 pan=128 src=8014c40
+[INFO] GBA Debug: [DISPAN] ch=1 vol=208 flags=21 pan=128 src=8014c48
 
 [INFO] GBA Debug: [UMIX] audible vol=208 pan=128 stopped=0
 
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=14 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=14 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
 
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=14 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=14 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
 
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=14 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=14 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
 
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=14 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=14 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
 
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=14 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=14 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
 
-[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=15 main_ptr=0x3001718 sub_ptr=0x30016e0 mpp=0x3001718
-
-[INFO] GBA Debug: [Z mmReadPattern] start pattread=0x802d576 pattread_p=0x802d576 nch=32 row=15
-
-[INFO] GBA Debug: [Z mmReadPattern] read_byte=01 at pos=0x802d576
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=15 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
 
 [INFO] GBA Debug: [Z mmReadPattern] chan_calc=((01 & 0x7F)-1)=0
 
-[INFO] GBA Debug: [Z mmReadPattern] end chan 0, pattern now 0x802d577
-
-[INFO] GBA Debug: [Z mmReadPattern] read_byte=0a at pos=0x802d577
+[INFO] GBA Debug: [Z mmReadPattern] end chan 0, pattern now 0x802d57f
 
 [INFO] GBA Debug: [Z mmReadPattern] chan_calc=((0a & 0x7F)-1)=9
 
-[INFO] GBA Debug: [Z mmReadPattern] end chan 9, pattern now 0x802d579
+[INFO] GBA Debug: [Z mmReadPattern] end chan 9, pattern now 0x802d581
 
-[INFO] GBA Debug: [Z mmReadPattern] read_byte=00 at pos=0x802d579
+[INFO] GBA Debug: [Z mmReadPattern] row end, pattread=0x802d582 update_bits=00000201
 
-[INFO] GBA Debug: [Z mmReadPattern] row end, pattread=0x802d57a update_bits=00000201
+[INFO] GBA Debug: [CHSTART] ch=0 inst=11 sample=12 src=0x802795c flags=3
 
-[INFO] GBA Debug: [INST] ch=0 inst_ptr=0x80278c4 bytes: 80 00 00 00 00 00 00 00 nm=000c invalid=1 reserved=0000
+[INFO] GBA Debug: [ENVDBG2] ch=0 env_flags=0x0 vol_enabled=0
 
-[INFO] GBA Debug: [MAPDBG] ch=0 inst_ptr=0x80278c4 nmap_off=c map_ptr=0x80278d0 pnoter=65 entry=a invalid=1
+[INFO] GBA Debug: [UMIX] ch=0 flags=0d sample=12 src0=080255ac read0=18510492
+
+[INFO] GBA Debug: [BIND] ch=0 id=11 src=80255ac def_freq=2025 len=8192
+
+[INFO] GBA Debug: [HDR] w0=2000 w1=ffffffff w2=7e9ba00 len=8192 loop=4294967295 fmt=0 def=2025
+
+[INFO] GBA Debug: [UMIX] -> src=080255ac read=0 idx=0 len=8192 loop=4294967295
+
+[INFO] GBA Debug: [UMIX] set_pitch period=87480 freq=10787 fvol=255
+
+[INFO] GBA Debug: [DISPAN] ch=0 vol=255 flags=9 pan=128 src=80255ac
+
+[INFO] GBA Debug: [UMIX] audible vol=255 pan=128 stopped=0
+
+[INFO] GBA Debug: [ENVDBG2] ch=1 env_flags=0x9 vol_enabled=1
+
+[INFO] GBA Debug: [ENVDBG] ch=1 exit=2 flags=0x21
+
+[INFO] GBA Debug: [UMIX] ch=1 flags=21 sample=10 src0=08014c48 read0=185044860
+
+[INFO] GBA Debug: [UMIX] -> src=08014c48 read=185044860 idx=176 len=65210 loop=4294967295
+
+[INFO] GBA Debug: [UMIX] set_pitch period=65536 freq=7189 fvol=208
+
+[INFO] GBA Debug: [DISPAN] ch=1 vol=208 flags=21 pan=128 src=8014c48
+
+[INFO] GBA Debug: [UMIX] audible vol=208 pan=128 stopped=0
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=15 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=15 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=15 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=15 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=15 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=15 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=16 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
+
+[INFO] GBA Debug: [Z mmReadPattern] chan_calc=((01 & 0x7F)-1)=0
+
+[INFO] GBA Debug: [Z mmReadPattern] end chan 0, pattern now 0x802d583
+
+[INFO] GBA Debug: [Z mmReadPattern] chan_calc=((8a & 0x7F)-1)=9
+
+[INFO] GBA Debug: [Z mmReadPattern] cflags=75 at pos=0x802d584
+
+[INFO] GBA Debug: [Z mmReadPattern] note=39 at pos=0x802d585
+
+[INFO] GBA Debug: [Z mmReadPattern] end chan 9, pattern now 0x802d587
+
+[INFO] GBA Debug: [Z mmReadPattern] row end, pattread=0x802d588 update_bits=00000201
+
+[INFO] GBA Debug: [CHSTART] ch=0 inst=11 sample=12 src=0x802795c flags=3
+
+[INFO] GBA Debug: [ENVDBG2] ch=0 env_flags=0x0 vol_enabled=0
+
+[INFO] GBA Debug: [UMIX] ch=0 flags=0d sample=12 src0=080255ac read0=18510492
+
+[INFO] GBA Debug: [BIND] ch=0 id=11 src=80255ac def_freq=2025 len=8192
+
+[INFO] GBA Debug: [HDR] w0=2000 w1=ffffffff w2=7e9ba00 len=8192 loop=4294967295 fmt=0 def=2025
+
+[INFO] GBA Debug: [UMIX] -> src=080255ac read=0 idx=0 len=8192 loop=4294967295
+
+[INFO] GBA Debug: [UMIX] set_pitch period=87480 freq=10787 fvol=255
+
+[INFO] GBA Debug: [DISPAN] ch=0 vol=255 flags=9 pan=128 src=80255ac
+
+[INFO] GBA Debug: [UMIX] audible vol=255 pan=128 stopped=0
+
+[INFO] GBA Debug: [ENVDBG2] ch=1 env_flags=0x9 vol_enabled=1
+
+[INFO] GBA Debug: [ENVDBG] ch=1 exit=2 flags=0x21
+
+[INFO] GBA Debug: [UMIX] ch=1 flags=21 sample=10 src0=08014c48 read0=197381184
+
+[INFO] GBA Debug: [UMIX] -> src=08014c48 read=197381184 idx=188 len=65210 loop=4294967295
+
+[INFO] GBA Debug: [UMIX] set_pitch period=65536 freq=7189 fvol=208
+
+[INFO] GBA Debug: [DISPAN] ch=1 vol=208 flags=21 pan=128 src=8014c48
+
+[INFO] GBA Debug: [UMIX] audible vol=208 pan=128 stopped=0
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=16 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=16 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=16 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=16 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=16 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=17 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
+
+[INFO] GBA Debug: [Z mmReadPattern] row end, pattread=0x802d589 update_bits=00000000
+
+[INFO] GBA Debug: [ENVDBG2] ch=0 env_flags=0x0 vol_enabled=0
+
+[INFO] GBA Debug: [UMIX] ch=0 flags=01 sample=12 src0=080255ac read0=18510492
+
+[INFO] GBA Debug: [UMIX] -> src=080255ac read=18510492 idx=17 len=8192 loop=4294967295
+
+[INFO] GBA Debug: [UMIX] set_pitch period=87480 freq=10787 fvol=255
+
+[INFO] GBA Debug: [DISPAN] ch=0 vol=255 flags=1 pan=128 src=80255ac
+
+[INFO] GBA Debug: [UMIX] audible vol=255 pan=128 stopped=0
+
+[INFO] GBA Debug: [ENVDBG2] ch=1 env_flags=0x9 vol_enabled=1
+
+[INFO] GBA Debug: [ENVDBG] ch=1 exit=2 flags=0x21
+
+[INFO] GBA Debug: [UMIX] ch=1 flags=21 sample=10 src0=08014c48 read0=209717508
+
+[INFO] GBA Debug: [UMIX] -> src=08014c48 read=209717508 idx=200 len=65210 loop=4294967295
+
+[INFO] GBA Debug: [UMIX] set_pitch period=65536 freq=7189 fvol=208
+
+[INFO] GBA Debug: [DISPAN] ch=1 vol=208 flags=21 pan=128 src=8014c48
+
+[INFO] GBA Debug: [UMIX] audible vol=208 pan=128 stopped=0
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=17 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=17 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=17 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=17 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=17 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=17 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=18 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
+
+[INFO] GBA Debug: [Z mmReadPattern] chan_calc=((81 & 0x7F)-1)=0
+
+[INFO] GBA Debug: [Z mmReadPattern] cflags=33 at pos=0x802d58a
+
+[INFO] GBA Debug: [Z mmReadPattern] note=50 at pos=0x802d58b
+
+[INFO] GBA Debug: [Z mmReadPattern] end chan 0, pattern now 0x802d58d
+
+[INFO] GBA Debug: [Z mmReadPattern] chan_calc=((0a & 0x7F)-1)=9
+
+[INFO] GBA Debug: [Z mmReadPattern] note=3c at pos=0x802d58e
+
+[INFO] GBA Debug: [Z mmReadPattern] end chan 9, pattern now 0x802d590
+
+[INFO] GBA Debug: [Z mmReadPattern] row end, pattread=0x802d591 update_bits=00000201
+
+[INFO] GBA Debug: [CHSTART] ch=0 inst=10 sample=11 src=0x8027950 flags=13
+
+[INFO] GBA Debug: [ENVDBG2] ch=0 env_flags=0x0 vol_enabled=0
+
+[INFO] GBA Debug: [UMIX] ch=0 flags=0d sample=11 src0=80000000 read0=0
+
+[INFO] GBA Debug: [BIND] ch=0 id=10 src=8024b1c def_freq=543 len=2680
+
+[INFO] GBA Debug: [HDR] w0=a78 w1=ffffffff w2=21fba00 len=2680 loop=4294967295 fmt=0 def=543
+
+[INFO] GBA Debug: [UMIX] -> src=08024b1c read=0 idx=0 len=2680 loop=4294967295
+
+[INFO] GBA Debug: [UMIX] set_pitch period=208064 freq=6887 fvol=128
+
+[INFO] GBA Debug: [DISPAN] ch=0 vol=128 flags=9 pan=128 src=8024b1c
+
+[INFO] GBA Debug: [UMIX] audible vol=128 pan=128 stopped=0
+
+[INFO] GBA Debug: [ENVDBG2] ch=1 env_flags=0x9 vol_enabled=1
+
+[INFO] GBA Debug: [ENVDBG] ch=1 exit=2 flags=0x21
+
+[INFO] GBA Debug: [UMIX] ch=1 flags=21 sample=10 src0=08014c48 read0=222053832
+
+[INFO] GBA Debug: [UMIX] -> src=08014c48 read=222053832 idx=211 len=65210 loop=4294967295
+
+[INFO] GBA Debug: [UMIX] set_pitch period=65536 freq=7189 fvol=208
+
+[INFO] GBA Debug: [DISPAN] ch=1 vol=208 flags=21 pan=128 src=8014c48
+
+[INFO] GBA Debug: [UMIX] audible vol=208 pan=128 stopped=0
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=18 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=18 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=18 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=18 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=18 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=19 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
+
+[INFO] GBA Debug: [Z mmReadPattern] chan_calc=((8a & 0x7F)-1)=9
+
+[INFO] GBA Debug: [Z mmReadPattern] cflags=74 at pos=0x802d592
+
+[INFO] GBA Debug: [Z mmReadPattern] end chan 9, pattern now 0x802d594
+
+[INFO] GBA Debug: [Z mmReadPattern] row end, pattread=0x802d595 update_bits=00000200
+
+[INFO] GBA Debug: [ENVDBG2] ch=0 env_flags=0x0 vol_enabled=0
+
+[INFO] GBA Debug: [UMIX] ch=0 flags=01 sample=11 src0=80000000 read0=0
+
+[INFO] GBA Debug: [UMIX] -> src=80000000 read=0 idx=0 len=2680 loop=4294967295
+
+[INFO] GBA Debug: [UMIX] set_pitch period=208064 freq=6887 fvol=128
+
+[INFO] GBA Debug: [DISPAN] ch=0 vol=128 flags=1 pan=128 src=80000000
+
+[INFO] GBA Debug: [ENVDBG2] ch=1 env_flags=0x9 vol_enabled=1
+
+[INFO] GBA Debug: [ENVDBG] ch=1 exit=2 flags=0x21
+
+[INFO] GBA Debug: [UMIX] ch=1 flags=21 sample=10 src0=08014c48 read0=234390156
+
+[INFO] GBA Debug: [UMIX] -> src=08014c48 read=234390156 idx=223 len=65210 loop=4294967295
+
+[INFO] GBA Debug: [UMIX] set_pitch period=65536 freq=7189 fvol=208
+
+[INFO] GBA Debug: [DISPAN] ch=1 vol=208 flags=21 pan=128 src=8014c48
+
+[INFO] GBA Debug: [UMIX] audible vol=208 pan=128 stopped=0
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=19 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=19 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=19 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=19 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=19 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
+
+[INFO] GBA Debug: [mmFrame] enter mixlen=264 isplaying=1 valid=1 mode=0 flags=1e tickrate=286 row=19 main_ptr=0x30015b8 sub_ptr=0x3001580 mpp=0x30015b8
+
+[INFO] GBA Debug: 
+[INFO] GBA Debug: [C MIX] i=0 src=80000000 read=0 freq=32896 vol=0 pan=0
+
+[INFO] GBA Debug: [C MIX] i=1 src=1ae7 read=134302792 freq=21890 vol=178 pan=14
+
+[INFO] GBA Debug: [C MIX] i=2 src=80d0 read=7189 freq=7012 vol=1 pan=8
+
+[INFO] GBA Debug: [C MIX] i=3 src=94dc62 read=34826 freq=5759 vol=0 pan=0
 

@@ -744,15 +744,13 @@ pub export fn mmPlayModule(arg_address: usize, arg_mode: mm_word, arg_layer: mm_
     layer_info.*.songadr = header;
     // C reference does not log pre-reset internals here
     mpp_resetchannels(channels, num_ch);
-    // Compute table pointers from header base: after sequence (200 bytes)
-    const header_bytes: [*]const u8 = @as([*]const u8, @ptrCast(@alignCast(header)));
-    // MAS header layout is 4 (counts+flags) + 5 bytes + 3 reserved + 32 + 32 + 200 = 276 total before tables
-    const table_bytes: [*]const u8 = header_bytes + 276;
+    // Setup instrument, sample and pattern tables - use the tables array directly like C version
     const instn_size: usize = @as(usize, @intCast(instr_count));
     const sampn_size: usize = @as(usize, @intCast(sampl_count));
-    layer_info.*.insttable = @constCast(@ptrCast(@alignCast(table_bytes + 0)));
-    layer_info.*.samptable = @constCast(@ptrCast(@alignCast(table_bytes + instn_size * 4)));
-    layer_info.*.patttable = @constCast(@ptrCast(@alignCast(table_bytes + (instn_size + sampn_size) * 4)));
+    const tables_ptr = header.*.tables();
+    layer_info.*.insttable = @constCast(@ptrCast(@alignCast(&tables_ptr[0])));
+    layer_info.*.samptable = @constCast(@ptrCast(@alignCast(&tables_ptr[instn_size])));
+    layer_info.*.patttable = @constCast(@ptrCast(@alignCast(&tables_ptr[instn_size + sampn_size])));
     @import("gba").debug.print(
         "[mmPlayModule] tables inst=0x{x} samp=0x{x} patt=0x{x}\n",
         .{ @intFromPtr(layer_info.*.insttable), @intFromPtr(layer_info.*.samptable), @intFromPtr(layer_info.*.patttable) },
@@ -875,7 +873,6 @@ pub const struct_tmm_mas_instrument = extern struct {
     dca: mm_byte = @import("std").mem.zeroes(mm_byte),
     note_map_offset: mm_hword = @import("std").mem.zeroes(mm_hword),
     is_note_map_invalid: mm_hword = @import("std").mem.zeroes(mm_hword),
-    reserved: mm_hword = @import("std").mem.zeroes(mm_hword),
 };
 pub const mm_mas_instrument = struct_tmm_mas_instrument;
 // maxmod/include/mm_mas.h:112:17: warning: struct demoted to opaque type - has bitfield
@@ -1235,8 +1232,11 @@ pub export fn mppProcessTick() linksection(".iwram") void {
     }
     var new_row: c_int = @as(c_int, @bitCast(@as(c_uint, layer.*.row))) + @as(c_int, 1);
     _ = &new_row;
+    // Reduced debug output - only log critical timing info
+    // @import("gba").debug.print("[mppProcessTick] row check: current={d} new={d} nrows={d} condition={d}\n", .{ @as(c_int, @intCast(layer.*.row)), new_row, @as(c_int, @intCast(layer.*.nrows)), @as(c_int, @intCast(@as(c_int, @bitCast(@as(c_uint, layer.*.nrows))) + @as(c_int, 1))) }) catch unreachable;
     if (new_row != (@as(c_int, @bitCast(@as(c_uint, layer.*.nrows))) + @as(c_int, 1))) {
         layer.*.row = @as(mm_byte, @bitCast(@as(i8, @truncate(new_row))));
+        // @import("gba").debug.print("[mppProcessTick] ROW ADVANCED to {d}\n", .{@as(c_int, @intCast(layer.*.row))}) catch unreachable;
         return;
     }
     mpp_setposition(layer, @as(mm_word, @bitCast(@as(c_int, @bitCast(@as(c_uint, layer.*.position))) + @as(c_int, 1))));
@@ -1757,7 +1757,9 @@ pub inline fn mpp_InstrumentPointer(arg_layer: [*c]mpl_layer_information, arg_in
     _ = &instN;
     var base: [*c]mm_byte = @as([*c]mm_byte, @ptrCast(@alignCast(layer.*.songadr)));
     _ = &base;
-    const off: mm_word = layer.*.insttable[instN -% @as(mm_word, @bitCast(@as(c_int, 1)))];
+    // The instrument table contains 32-bit offsets, not raw bytes
+    const insttbl_words: [*]const mm_word = @ptrCast(@alignCast(layer.*.insttable));
+    const off: mm_word = insttbl_words[instN -% @as(mm_word, @bitCast(@as(c_int, 1)))];
     const ptr: [*]u8 = base + off;
     return @ptrCast(@alignCast(ptr));
 }
@@ -1769,10 +1771,10 @@ pub inline fn mpp_PatternPointer(arg_layer: [*c]mpl_layer_information, arg_entry
     var base: [*c]mm_byte = @as([*c]mm_byte, @ptrCast(@alignCast(layer.*.songadr)));
     _ = &base;
     const idx: usize = @as(usize, @intCast(entry));
-    const patttbl_bytes: [*]const u8 = @ptrCast(@alignCast(layer.*.patttable));
-    const p: [*]const u8 = patttbl_bytes + (idx * 4);
-    const off: usize = @as(usize, @intCast(@as(u32, p[0]) | (@as(u32, p[1]) << 8) | (@as(u32, p[2]) << 16) | (@as(u32, p[3]) << 24)));
-    return @as([*c]mm_mas_pattern, @ptrCast(@alignCast(@as([*]u8, @ptrCast(base)) + off)));
+    // The pattern table contains 32-bit offsets, not raw bytes
+    const patttbl_words: [*]const mm_word = @ptrCast(@alignCast(layer.*.patttable));
+    const offset: mm_word = patttbl_words[idx];
+    return @as([*c]mm_mas_pattern, @ptrCast(@alignCast(@as([*]u8, @ptrCast(base)) + @as(usize, @intCast(offset)))));
 }
 pub extern var mp_solution: [*c]msl_head;
 pub extern var mm_mix_channels: [*c]mm_mixer_channel;
@@ -1987,7 +1989,7 @@ pub fn mpp_resetchannels(arg_channels: [*c]mm_module_channel, arg_num_ch: mm_wor
         }) {
             if (@as(c_uint, @bitCast((@as(c_int, @bitCast(@as(c_uint, act_ch.*.flags))) & ((@as(c_int, 1) << @intCast(6)) | (@as(c_int, 1) << @intCast(7)))) >> @intCast(6))) != mpp_clayer) continue;
             _ = memset(@as(?*anyopaque, @ptrCast(act_ch)), @as(c_int, 0), @sizeOf(mm_active_channel));
-            mix_ch.*.src = @as(c_uint, 1) << @intCast((@sizeOf(usize) *% @as(c_uint, @bitCast(@as(c_int, 8)))) -% @as(c_uint, @bitCast(@as(c_int, 1))));
+            mix_ch.*.src = MIXCH_GBA_SRC_STOPPED;
         }
     }
 }
@@ -2051,6 +2053,7 @@ pub fn mpp_setposition(arg_layer_info: [*c]mpl_layer_information, arg_position: 
     var patt: [*c]mm_mas_pattern = mpp_PatternPointer(layer_info, @as(mm_word, @bitCast(@as(c_uint, entry))));
     _ = &patt;
     // No C reference logs for patt_ptr/data
+    @import("gba").debug.print("[mpp_setposition] pattern=0x{x} row_count={d}\n", .{ @intFromPtr(patt), @as(c_int, @intCast(patt.*.row_count)) }) catch unreachable;
     layer_info.*.nrows = patt.*.row_count;
     layer_info.*.tick = 0;
     layer_info.*.row = 0;
@@ -4289,12 +4292,12 @@ pub fn mpp_Update_ACHN_notest_disable_and_panning(arg_volume: mm_word, arg_act_c
 
     // audible path
     mix_ch.*.vol = @as(mm_byte, @intCast(if (volume > @as(mm_word, @intCast(255))) 255 else volume));
-    // Log final vol/pan/flags/src as C does
+    // Log final vol/pan/flags/src as C does (gated like C)
     const pan_for_print: u8 = if (act_ch.*.panning != 0) act_ch.*.panning else 128;
-    if (true) {
+    if (umix_allow_log_ch(mpp_layerp, umix_channel_index_from_mix(mix_ch))) {
         @import("gba").debug.print(
-            "[DISPAN] vol={d} flags={x} pan={d} src={x}\n",
-            .{ @as(c_int, @intCast(mix_ch.*.vol)), @as(c_int, @intCast(act_ch.*.flags)), @as(c_int, @intCast(pan_for_print)), @as(c_int, @intCast(mix_ch.*.src)) },
+            "[DISPAN] ch={d} vol={d} flags={x} pan={d} src={x}\n",
+            .{ @as(c_int, @intCast(act_ch.*.parent)), @as(c_int, @intCast(mix_ch.*.vol)), @as(c_int, @intCast(act_ch.*.flags)), @as(c_int, @intCast(pan_for_print)), @as(c_int, @intCast(mix_ch.*.src)) },
         ) catch {};
     }
 

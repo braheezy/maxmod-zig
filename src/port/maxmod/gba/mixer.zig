@@ -896,7 +896,7 @@ pub export fn mmMixerInit(arg_setup: [*c]mm_gba_system) void {
         var i: mm_word = 0;
         _ = &i;
         while (i < mm_mixch_count) : (i +%= 1) {
-            mix_ch[i].src = @as(c_uint, 1) << @intCast((@sizeOf(usize) *% @as(c_uint, @bitCast(@as(c_int, 8)))) -% @as(c_uint, @bitCast(@as(c_int, 1))));
+            mix_ch[i].src = MIXCH_GBA_SRC_STOPPED;
         }
     }
     vblank_handler_enabled = @as(c_int, 1) != 0;

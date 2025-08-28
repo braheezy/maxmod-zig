@@ -866,7 +866,9 @@ pub export fn mmFrame() void {
         mmMixerMix(@as(mm_word, @bitCast(sample_num)));
         if (dbg_frame_detail) @import("gba").debug.print("[mmFrame] calling mppProcessTick() pos={d} row={d} tick={d}\n", .{ @as(c_int, @intCast(mpp_layerp.*.position)), @as(c_int, @intCast(mpp_layerp.*.row)), @as(c_int, @intCast(mpp_layerp.*.tick)) }) catch unreachable;
         mppProcessTick();
-        if (dbg_frame_detail) @import("gba").debug.print("[mmFrame] after mppProcessTick() pos={d} row={d} tick={d} isplaying={d}\n", .{ @as(c_int, @intCast(mpp_layerp.*.position)), @as(c_int, @intCast(mpp_layerp.*.row)), @as(c_int, @intCast(mpp_layerp.*.tick)), @as(c_int, @intCast(mpp_layerp.*.isplaying)) }) catch unreachable;
+        // Always log tick progression for early debugging
+        // Reduced debug output - only log critical timing info
+        // @import("gba").debug.print("[mmFrame] TICK ADVANCE pos={d} row={d} tick={d} speed={d} tickrate={d}\n", .{ @as(c_int, @intCast(mpp_layerp.*.position)), @as(c_int, @intCast(mpp_layerp.*.row)), @as(c_int, @intCast(mpp_layerp.*.tick)), @as(c_int, @intCast(mpp_layerp.*.speed)), @as(c_int, @intCast(mpp_layerp.*.tickrate)) }) catch unreachable;
         // Snapshot immediately after tick processing (post-UMIX binding) before next mix
         if (g_premix_budget > 0 and mm_mix_channels != @as([*c]mm_mixer_channel, @ptrFromInt(0))) {
             const ch0a: [*c]mm_mixer_channel = mm_mix_channels;
@@ -987,7 +989,6 @@ pub const struct_tmm_mas_instrument = extern struct {
     dca: mm_byte = @import("std").mem.zeroes(mm_byte),
     note_map_offset: mm_hword = @import("std").mem.zeroes(mm_hword),
     is_note_map_invalid: mm_hword = @import("std").mem.zeroes(mm_hword),
-    reserved: mm_hword = @import("std").mem.zeroes(mm_hword),
 };
 pub const mm_mas_instrument = struct_tmm_mas_instrument;
 // maxmod/include/mm_mas.h:112:17: warning: struct demoted to opaque type - has bitfield

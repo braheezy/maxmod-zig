@@ -843,7 +843,7 @@ pub export fn mmEffectCancelAll() void {
         }) {
             if ((@as(c_int, @bitCast(@as(c_uint, act_ch.*.flags))) & (@as(c_int, 1) << @intCast(7))) == @as(c_int, 0)) continue;
             _ = memset(@as(?*anyopaque, @ptrCast(act_ch)), @as(c_int, 0), @sizeOf(mm_active_channel));
-            mix_ch.*.src = @as(c_uint, 1) << @intCast((@sizeOf(usize) *% @as(c_uint, @bitCast(@as(c_int, 8)))) -% @as(c_uint, @bitCast(@as(c_int, 1))));
+            mix_ch.*.src = MIXCH_GBA_SRC_STOPPED;
         }
     }
 }
@@ -880,7 +880,6 @@ pub const struct_tmm_mas_instrument = extern struct {
     dca: mm_byte = @import("std").mem.zeroes(mm_byte),
     note_map_offset: mm_hword = @import("std").mem.zeroes(mm_hword),
     is_note_map_invalid: mm_hword = @import("std").mem.zeroes(mm_hword),
-    reserved: mm_hword = @import("std").mem.zeroes(mm_hword),
 };
 pub const mm_mas_instrument = struct_tmm_mas_instrument;
 // maxmod/include/mm_mas.h:112:17: warning: struct demoted to opaque type - has bitfield
@@ -1032,7 +1031,7 @@ pub export fn mmUpdateEffects() void {
                 if (tmp >= 0) break :blk mm_mix_channels + @as(usize, @intCast(tmp)) else break :blk mm_mix_channels - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
             }).*;
             _ = &mix_ch;
-            if ((mix_ch.*.src & (@as(c_uint, 1) << @intCast((@sizeOf(usize) *% @as(c_uint, @bitCast(@as(c_int, 8)))) -% @as(c_uint, @bitCast(@as(c_int, 1)))))) == @as(c_uint, @bitCast(@as(c_int, 0)))) {
+            if ((mix_ch.*.src & MIXCH_GBA_SRC_STOPPED) == 0) {
                 new_bitmask |= @as(mm_word, @bitCast(@as(c_int, 1) << @intCast(i)));
                 continue;
             }
