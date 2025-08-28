@@ -552,7 +552,7 @@ pub extern fn mmPulse() void;
 pub extern fn mppUpdateSub() void;
 pub extern fn mppProcessTick() void;
 pub export fn mmAllocChannel() linksection(".iwram") mm_word {
-    @import("gba").debug.print("[mmAllocChannel] mm_ch_mask={x}\n", .{ @as(c_int, @intCast(mm_ch_mask)) }) catch unreachable;
+    // No extra mmAllocChannel mask print in C reference
     var act_ch: [*c]mm_active_channel = &mm_achannels[@as(c_uint, @intCast(@as(c_int, 0)))];
     _ = &act_ch;
     var bitmask: mm_word = mm_ch_mask;
@@ -602,17 +602,7 @@ pub export fn mmUpdateChannel_T0(arg_module_channel: [*c]mm_module_channel, arg_
     const mpp_layer = arg_mpp_layer;
     const channel_counter = arg_channel_counter;
 
-    @import("gba").debug.print(
-        "[UCT0] enter flags={x} alloc={d} vol={d} cvol={d} inst={d} note={d}\n",
-        .{
-            @as(c_int, @intCast(module_channel.*.flags)),
-            @as(c_int, @intCast(module_channel.*.alloc)),
-            @as(c_int, @intCast(module_channel.*.volume)),
-            @as(c_int, @intCast(module_channel.*.cvolume)),
-            @as(c_int, @intCast(module_channel.*.inst)),
-            @as(c_int, @intCast(module_channel.*.note)),
-        },
-    ) catch unreachable;
+    // No extra UCT0 debug in C reference
 
     // Fast path: if no start flag, ensure TN continues or exits
     if ((@as(c_int, @intCast(module_channel.*.flags)) & MF_START) == 0) {
@@ -627,30 +617,17 @@ pub export fn mmUpdateChannel_T0(arg_module_channel: [*c]mm_module_channel, arg_
     }
 
     // Start new note
-    @import("gba").debug.print(
-        "[UCT0] pre-NewNote inst={d} note={d}\n",
-        .{ @as(c_int, @intCast(module_channel.*.inst)), @as(c_int, @intCast(module_channel.*.note)) },
-    ) catch unreachable;
+    // No extra UCT0 debug in C reference
     mpp_Channel_NewNote(module_channel, mpp_layer);
     const act_ch: [*c]mm_active_channel = get_active_channel(module_channel);
-    @import("gba").debug.print(
-        "[UCT0] post-NewNote act?={d} sample={d} inst={d}\n",
-        .{
-            @as(c_int, @intCast(@intFromBool(@intFromPtr(act_ch) != 0))),
-            if (@intFromPtr(act_ch) != 0) @as(c_int, @intCast(act_ch.*.sample)) else 0,
-            if (@intFromPtr(act_ch) != 0) @as(c_int, @intCast(act_ch.*.inst)) else 0,
-        },
-    ) catch unreachable;
+    // No extra UCT0 debug in C reference
     var act_ch_mut: [*c]mm_active_channel = act_ch;
     if (act_ch_mut == @as([*c]mm_active_channel, @ptrFromInt(0))) {
         // Fallback: allocate an active channel now if NewNote didn't
         const alloc_idx: mm_word = mmAllocChannel();
         module_channel.*.alloc = @as(mm_byte, @intCast(alloc_idx));
         act_ch_mut = get_active_channel(module_channel);
-        @import("gba").debug.print(
-            "[UCT0] fallback alloc={d} act?={d}\n",
-            .{ @as(c_int, @intCast(module_channel.*.alloc)), @as(c_int, @intCast(@intFromBool(@intFromPtr(act_ch_mut) != 0))) },
-        ) catch unreachable;
+        // No extra UCT0 debug in C reference
         if (act_ch_mut == @as([*c]mm_active_channel, @ptrFromInt(0))) {
             mmUpdateChannel_TN(module_channel, mpp_layer);
             return;
@@ -665,6 +642,8 @@ pub export fn mmUpdateChannel_T0(arg_module_channel: [*c]mm_module_channel, arg_
     // No fallback: rely on mmChannelStartACHN to set sample/note like C
     if (act_ch_mut.*.sample != 0) {
         const sample: [*c]mm_mas_sample_info = mpp_SamplePointer(mpp_layer, @as(mm_word, @intCast(act_ch_mut.*.sample)));
+        // On new note, seed module channel volume from sample default volume (XM semantics)
+        module_channel.*.volume = sample.*.default_volume;
         // tuning: sample->frequency << 2 (C5Speed * 4)
         const tuning: mm_word = @as(mm_word, @intCast(@as(u32, sample.*.frequency) << 2));
         // Compute initial period like C at T0
@@ -672,10 +651,27 @@ pub export fn mmUpdateChannel_T0(arg_module_channel: [*c]mm_module_channel, arg_
         // Seed active-channel state so downstream pitch/volume uses correct sample/inst
         act_ch_mut.*.period = module_channel.*.period;
         act_ch_mut.*.inst = module_channel.*.inst;
+        // Set VOLENV flag from instrument default like C
+        const instrument: [*c]mm_mas_instrument = mpp_InstrumentPointer(mpp_layer, module_channel.*.inst);
+        if (@intFromPtr(instrument) != 0) {
+            if ((@as(c_int, @intCast(instrument.*.env_flags)) & MAS_INSTR_FLAG_VOL_ENV_ENABLED) != 0) {
+                act_ch_mut.*.flags |= @as(mm_byte, @intCast(MCAF_VOLENV));
+            } else {
+                act_ch_mut.*.flags = @as(mm_byte, @intCast(@as(c_int, act_ch_mut.*.flags) & ~MCAF_VOLENV));
+            }
+        }
         // On new note: set KEYON and reset envelope/fade state to active, like C
         act_ch_mut.*.flags |= @as(mm_byte, @intCast(MCAF_KEYON));
         // Clear ENVEND/FADE bits
         act_ch_mut.*.flags = @as(mm_byte, @intCast(@as(c_int, act_ch_mut.*.flags) & ~(@as(c_int, MCAF_ENVEND) | @as(c_int, MCAF_FADE))));
+        // Reset envelope counters and nodes at note start
+        act_ch_mut.*.envc_vol = 0;
+        act_ch_mut.*.envn_vol = 0;
+        act_ch_mut.*.envc_pan = 0;
+        act_ch_mut.*.envn_pan = 0;
+        act_ch_mut.*.envc_pic = 0;
+        act_ch_mut.*.envn_pic = 0;
+        // Do not use MCAF_VOLENV in Zig port; envelope processing uses instrument flags directly
         // Ensure fade is non-zero before any volume computation on first ACHN update
         if (act_ch_mut.*.fade == 0) act_ch_mut.*.fade = 1024;
         // Ensure fade starts at full (1024) like original C core
@@ -688,16 +684,15 @@ pub export fn mmUpdateChannel_T0(arg_module_channel: [*c]mm_module_channel, arg_
         if (volume < 0) volume = 0;
         if (volume > 128) volume = 128;
         mpp_vars.afvol = @as(mm_byte, @intCast(volume));
+        // Mark this active channel as UPDATED (parity with C: first DISPAN sees UPDATED set)
+        act_ch_mut.*.flags |= @as(mm_byte, @intCast(MCAF_UPDATED));
         act_ch_mut.*.flags |= @as(mm_byte, @intCast(MCAF_START));
-        @import("gba").debug.print(
-            "[UCT0] computed period={d} tuning={d} freq={d}\n",
-            .{ @as(c_int, @intCast(module_channel.*.period)), @as(c_int, @intCast(tuning)), @as(c_int, @intCast(sample.*.frequency)) },
-        ) catch unreachable;
+        // No extra UCT0 debug in C reference
     }
 
     // Clear start flag and continue normal processing
     module_channel.*.flags = @as(mm_byte, @intCast(@as(c_int, @intCast(module_channel.*.flags)) & ~MF_START));
-    @import("gba").debug.print("[UCT0] -> TN\n", .{}) catch unreachable;
+    // No extra UCT0 debug in C reference
     mmUpdateChannel_TN(module_channel, mpp_layer);
 }
 pub export fn mmUpdateChannel_TN(arg_module_channel: [*c]mm_module_channel, arg_mpp_layer: [*c]mpl_layer_information) linksection(".iwram") void {
@@ -745,18 +740,7 @@ pub export fn mmUpdateChannel_TN(arg_module_channel: [*c]mm_module_channel, arg_
     act_ch.*.period = module_channel.*.period;
     mpp_vars.panplus = 0;
     act_ch.*.flags |= @as(mm_byte, @bitCast(@as(i8, @truncate(@as(c_int, 1) << @intCast(3)))));
-    @import("gba").debug.print(
-        "[UTN] vol={d} afvol={d} panning={d} period={d} tick={d} inst={d} sample={d}\n",
-        .{
-            @as(c_int, @intCast(volume)),
-            @as(c_int, @intCast(mpp_vars.afvol)),
-            @as(c_int, @intCast(act_ch.*.panning)),
-            @as(c_int, @intCast(period)),
-            @as(c_int, @intCast(mpp_layer.*.tick)),
-            @as(c_int, @intCast(act_ch.*.inst)),
-            @as(c_int, @intCast(act_ch.*.sample)),
-        },
-    ) catch unreachable;
+    // Omit UTN debug for parity with C
     period = mpp_Update_ACHN_notest(mpp_layer, act_ch, period, @as(mm_word, @bitCast(@as(c_uint, module_channel.*.alloc))));
 }
 pub export fn mmGetPeriod(arg_mpp_layer: [*c]mpl_layer_information, arg_tuning: mm_word, arg_note: mm_byte) linksection(".iwram") mm_word {
@@ -797,7 +781,7 @@ pub export fn mmReadPattern(arg_mpp_layer: [*c]mpl_layer_information) linksectio
     _ = &pattern;
     var update_bits: mm_word = 0;
     _ = &update_bits;
-    @import("gba").debug.print("[Z mmReadPattern] start pattread={x} pattread_p={x} nch={d} row={d}\n", .{
+    @import("gba").debug.print("[Z mmReadPattern] start pattread=0x{x} pattread_p=0x{x} nch={d} row={d}\n", .{
         @intFromPtr(mpp_layer.*.pattread),
         @intFromPtr(mpp_vars.pattread_p),
         @as(c_int, @intCast(mpp_nchannels)),
@@ -814,16 +798,16 @@ pub export fn mmReadPattern(arg_mpp_layer: [*c]mpl_layer_information) linksectio
             break :blk tmp;
         }).*;
         _ = &read_byte;
-        if (debug_detail) @import("gba").debug.print("[Z mmReadPattern] read_byte={x} at pos={x}\n", .{ @as(c_int, @intCast(read_byte)), @intFromPtr(pattern - 1) }) catch unreachable;
+        if (debug_detail) @import("gba").debug.print("[Z mmReadPattern] read_byte={x} at pos=0x{x}\n", .{ @as(c_int, @intCast(read_byte)), @intFromPtr(pattern - 1) }) catch unreachable;
         // Let the translated C code handle everything (including XM files)
         if ((@as(c_int, @bitCast(@as(c_uint, read_byte))) & @as(c_int, 127)) == @as(c_int, 0)) {
-            @import("gba").debug.print("[mmReadPattern] break: read_byte & 127 = 0\n", .{}) catch unreachable;
+            // No extra mmReadPattern break log in C reference
             break;
         }
         var pattern_flags: mm_word = 0;
         _ = &pattern_flags;
         const chan_calculation = (@as(c_int, @bitCast(@as(c_uint, read_byte))) & @as(c_int, 127)) - @as(c_int, 1);
-        if (debug_detail) @import("gba").debug.print("[Z mmReadPattern] chan_calc=(({x} & 127)-1)={d}\n", .{ @as(c_int, @intCast(read_byte)), chan_calculation }) catch unreachable;
+        if (debug_detail) @import("gba").debug.print("[Z mmReadPattern] chan_calc=(({x} & 127 0x7F 0x7F)-1)={d}\n", .{ @as(c_int, @intCast(read_byte)), chan_calculation }) catch unreachable;
         var chan_num: mm_byte = @as(mm_byte, @bitCast(@as(i8, @truncate(chan_calculation))));
         _ = &chan_num;
         if (@as(c_int, @bitCast(@as(c_uint, chan_num))) >= @as(c_int, @bitCast(@as(c_uint, mpp_nchannels)))) {
@@ -843,20 +827,17 @@ pub export fn mmReadPattern(arg_mpp_layer: [*c]mpl_layer_information) linksectio
         var module_channel: [*c]mm_module_channel = &module_channels[chan_num];
         _ = &module_channel;
         if ((@as(c_int, @bitCast(@as(c_uint, read_byte))) & (@as(c_int, 1) << @intCast(7))) != 0) {
-            if (debug_detail) @import("gba").debug.print("[Z mmReadPattern] reading cflags (bit7 in {x})\n", .{@as(c_int, @intCast(read_byte))}) catch unreachable;
             module_channel.*.cflags = (blk: {
                 const ref = &pattern;
                 const tmp = ref.*;
                 ref.* += 1;
                 break :blk tmp;
             }).*;
-            if (debug_detail) @import("gba").debug.print("[Z mmReadPattern] cflags={x} at pos={x}\n", .{ @as(c_int, @intCast(module_channel.*.cflags)), @intFromPtr(pattern - 1) }) catch unreachable;
+            if (debug_detail) @import("gba").debug.print("[Z mmReadPattern] cflags={x} at pos=0x{x}\n", .{ @as(c_int, @intCast(module_channel.*.cflags)), @intFromPtr(pattern - 1) }) catch unreachable;
         }
         var compr_flags: mm_word = @as(mm_word, @bitCast(@as(c_uint, module_channel.*.cflags)));
         _ = &compr_flags;
-        if (debug_detail) @import("gba").debug.print("[Z mmReadPattern] compr_flags={x}\n", .{@as(c_int, @intCast(compr_flags))}) catch unreachable;
         if ((compr_flags & @as(mm_word, @bitCast(@as(c_int, 1) << @intCast(0)))) != 0) {
-            if (debug_detail) @import("gba").debug.print("[Z mmReadPattern] reading note (bit0 in {x})\n", .{@as(c_int, @intCast(compr_flags))}) catch unreachable;
             var note: mm_byte = (blk: {
                 const ref = &pattern;
                 const tmp = ref.*;
@@ -864,7 +845,7 @@ pub export fn mmReadPattern(arg_mpp_layer: [*c]mpl_layer_information) linksectio
                 break :blk tmp;
             }).*;
             _ = &note;
-            if (debug_detail) @import("gba").debug.print("[Z mmReadPattern] note={x} at pos={x}\n", .{ @as(c_int, @intCast(note)), @intFromPtr(pattern - 1) }) catch unreachable;
+            if (debug_detail) @import("gba").debug.print("[Z mmReadPattern] note={x} at pos=0x{x}\n", .{ @as(c_int, @intCast(note)), @intFromPtr(pattern - 1) }) catch unreachable;
             if (@as(c_int, @bitCast(@as(c_uint, note))) == @as(c_int, 254)) {
                 pattern_flags |= @as(mm_word, @bitCast(@as(c_int, 128)));
             } else if (@as(c_int, @bitCast(@as(c_uint, note))) == @as(c_int, 255)) {
@@ -873,6 +854,8 @@ pub export fn mmReadPattern(arg_mpp_layer: [*c]mpl_layer_information) linksectio
                 module_channel.*.pnoter = note;
                 // Seed note used by T0. This mirrors C's decode state having note ready before T0.
                 module_channel.*.note = note;
+                // A valid note triggers a new start at T0
+                pattern_flags |= @as(mm_word, @bitCast(@as(c_int, 1)));
             }
         }
         if ((compr_flags & @as(mm_word, @bitCast(@as(c_int, 1) << @intCast(1)))) != 0) {
@@ -894,12 +877,7 @@ pub export fn mmReadPattern(arg_mpp_layer: [*c]mpl_layer_information) linksectio
                     pattern_flags |= @as(mm_word, @bitCast(@as(c_int, 16)));
                 }
                 module_channel.*.inst = instr;
-                @import("gba").debug.print(
-                    "[Z mmReadPattern] ch={d} set inst={d} (row={d})\n",
-                    .{ @as(c_int, @intCast(chan_num)), @as(c_int, @intCast(instr)), @as(c_int, @intCast(mpp_layer.*.row)) },
-                ) catch unreachable;
-            }
-        }
+            }        }
         if ((compr_flags & @as(mm_word, @bitCast(@as(c_int, 1) << @intCast(2)))) != 0) {
             module_channel.*.volcmd = (blk: {
                 const ref = &pattern;
@@ -909,7 +887,6 @@ pub export fn mmReadPattern(arg_mpp_layer: [*c]mpl_layer_information) linksectio
             }).*;
         }
         if ((compr_flags & @as(mm_word, @bitCast(@as(c_int, 1) << @intCast(3)))) != 0) {
-            if (debug_detail) @import("gba").debug.print("[Z mmReadPattern] reading eff+param (bit3 in {x})\n", .{@as(c_int, @intCast(compr_flags))}) catch unreachable;
             module_channel.*.effect = (blk: {
                 const ref = &pattern;
                 const tmp = ref.*;
@@ -922,14 +899,17 @@ pub export fn mmReadPattern(arg_mpp_layer: [*c]mpl_layer_information) linksectio
                 ref.* += 1;
                 break :blk tmp;
             }).*;
-            if (debug_detail) @import("gba").debug.print("[Z mmReadPattern] effect={x} param={x} at pos={x}\n", .{ @as(c_int, @intCast(module_channel.*.effect)), @as(c_int, @intCast(module_channel.*.param)), @intFromPtr(pattern - 2) }) catch unreachable;
+            if (debug_detail) @import("gba").debug.print("[Z mmReadPattern] effect={x:0>2} param={x:0>2} at pos=0x{x}\n", .{ @as(c_int, @intCast(module_channel.*.effect)), @as(c_int, @intCast(module_channel.*.param)), @intFromPtr(pattern - 2) }) catch unreachable;
         }
-        module_channel.*.flags = @as(mm_byte, @bitCast(@as(u8, @truncate(pattern_flags | (compr_flags >> @intCast(4))))));
-        if (debug_detail) @import("gba").debug.print("[Z mmReadPattern] end chan {d}, pattern now {x}\n", .{ @as(c_int, @intCast(chan_num)), @intFromPtr(pattern) }) catch unreachable;
+        // Map compressed field-presence bits into module_channel.flags upper nibble.
+        // Bit layout from C: note=1<<0, inst=1<<1, vol=1<<2, eff=1<<3;
+        // runtime flags expect these at bits 4..7. Use left shift by 4.
+        module_channel.*.flags = @as(mm_byte, @bitCast(@as(u8, @truncate(pattern_flags | (compr_flags << @intCast(4))))));
+        if (debug_detail) @import("gba").debug.print("[Z mmReadPattern] end chan {d}, pattern now 0x{x}\n", .{ @as(c_int, @intCast(chan_num)), @intFromPtr(pattern) }) catch unreachable;
     }
     mpp_layer.*.pattread = pattern;
     mpp_layer.*.mch_update = update_bits;
-    @import("gba").debug.print("[Z mmReadPattern] row end, pattread={x} update_bits={x}\n", .{ @intFromPtr(mpp_layer.*.pattread), @as(c_int, @intCast(update_bits)) }) catch unreachable;
+    @import("gba").debug.print("[Z mmReadPattern] row end, pattread=0x{x} update_bits={x}\n", .{ @intFromPtr(mpp_layer.*.pattread), @as(c_int, @intCast(update_bits)) }) catch unreachable;
     return 1;
 }
 pub extern fn mpp_Process_VolumeCommand([*c]mpl_layer_information, [*c]mm_active_channel, [*c]mm_module_channel, mm_word) mm_word;
@@ -1398,10 +1378,10 @@ pub fn mmChannelStartACHN(arg_module_channel: [*c]mm_module_channel, arg_active_
     if (@as(c_int, @bitCast(@as(c_uint, module_channel.*.inst))) == @as(c_int, 0)) return @as(mm_byte, @bitCast(@as(u8, @truncate(module_channel.*.bflags))));
     var instrument: *mm_mas_instrument = mpp_InstrumentPointer(mpp_layer, @as(mm_word, @bitCast(@as(c_uint, module_channel.*.inst)))) orelse unreachable;
     _ = &instrument;
-    // Extract packed notemap bitfield: low 15 bits offset, high bit invalid flag
-    const packed_nmap: mm_hword = instrument.*.note_map_offset;
-    const nm_off: usize = @as(usize, @intCast(packed_nmap & 0x7FFF));
-    const invalid_map: bool = ((packed_nmap & 0x8000) != 0);
+    // Translate-c exposes note_map_offset and is_note_map_invalid as separate fields.
+    // Use them directly to avoid bitfield packing mismatches.
+    const nm_off: usize = @as(usize, @intCast(instrument.*.note_map_offset));
+    const invalid_map: bool = (instrument.*.is_note_map_invalid != 0);
     // One-time detailed dump for mapping on first two channels at tick 0
     if (mpp_layer.*.tick == 0 and channel_counter < 2) {
         const inst_base_dbg: usize = @intFromPtr(instrument);
@@ -1409,6 +1389,18 @@ pub fn mmChannelStartACHN(arg_module_channel: [*c]mm_module_channel, arg_active_
         const idx_dbg: usize = @as(usize, @intCast(module_channel.*.pnoter));
         const map_ptr_dbg: [*]const mm_hword = @ptrFromInt(nm_ptr_dbg);
         const raw_entry_dbg: mm_hword = map_ptr_dbg[idx_dbg];
+        // Dump first 16 bytes of instrument to verify bitfield packing
+        const inst_bytes: [*]const u8 = @ptrFromInt(inst_base_dbg);
+        const b0: u8 = inst_bytes[0];  const b1: u8 = inst_bytes[1];
+        const b2: u8 = inst_bytes[2];  const b3: u8 = inst_bytes[3];
+        const b4: u8 = inst_bytes[4];  const b5: u8 = inst_bytes[5];
+        const b6: u8 = inst_bytes[6];  const b7: u8 = inst_bytes[7];
+        const b8: u8 = inst_bytes[8];  const b9: u8 = inst_bytes[9];
+        const b10: u8 = inst_bytes[10]; const b11: u8 = inst_bytes[11];
+        @import("gba").debug.print(
+            "[INST] ch={d} inst_ptr={x} bytes: {x:0>2} {x:0>2} {x:0>2} {x:0>2} {x:0>2} {x:0>2} {x:0>2} {x:0>2} nm_lo={x:0>2} nm_hi={x:0>2} res_lo={x:0>2} res_hi={x:0>2}\n",
+            .{ @as(c_int, @intCast(channel_counter)), inst_base_dbg, b0,b1,b2,b3,b4,b5,b6,b7,b8,b9,b10,b11 },
+        ) catch {};
         @import("gba").debug.print(
             "[MAPDBG] ch={d} inst_ptr={x} nmap_off={x} map_ptr={x} pnoter={d} entry={x} invalid={d}\n",
             .{ @as(c_int, @intCast(channel_counter)), inst_base_dbg, nm_off, nm_ptr_dbg, @as(c_int, @intCast(module_channel.*.pnoter)), @as(c_int, @intCast(raw_entry_dbg)), @as(c_int, @intCast(@intFromBool(invalid_map))) },
@@ -1421,11 +1413,14 @@ pub fn mmChannelStartACHN(arg_module_channel: [*c]mm_module_channel, arg_active_
         }
         module_channel.*.note = module_channel.*.pnoter;
     } else {
-        // Proper note map: 16-bit entries, low byte is note, high byte is sample index
+        // Proper note map: 16-bit little-endian entries, low byte is note, high byte is sample index.
+        // Avoid halfword-aligned loads because instrument/map can be at odd addresses in MAS.
         const inst_base: usize = @intFromPtr(instrument);
-        const map_ptr: [*]const mm_hword = @ptrFromInt(inst_base + nm_off);
+        const map_bytes: [*]const u8 = @ptrFromInt(inst_base + nm_off);
         const idx: usize = @as(usize, @intCast(module_channel.*.pnoter));
-        const entry: mm_hword = map_ptr[idx];
+        const lo: u16 = map_bytes[idx * 2];
+        const hi: u16 = map_bytes[idx * 2 + 1];
+        const entry: u16 = lo | (hi << 8);
         module_channel.*.note = @as(mm_byte, @intCast(entry & 0xFF));
         if (active_channel != null) {
             active_channel.*.sample = @as(mm_byte, @intCast((entry >> 8) & 0xFF));

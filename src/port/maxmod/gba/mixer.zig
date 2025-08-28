@@ -917,13 +917,7 @@ pub export fn mmMixerInit(arg_setup: [*c]mm_gba_system) void {
     @as([*c]volatile u16, @ptrFromInt(@as(c_int, 0x04000084))).* = 0x0080;
     // Enable sampling timer0 at mm_timerfreq
     @as([*c]volatile u32, @ptrFromInt(@as(c_int, 0x04000100))).* = mm_timerfreq | @as(mm_word, @bitCast(@as(c_int, 128) << @intCast(16)));
-    // Minimal diagnostics
-    @import("gba").debug.print("[mixer] init mixlen={d} ratescale={d} timerfreq={d} bpmdv={d}\n", .{ mm_mixlen, mm_ratescale, mm_timerfreq, mm_bpmdv }) catch unreachable;
-    const DMA1CNT_H: u32 = @as([*c]volatile u32, @ptrFromInt(@as(c_int, 0x040000C4))).*;
-    const DMA2CNT_H: u32 = @as([*c]volatile u32, @ptrFromInt(@as(c_int, 0x040000D0))).*;
-    const SOUNDCNT_H: u16 = @as([*c]volatile u16, @ptrFromInt(@as(c_int, 0x04000082))).*;
-    const SOUNDCNT_X: u16 = @as([*c]volatile u16, @ptrFromInt(@as(c_int, 0x04000084))).*;
-    @import("gba").debug.print("[mixer] DMA1={x} DMA2={x} SOUNDCNT_H={x} SOUNDCNT_X={x}\n", .{ DMA1CNT_H, DMA2CNT_H, SOUNDCNT_H, SOUNDCNT_X }) catch unreachable;
+    // No extra diagnostics here in C reference
 }
 pub extern fn mmMixerMix(samples_count: mm_word) void;
 // Expose the current mixer channel pointer so other modules can unify usage

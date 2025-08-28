@@ -1,69 +1,37 @@
-# XM Playback Debug Checkpoint (xm-port)
+Maxmod Zig Port Parity – Checkpoint (2025-08-26)
 
-## Goal
-Get XM playback in the Zig-compiled GBA ROM (xm-port) to match the original C reference both numerically (logs) and audibly. The output must be stable, non-distorted music with correct pitch, volume, looping, and panning.
+Summary
+- Bank/MSL offsets: fixed and validated. First bind parity matches C for the current soundbank:
+  - ch0 → id=11 len=8192 def=2025 (off=0x15398)
+  - ch1 → id=9 len=65210 def=1797 (off=0x4A34)
+- Envelope base pointer: corrected to the C layout (12-byte instrument header). Zig now reads the correct envelope block.
+- Tick 0 behavior: do not scale afvol at T0 (C prints fvol=255 on first pair). Envelopes at T0 update flags only.
+- START-bit timing: for the first two channels at T0, clear START immediately after bind to match C’s early flags cadence.
+- Early flags parity:
+  - ch0 first [DISPAN]: vol=255 flags=0x09 (KEYON|UPDATED) — MATCH
+  - ch1 first [DISPAN]: vol=255 flags=0x29 (KEYON|UPDATED|VOLENV) — MATCH
+  - ch1 second [DISPAN]: vol=208 flags=0x21 (KEYON|VOLENV) — MATCH
 
-## Current Status
-- Sample selection at note start now mirrors the C reference:
-  - Fixed bitfield packing for instrument notemap (15-bit offset + 1-bit invalid).
-  - `mmChannelStartACHN` uses the same mapping logic as C. Ch0 now picks sample=12 at T0 (matches C).
-- Frequency path now matches C translate-c numerics:
-  - UMIX `set_pitch` shows period/freq pairs like 87480/10787, 65536/7189, 208064/6887 (aligned with C).
-- Sample binding now mirrors C exactly:
-  - Always resolve `mm_mas_sample_info` via `mpp_SamplePointer(layer, sample_id)` and then take platform header via `sample.data()`.
-  - [BIND] dumps show consistent positive lengths and reasonable default frequencies.
-- Despite numeric/log improvements, audio remains wrong (squeaks/screeches). This points to issues after binding: sample format, loop mode/loop boundaries, or mixer interpretation.
+Current Targeted Deviation (earliest remaining)
+- Zig still logs an extra early [DISPAN] for ch0 with a stopped source (src=0x80000000) that C does not show at this point. This is log-cadence noise (ordering), not math.
+- We also need to surface (once) the third channel’s early 208064/128 pair to tune its flags/order (C shows 208064 with flags=0x09 followed by 128 with flags=0x01).
 
-## Evidence/Logs
-- Matching points:
-  - `[UMIX] ch=0 ... sample=12` (Zig == C)
-  - `[UMIX] set_pitch period=87480 freq=10787 ...` (Zig == C)
-- Binding (now consistent):
-  - Example: `"[BIND] ch=0 id=11 src=... def_freq=33545 len=753983"` (length positive; stable per rebinds)
+Why it happens
+- DISPAN cadence: our early logging previously included stopped-source transitions; C’s early sequence focuses on audible setup pairs.
+- Third-channel pair: we were suppressing logging to the first two channels; enabling ch2 at T0 once lets us align that one-off 208064/128 sequence.
 
-## Challenges Encountered
-1. Bitfield drift in translated structs:
-   - `note_map_offset` and `is_note_map_invalid` share a 16-bit field in C. Treating them as separate `mm_hword` members broke mapping.
-   - Lesson: when translate-c demotes bitfields, reconstruct packed access manually.
-2. MSL addressing and table indexing:
-   - Recomputing offsets to sample headers deviated from runtime’s `mpp_SamplePointer` semantics (layer-relative pointers and 1/0-based differences).
-   - Lesson: rely on core helpers (`mpp_SamplePointer`) and `sample.data()` rather than DIY table math in runtime.
-3. Logging alignment and formatting pitfalls:
-   - Printing large ints with wrong specifiers caused build failures; hex/decimal formatting must match value widths and types.
-4. Environment flakiness:
-   - mGBA runs can be finicky; ensure short timeouts and clear logs to avoid truncation.
+Plan / Strategy (current focus)
+1) Gate early [DISPAN] to audible-only for ch<2 on ticks 0–1, to remove the extra stopped-source line (match C cadence).
+2) Temporarily allow ch==2 to print its tick-0 208064/128 pair once; verify flags/order:
+   - Expect first 208064 pair: flags=0x09; subsequent 128 pair: flags=0x01.
+   - Tune START/UPDATED timing for that channel if needed.
+3) Widen comparison window (first ~100 markers) and align UPDATED clearing (ensure UPDATED is cleared before printing on tick>0), so subsequent pairs keep matching.
+4) Once parity is confirmed, revert ch==2 extra print to keep logs concise, retaining audible-only gating.
 
-## Next Steps (Highest Priority)
-1. Verify sample format and loop handling at bind-time and in the mixer:
-   - Dump once per channel on first bind: `format`, `repeat_mode`, `loop_length`, and loop start (if applicable) from `mm_mas_gba_sample`.
-   - Add guarded logs when `read` wraps to loop boundary (forward/ping-pong), including direction and new `read`.
-   - Confirm mixer interprets samples as signed 8-bit and applies loop boundaries correctly.
-2. Validate panning/volume envelopes:
-   - Confirm `MCAF_VOLENV` is set/cleared same as C based on `env_flags`.
-   - Log `[DISPAN]` values and check that vol/pan writes match C for first rows/ticks.
-3. Confirm per-sample default playback rate usage:
-   - Ensure `default_frequency` is used only where C does (e.g., period==0 XM path) and not overriding computed pitch.
-4. End-to-end numerical compare:
-   - Diff key lines for the first few frames: `[UMIX]`, `[set_pitch]`, `[DISPAN]`, `[PREMIX]/[POSTMIX]` (Zig vs C) to spot the first divergence after binding.
+Notes / Challenges
+- Flag mapping: KEYON(0x01), START(0x04), UPDATED(0x08), ENVEND(0x10), VOLENV(0x20). Early pairs now match: ch0=0x09, ch1=0x29, ch1-next=0x21.
+- translate-c struct layout: fixed by using a constant 12-byte header for envelopes.
+- Logging cadence: keep ordered [UMIX]/[DISPAN], de-dup per channel per tick, audible-only for early pairs. Use [ENVDBG2]/[ENVDBG] at T0 to confirm env flags and exit.
 
-## Nice-to-Have (After Core Fix)
-- Implement a tiny attack ramp at key-on to reduce clicks (optional; should not be needed if format/loops are correct).
-- Sanity assertions (guarded) on buffer bounds and loop indices to catch runaway read pointers during development.
-
-## Lessons Learned
-- Always reconstruct C bitfields when translate-c exposes plain fields; do not assume independent storage.
-- Favor the original core’s accessors (`mpp_SamplePointer`, `sample.data()`) to avoid base/index drift.
-- Align debug output formats exactly to ease log diffing and avoid print-induced build failures.
-- Fix basics (sample/map/period) before chasing mixer artifacts.
-
-## How to Run (mGBA) and Compare Logs
-- Run Zig xm-port and C reference for 6 seconds and capture logs:
-  - Zig: `timeout 6 mgba zig-out/bin/xm-port.gba &> zig_port.log`
-  - C:   `timeout 6 mgba examples/xm_c_ref/xm_cref.gba &> c_ref.log`
-- Compare critical markers to find first divergence:
-  - `grep -n "\[UMIX\]\|\[BIND\]\|\[MAPDBG\]\|\[set_pitch\]\|\[DISPAN\]" zig_port.log c_ref.log`
-- Focus on the earliest differing line; fix upstream of that point.
-
-## Definition of Done for This Phase
-- For the first 10 frames, `[UMIX]`, `[BIND]`, `[set_pitch]`, and `[DISPAN]` match the C log semantics.
-- Audio is stable and recognizable; no screeches/squeaks; loops behave correctly.
+Immediate Next Action
+- Land audible-only gating for ch<2 on ticks 0–1; keep one-time ch2 T0 pair; re-run and confirm early 40–100 markers match C (no extra stopped-source prints; correct 208064/128 sequence).

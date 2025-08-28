@@ -1,167 +1,33 @@
-# Maxmod-Zig
+This project is an attempt to port the C Maxmod/mmutil GBA sound library to Zig. We are focused on getting XM playback to be perfect and match the C reference. The strategy was to run the `zig translate-c` command on all required C files to meet this object. Those are the files in `src/port/` and the files in there are strictly to be used. We have a minimal `examples/xm_port` client to run the XM in the library.
 
-Pure Zig port of Maxmod (GBA/NDS audio library) and mmutil (audio conversion tool).
+The goal is to always identically match the C. We have a working `examples/xm_c_ref/` where we can build and run the C code.
 
-## Overview
+The strategy we employ is to add identical debug AGB prints to the C and Zig code at the same points in execution. We print important data about the playback. If the zig is different from the C at all, we investigate and fix the code causing this, resolving the discrepancy. The `maxmod` and `mmutil` source code is local and can be inspected to understand the semantics and intent. We are using bit-identical input data and have transpiled the same logic. We should be able to match the reference C data with 100% accuracy.
 
-This project ports the Maxmod audio library from C to Zig, maintaining compatibility with the original API while leveraging Zig's safety features and modern tooling.
+For the C:
+- build: make -C example/xm_c_ref clean && make -C example/xm_c_ref all
+- run : timeout 4.5 mgba examples/xm_c_ref/xm_cref.gba &> c.log
+- note: The prints in the C seem to slow it down so in the same amount of wall time, the C advances though less audio and less processing than the zig. this means you need to timeout longer on the C to get to the same place in playback. maybe there is another counter of sorts to use instead of guessing with time.
+For the Zig:
+- build: zig build xm-port
+- run: timeout 3.5 mgba zig-out/bin/xm-port.gba &> zig.log
 
-## Strategy Shift: Translate‑C for XM/MAS
+You are forbidden from running `git` commands. You do not need to capture build logs.
 
-We changed tactics for XM and MAS support:
+Your main task loop is thus the following:
+- Build and run both C and Zig, getting new logs
+- Review the logs, finding the earlier deviation
+- Fix the deviation in the Zig code
+- Build and run the Zig code to get a new log
+- Review the log to verify the deviation is resolved. if not resolved, go back to fixing the zig code.
+- Repeat
 
-- Use `zig translate-c` generated Zig to call the original mmutil C for XM loading and MAS writing.
-- Keep our existing Zig implementations for WAV→.mmraw and MOD→soundbank intact (do not replace MOD tooling).
-- Goal: produce MAS files that are byte‑identical to the reference C mmutil output.
+Ask permission to run commands in the sandbox using the codex prompt. When running the commands given for building and running, literally run what I instructed. Do not add export variables. Do not put into a script. Run the commands as given and get the elevated sandbox permissions to run them.
 
-What this means practically:
+The earlier the deviation found, the better. Solving these is of higher priority.
 
-- The host tool `mmutil-zig` acts as a thin Zig CLI wrapper that invokes the translated C routines:
-  - `Load_XM()` from mmutil’s `xm.c`
-  - `Write_MAS()` from mmutil’s `mas.c`
-  - File I/O (`files.c`) and helpers (`simple.c`) are also translated and linked.
-- A small Zig shim (`src/mmutil/tc/shim.zig`) exports globals (`MAS_FILESIZE`, `target_system`) expected by the C and selects the GBA path.
-- Runtime (GBA) stays in Zig; only the host conversion path for XM→MAS is using translate‑C.
+You must always ensure the zig builds with `zig build xm-port`.
 
-## Structure
+This has nothing to do with the mmutil folder. We generated the soundbank using the c based mmutil, guaranteeing that our input data is bit identical. you should only be working on files the in `src/port/` directory
 
-- **`src/maxmod_gba/`** - Zig implementation of Maxmod for GBA
-- **`src/mmutil/`** - Zig port of mmutil (WAV→.mmraw, MOD→soundbank)
-- **`examples/`** - Demo ROMs (SFX, MOD, XM playback)
-- **`maxmod/`** - Original C source (reference only)
-- **`mmutil/`** - Original C source (reference only)
-
-## Build
-
-```bash
-# Build SFX demo
-zig build sfx
-
-# Build MOD demo
-zig build mod
-
-# Build XM demo (stub)
-zig build xm
-
-# Build all
-zig build
-```
-
-### mmutil‑zig translate‑C usage
-
-- XM→MAS (using translated C):
-  - `zig build run -- input.xm --mas -o soundbank.bin`
-  - or `zig build run -- input.xm --xm -m -o soundbank.bin`
-- WAV→.mmraw (Zig path):
-  - `zig build run -- input.wav -o out.mmraw --rate 16000 --bps 8`
-- MOD→soundbank (Zig path):
-  - `zig build run -- input.mod --mod -o soundbank.bin`
-
-## Status
-
-- ✅ SFX playback (.mmraw files)
-- ✅ MOD playback with soundbank generation
-- 🔄 XM playback (stub only)
-- ✅ mmutil-zig tool (WAV→.mmraw, MOD→soundbank)
-
-The C sources in root directories are kept for reference and comparison during development.
-
-## XM Porting Guide
-
-### Phase 1: Independent Foundation Work (Can be done in parallel)
-
-#### Stream A: XM Parser (`src/mmutil/xm_processor.zig`)
-- [x] (Kept) Zig parser for experimentation and reference
-- [x] Translate‑C path preferred for production XM→MAS via original C
-
-#### Stream B: Build System Updates
-- [x] **XM→Soundbank (translate‑C)** - Wire `mmutil-zig` to translated C
-- [x] **Build Integration** - `build.zig` imports `tc_*` modules and shim
-- [ ] **Example Updates** - Update XM demo to exercise real MAS output
-
-#### Stream C: Runtime Foundation (`src/maxmod_gba/`)
-- [x] **XM Loader (Zig)** - Keep existing Zig runtime work
-- [ ] **Mode Flags** - Add XM mode support to player
-- [ ] **Basic Playback** - Get XM modules playing without effects
-
-### Phase 2: Integration & Advanced Features (Sequential)
-
-#### Integration Tasks
-- [ ] **Connect Parser to Loader** - Wire XM processor to runtime
-- [ ] **Soundbank Integration** - Load XM samples into player
-- [ ] **Pattern Playback** - Basic note/instrument playback
-
-#### Advanced Features (Sequential)
-- [ ] **XM Volume Commands** - Implement 0x10-0x9F range
-- [ ] **Effect System** - Convert XM effects to Maxmod effects
-- [ ] **Envelope Support** - Volume/panning/pitch envelopes
-- [ ] **Frequency Modes** - Linear vs Amiga frequency handling
-
-### Phase 3: Polish & Optimization
-- [ ] **Performance Tuning** - Optimize XM-specific code paths
-- [ ] **Memory Management** - Efficient XM data structures
-- [ ] **Error Handling** - Robust XM file validation
-- [ ] **Testing** - Comprehensive XM format coverage
-
-### Key Differences from MOD:
-- **Format**: Extended Module (XM) vs Protracker MOD
-- **Channels**: Variable (1-32) vs fixed (4/6/8)
-- **Effects**: XM-specific effect set vs MOD effects
-- **Frequency**: Linear vs Amiga frequency mode
-- **Instruments**: Multi-sample instruments vs single samples
-- **Envelopes**: Volume/panning/pitch envelopes vs none
-
-### Development Strategy:
-1. **Start with Streams A, B, C in parallel** - These are independent and can be developed simultaneously
-2. **Stream A (Parser) is highest priority** - Everything else depends on it
-3. **Stream B (Build) enables testing** - Get XM files into the system early
-4. **Stream C (Runtime) can be minimal initially** - Just enough to test parser output
-5. **Phase 2 integration** happens after all Phase 1 streams are complete
-6. **Advanced features** build incrementally on the foundation
-
-## MAS Porting Guide
-
-### Phase 1: Independent Foundation Work (Can be done in parallel)
-
-#### Stream A: mmutil Writer (translate‑C)
-- [x] Use translated `mas.c` directly via `Write_MAS()`
-- [x] Use translated `files.c`/`simple.c` glue for I/O and helpers
-- [x] CLI `-m/--mas` routes to translated path
-
-#### Stream B: Runtime Loader (`src/maxmod_gba/mas.zig`)
-- [x] Keep Zig runtime loader (no change)
-- [x] Structs/headers mirrored in Zig as before
-
-#### Stream C: Build System & Testing
-- [x] **build.zig Updates** – Import `tc_*` modules and shim for host tool
-- [ ] **Golden Files** – Compare against reference C mmutil output (byte‑identical)
-- [ ] **Example Demo** – Add `examples/mas/` ROM that plays a converted song
-
-### Phase 2: Integration & Compatibility (Sequential)
-- [ ] **Connect Writer ↔ Loader** – End-to-end pipeline from input module → MAS → playback
-- [ ] **Jingle Support** – Ensure MAS works for both main module and jingle layers
-- [ ] **Compatibility Validation** – Byte-for-byte comparison with original C output where possible
-
-### Phase 3: Optimization & Polish
-- [ ] **Performance Tuning** – Optimize hot paths (pattern decoding, mixing hooks)
-- [ ] **Memory Alignment** – Ensure word-aligned data structures for GBA IWRAM/EWRAM
-- [ ] **Error Handling** – Robust validation of MAS files in tool & runtime
-- [ ] **Documentation** – Update README/examples to cover MAS workflow
-
-### Key References
-- mmutil `source/mas.c`, `mas.h`
-- maxmod `source/core/mas.c`, `core/mas.h`
-- Existing Zig implementations for MOD & SFX as templates
-
-### Development Strategy
-1. **Translate‑C First for XM/MAS** – Use original C logic via generated Zig.
-2. **Zig for MOD/SFX** – Keep existing Zig implementations unchanged.
-3. **Golden Tests** – Verify byte‑identical MAS against reference C mmutil.
-4. **Runtime Unchanged** – Continue Zig runtime development; MAS is an input format.
-5. **Incremental Integration** – Land small, reviewable PRs per task.
-
-### Byte‑Identical MAS Target
-- Use only translated I/O (`files.c`) and MAS writer (`mas.c`) to avoid behavioral drift.
-- Set `target_system = 0` (GBA) in the shim to match GBA header/loop semantics.
-- Preserve alignment/padding (`BYTESMASHER` 0xBA) exactly as in C.
-- Validate with golden diffs: `shasum` equality and `cmp -l` on mismatch.
+Never create new log files. Overwrite the previous c.log or zig.log.

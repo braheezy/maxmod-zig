@@ -26,7 +26,8 @@ pub extern var mp_solution: [*c]core.msl_head;
 
 pub export var mmLayerMain: core.mpl_layer_information = .{};
 pub export var mmLayerSub: core.mpl_layer_information = .{};
-pub export var mpp_layerp: [*c]core.mpl_layer_information = &mmLayerMain;
+// Match C: mpp_layerp starts as null (set by mmFrame)
+pub export var mpp_layerp: [*c]core.mpl_layer_information = @ptrFromInt(0);
 pub export var mpp_vars: core.mpv_active_information = .{ .reserved = 0, .pattread_p = @ptrFromInt(0), .afvol = 0, .sampoff = 0, .volplus = 0, .notedelay = 0, .panplus = 0, .reserved2 = 0 };
 
 pub export var mpp_channels: [*c]core.mm_module_channel = @ptrFromInt(0);
@@ -51,21 +52,19 @@ pub export fn mmShimSetChannelMask(mask: u32) callconv(.C) void {
 extern fn mmUpdateChannel_TN(ch: [*c]core.mm_module_channel, layer: [*c]core.mpl_layer_information, channel_counter: core.mm_byte) callconv(.C) void;
 
 pub export fn mpp_Update_ACHN_notest(layer: [*c]core.mpl_layer_information, act_ch: [*c]core.mm_active_channel, period: core.mm_word, ch: core.mm_word) callconv(.c) core.mm_word {
-    // Follow the original Maxmod pipeline implemented in the translated core:
-    // 1) Bind/initialize mixer channel on start
-    // 2) Apply envelopes and auto-vibrato to compute new period
-    // 3) Compute mixer frequency and effective volume
-    // 4) Apply disable/panning logic and write volume/pan to mixer
-
-    const mix_ch: [*c]core.mm_mixer_channel = core.mpp_Update_ACHN_notest_update_mix(layer, act_ch, ch);
+    // Match C ordering exactly:
+    // 1) Envelopes -> updated period/afv/fade (instrument must be valid)
+    // 2) Auto vibrato -> updated period (sample must be valid or skip)
+    // 3) Update/bind mixer (on START)
+    // 4) Set pitch + volume
+    // 5) Disable/panning
 
     var new_period: core.mm_word = period;
     new_period = core.mpp_Update_ACHN_notest_envelopes(layer, act_ch, new_period);
     new_period = core.mpp_Update_ACHN_notest_auto_vibrato(layer, act_ch, new_period);
-
+    const mix_ch: [*c]core.mm_mixer_channel = core.mpp_Update_ACHN_notest_update_mix(layer, act_ch, ch);
     const clipped_vol: core.mm_word = core.mpp_Update_ACHN_notest_set_pitch_volume(layer, act_ch, new_period, mix_ch);
     core.mpp_Update_ACHN_notest_disable_and_panning(clipped_vol, act_ch, mix_ch);
-
     return new_period;
 }
 
@@ -122,13 +121,12 @@ pub export fn mpp_Update_ACHN_notest_update_mix(layer: [*c]core.mpl_layer_inform
     if (act_ch.*.sample == 0) return mix_ch;
 
     const sample: [*c]core.mm_mas_sample_info = core.mpp_SamplePointer(layer, @as(core.mm_word, @intCast(act_ch.*.sample)));
-
-    // Provided sample directly in MAS stream (0xFFFF)
-    if (sample.*.msl_id == @as(c_ushort, 0xFFFF)) {
-        const gba_sample: *core.mm_mas_gba_sample = @ptrCast(@alignCast(sample.*.data()));
-        mix_ch.*.src = @intFromPtr(gba_sample.data());
-        gba.debug.print("GBA sample bound ch={d} src={x} len={d} freq={d}\n", .{ channel, mix_ch.*.src, gba_sample.length, gba_sample.default_frequency }) catch unreachable;
-    }
+    // Bind from the sample's platform header regardless of MSL; the MAS writer
+    // ensures data() points at the correct header for GBA.
+    const gba_sample: *core.mm_mas_gba_sample = @ptrCast(@alignCast(sample.*.data()));
+    mix_ch.*.src = @intFromPtr(gba_sample.data());
+    // Optional: uncomment for verbose bind logs
+    // gba.debug.print("[BIND] ch={d} id={d} src={x} def_freq={d} len={d}\n", .{ channel, sample.*.msl_id, mix_ch.*.src, gba_sample.default_frequency, gba_sample.length }) catch unreachable;
 
     // Initialize read position from sampoff (done only at start)
     mix_ch.*.read = @as(core.mm_word, @intCast(@as(u32, core.mpp_vars.sampoff))) << (core.MP_SAMPFRAC + 8);

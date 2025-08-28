@@ -624,7 +624,7 @@ pub const MM_MIXLEN_27KHZ: c_int = 1792;
 pub const MM_MIXLEN_31KHZ: c_int = 2112;
 pub const mm_mixlen_enum = c_uint;
 pub export fn mmInitDefault(arg_soundbank: mm_addr, arg_number_of_channels: mm_word) bool {
-    @import("gba").debug.print("[mmInitDefault] soundbank={x} nch={d}\n", .{ @intFromPtr(arg_soundbank), arg_number_of_channels }) catch unreachable;
+    @import("gba").debug.print("[mmInitDefault] soundbank=0x{x} nch={d}\n", .{ @intFromPtr(arg_soundbank), arg_number_of_channels }) catch unreachable;
     var soundbank = arg_soundbank;
     _ = &soundbank;
     var number_of_channels = arg_number_of_channels;
@@ -666,10 +666,6 @@ pub export fn mmInitDefault(arg_soundbank: mm_addr, arg_number_of_channels: mm_w
         return @as(c_int, 0) != 0;
     }
     @import("gba").debug.print("[mmInitDefault] done mm_mixlen={d}\n", .{mm_mixlen}) catch unreachable;
-    @import("gba").debug.print(
-        "[mmInitDefault] moduleCount={d} sampleCount={d}\n",
-        .{ @as(c_int, @intCast(mm_module_count_u16)), @as(c_int, @intCast(mm_sample_count_u16)) },
-    ) catch unreachable;
     return @as(c_int, 1) != 0;
 }
 // MSL head data (exactly like C): 2x u16, then 4-byte padding to align tables
@@ -758,7 +754,7 @@ pub export fn mmInit(arg_setup: [*c]mm_gba_system) bool {
     parseBankPointers(mm_bank_base);
     // Point mp_solution to head_data base (without prefix) for any legacy users
     mp_solution = @constCast(@ptrCast(@alignCast(mm_bank_base + mm_head_off)));
-    @import("gba").debug.print("[mmInit] mp_solution={x} sampleCount={d} moduleCount={d}\n", .{ @intFromPtr(mp_solution), @as(c_int, @intCast(mm_sample_count_u16)), @as(c_int, @intCast(mm_module_count_u16)) }) catch unreachable;
+    @import("gba").debug.print("[mmInit] mp_solution=0x{x} sampleCount={d} moduleCount={d}\n", .{ @intFromPtr(mp_solution), @as(c_int, @intCast(mm_sample_count_u16)), @as(c_int, @intCast(mm_module_count_u16)) }) catch unreachable;
     mmSampleCount = @as(mm_word, @intCast(mm_sample_count_u16));
     mmModuleCount = @as(mm_word, @intCast(mm_module_count_u16));
     mm_achannels = @as([*c]mm_active_channel, @ptrCast(@alignCast(setup.*.active_channels)));
@@ -776,15 +772,14 @@ pub export fn mmInit(arg_setup: [*c]mm_gba_system) bool {
     const ch_base: usize = @intFromPtr(mm_mix_channels);
     const ch_end: usize = @intFromPtr(mm_mixch_end);
     const ch_bytes: usize = if (ch_end > ch_base) ch_end - ch_base else 0;
-    const ch_count: usize = if (@sizeOf(mm_mixer_channel) != 0) ch_bytes / @sizeOf(mm_mixer_channel) else 0;
-    @import("gba").debug.print("[mmInit] mix_ch base={x} end={x} bytes={d} count={d}\n", .{ ch_base, ch_end, @as(c_int, @intCast(ch_bytes)), @as(c_int, @intCast(ch_count)) }) catch unreachable;
+    _ = ch_bytes; // silence unused in release
+    // Log parity with C reference
     @import("gba").debug.print("[mmInit] mmMixerInit done, mm_num_mch={d} mm_num_ach={d} mm_mixlen={d}\n", .{ mm_num_mch, mm_num_ach, mm_mixlen }) catch unreachable;
     // Build channel mask safely for up to 32 channels
     // Avoid undefined shift when mm_num_ach == 32 on 32-bit types
     // Match C: mm_ch_mask = (1U << mm_num_ach) - 1; (32 -> 0xFFFF_FFFF)
     const nch: u32 = @intCast(mm_num_ach);
     mm_ch_mask = if (nch >= 32) 0xFFFF_FFFF else ((@as(u32, 1) << @intCast(nch)) - 1);
-    @import("gba").debug.print("[mmInit] mm_ch_mask={x} (nch={d})\n", .{ @as(c_uint, mm_ch_mask), @as(c_int, @intCast(mm_num_ach)) }) catch unreachable;
     // Propagate to the shared shim symbol (same global)
     mmShimSetChannelMask(mm_ch_mask);
     mmSetModuleVolume(@as(mm_word, @bitCast(@as(c_int, 1024))));
@@ -808,28 +803,31 @@ pub export fn mmEnd() bool {
 pub extern fn mmVBlank() void;
 pub extern fn mmSetVBlankHandler(function: mm_voidfunc) void;
 pub extern fn mmSetEventHandler(handler: mm_callback) void;
-var g_postmix_budget: u32 = 64;
-var g_premix_budget: u32 = 64;
+var g_postmix_budget: u32 = 0;
+var g_premix_budget: u32 = 0;
 pub export fn mmFrame() void {
     if (!mm_initialized) return;
     const dbg_frame_detail = false;
+    // Update effects and sublayer first to mirror C reference ordering
+    mmUpdateEffects();
+    mppUpdateSub();
     @import("gba").debug.print(
-        "[mmFrame] enter mixlen={d} isplaying={d} valid={d} mode={d} flags={x} tickrate={d} row={d} main_ptr={x} sub_ptr={x} mpp={x}\n",
+        "[mmFrame] enter mixlen={d} isplaying={d} valid={d} mode={d} flags={x} tickrate={d} row={d} main_ptr=0x{x} sub_ptr=0x{x} mpp=0x{x}\n",
         .{
             mm_mixlen,
-            @as(c_int, @intCast(mpp_layerp.*.isplaying)),
-            @as(c_int, @intCast(mpp_layerp.*.valid)),
-            @as(c_int, @intCast(mpp_layerp.*.mode)),
-            @as(c_int, @intCast(mpp_layerp.*.flags)),
-            @as(c_int, @intCast(mpp_layerp.*.tickrate)),
-            @as(c_int, @intCast(mpp_layerp.*.row)),
+            @as(c_int, @intCast(mmLayerMain.isplaying)),
+            @as(c_int, @intCast(mmLayerMain.valid)),
+            @as(c_int, @intCast(mmLayerMain.mode)),
+            @as(c_int, @intCast(mmLayerMain.flags)),
+            @as(c_int, @intCast(mmLayerMain.tickrate)),
+            @as(c_int, @intCast(mmLayerMain.row)),
             @intFromPtr(&mmLayerMain),
             @intFromPtr(&mmLayerSub),
             @intFromPtr(mpp_layerp),
         },
     ) catch unreachable;
     // Do not coerce flags; rely on real state like the C reference
-    if (mpp_layerp.*.valid == 0) {
+    if (mmLayerMain.valid == 0) {
         @import("gba").debug.print(
             "[mmFrame] main(isply={d},valid={d}) sub(isply={d},valid={d})\n",
             .{

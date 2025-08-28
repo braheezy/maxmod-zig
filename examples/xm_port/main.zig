@@ -11,7 +11,7 @@ const mm_port_shim = @import("mm_port_shim");
 
 export var header linksection(".gbaheader") = gba.initHeader("XMPRT", "XMPT", "00", 0);
 
-const bank_data: []const u8 = @embedFile("soundbank.bin");
+var bank_data: []const u8 = @embedFile("soundbank.bin");
 
 fn vblank_isr() void {
     mm_port_gba_mixer.mmVBlank();
@@ -29,7 +29,7 @@ export fn main() void {
     }
     gba.interrupt.init();
     gba.debug.init();
-    gba.debug.print("[main] start xm-port demo\n", .{}) catch unreachable;
+    // Prune noisy prints to keep emulation fast
 
     // Basic display so we know it's alive
     gba.display.ctrl.* = gba.display.Control{ .bg2 = .enable, .mode = .mode3 };
@@ -38,44 +38,57 @@ export fn main() void {
     REG_SOUNDBIAS.* = 0x200;
     // Register Maxmod VBlank handler and enable VBlank IRQ
     _ = gba.interrupt.add(.vblank, vblank_isr);
-    gba.debug.print("[main] registered VBlank IRQ handler mmVBlank()\n", .{}) catch unreachable;
 
     // Initialize Maxmod from bank and start module 0
-    gba.debug.print("[main] bank_data.len={d}\n", .{bank_data.len}) catch unreachable;
     const bank_ptr: usize = @intFromPtr(&bank_data[0]);
-    gba.debug.print("[main] bank_ptr={x}\n", .{bank_ptr}) catch unreachable;
+    _ = bank_ptr; // silence unused after print pruning
     // Match C reference (CHANNELS = 32)
-    _ = mm_port_core_mas.mmInitDefault(@ptrFromInt(bank_ptr), 32);
+    _ = mm_port_core_mas.mmInitDefault(@ptrCast(@constCast(&bank_data[0])), 32);
     // Hardcode soundbank.h metadata (module ID 0 == MOD_BAD_APPLE)
     mm_port_core_mas.mmSetModuleVolume(0x400);
     mm_port_core_mas.mmSetEffectsVolume(0x400);
-    gba.debug.print("[main] mmInitDefault() done; mm_mixlen={d}\n", .{mm_port_shim.mm_mixlen}) catch unreachable;
+    // gba.debug.print("[main] mmInitDefault() done; mm_mixlen={d}\n", .{mm_port_shim.mm_mixlen}) catch unreachable;
 
     const module_count = mm_port_core_mas.mmGetModuleCount();
-    gba.debug.print("[main] module_count={d}\n", .{module_count}) catch unreachable;
+    _ = module_count; // silence unused after print pruning
     // Correct start path: resolve MAS from bank via mmStart (MM_PLAY_LOOP = 0)
-    gba.debug.print("[main] mmStart(0, MM_PLAY_LOOP)\n", .{}) catch unreachable;
     mm_port_core_mas.mmStart(0, 0); // MOD_BAD_APPLE=0, MM_PLAY_LOOP=0
     // No artificial warm-up in the C example; proceed immediately
 
     var frame_count: u32 = 0;
     while (true) {
         // Mix and service VBlank each frame
-        if (frame_count < 10 or (frame_count % 300) == 0) {
-            gba.debug.print("[main] frame {d} mmFrame()\n", .{frame_count}) catch unreachable;
-        }
-        // no-op at frame 5; rely on mmStart path
-        // Do not force flags; match C reference behavior exactly
+        // Frame update
         mm_port_core_mas.mmFrame();
+        // Focused check near suspected static rows: dump first 4 mixer channels at rows 20..22
+        {
+            const row: u32 = mm_port_gba_mixer.mmGetPositionRow();
+            if (row >= 20 and row <= 22) {
+                const CDbgMix = extern struct { src: u32, read: u32, freq: u16, vol: u8, pan: u8 };
+                const base_ptr: [*]const CDbgMix = @ptrCast(mm_port_gba_mixer.mm_get_mix_channels_ptr());
+                var i: usize = 0;
+                while (i < 4) : (i += 1) {
+                    const c = base_ptr[i];
+                    gba.debug.print("[C MIX] i={d} src={x} read={d} freq={d} vol={d} pan={d}\n", .{ i, c.src, c.read, c.freq, c.vol, c.pan }) catch unreachable;
+                }
+                // Focused RATEC on channel 2
+                const c2 = base_ptr[2];
+                const rs = mm_port_gba_mixer.mm_ratescale;
+                if (rs != 0) {
+                    const rate_est: u32 = (@as(u32, c2.freq) << 10) / rs;
+                    gba.debug.print("[RATEC] ch=2 freq={d} ratescale={d} rate_est={d}\n", .{ @as(u32, c2.freq), rs, rate_est }) catch unreachable;
+                }
+            }
+        }
         // Mirror C reference: dump first 4 mixer channels after mmFrame()
-        // C example uses a different (wrong) struct layout: {src,u32; read,u32; freq,u16; vol,u8; pan,u8}
-        // Use the same layout here so numbers match exactly.
-        if (frame_count < 4) {
-            const WrongCMix = extern struct { src: u32, read: u32, freq: u16, vol: u8, pan: u8 };
-            const ch_wrong: [*]const WrongCMix = @ptrCast(mm_port_gba_mixer.mm_get_mix_channels_ptr());
+        // Treat memory as the same faux C layout used by the C demo:
+        // struct { u32 src; u32 read; u16 freq; u8 vol; u8 pan; }
+        if (false and frame_count < 4) {
+            const CDbgMix = extern struct { src: u32, read: u32, freq: u16, vol: u8, pan: u8 };
+            const base_ptr: [*]const CDbgMix = @ptrCast(mm_port_gba_mixer.mm_get_mix_channels_ptr());
             var i: usize = 0;
             while (i < 4) : (i += 1) {
-                const c = ch_wrong[i];
+                const c = base_ptr[i];
                 gba.debug.print(
                     "[C MIX] i={d} src={x} read={d} freq={d} vol={d} pan={d}\n",
                     .{ i, c.src, c.read, c.freq, c.vol, c.pan },
@@ -87,9 +100,7 @@ export fn main() void {
                 }
             }
         }
-        if (frame_count < 10 or (frame_count % 300) == 0) {
-            gba.debug.print("[main] frame {d} mmVBlank()\n", .{frame_count}) catch unreachable;
-        }
+        // Prune per-frame prints
         // Let IRQ call mmVBlank() and wait for VBlank like C reference
         gba.display.vSync();
         frame_count += 1;

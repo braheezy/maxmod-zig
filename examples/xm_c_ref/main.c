@@ -43,11 +43,9 @@ int main(void) {
     const unsigned bank_len = (unsigned)((uintptr_t)&_binary_soundbank_bin_end - (uintptr_t)_binary_soundbank_bin_start);
 
     // Initialize Maxmod with defaults (match Zig logs)
-    mgba_printf("[main] start xm-port demo\n");
-    agb_printf("[main] bank_data.len=%u\n", bank_len);
-    agb_printf("[main] bank_ptr=%x\n", (unsigned)(uintptr_t)sb);
+    // Prune noisy prints to keep emulation fast
     mmInitDefault((mm_addr)sb, CHANNELS);
-    mgba_printf("[main] mmInitDefault() done; mm_mixlen=%u\n", (unsigned)mm_mixlen);
+    // mgba_printf("[main] mmInitDefault() done; mm_mixlen=%u\n", (unsigned)mm_mixlen);
 
     // Ensure sane defaults in case the soundbank header was empty
     mmSetModuleVolume(0x400);
@@ -55,8 +53,8 @@ int main(void) {
     // Do not override module tempo/pitch unless needed
 
     // Module count and start (match Zig logs)
-    mgba_printf("[main] module_count=%u\n", (unsigned)mmGetModuleCount());
-    mgba_printf("[main] mmStart(0, MM_PLAY_LOOP)\n");
+    // mgba_printf("[main] module_count=%u\n", (unsigned)mmGetModuleCount());
+    // mgba_printf("[main] mmStart(0, MM_PLAY_LOOP)\n");
     mmStart(MOD_BAD_APPLE, MM_PLAY_LOOP);
 
     // Use tempo/pitch from MAS header (don't override)
@@ -67,12 +65,31 @@ int main(void) {
     unsigned frame_count = 0;
     while (1) {
         // Update Maxmod first so DMA has fresh data by VBlank
-        if (frame_count < 10 || (frame_count % 300) == 0) {
-            mgba_printf("[main] frame %u mmFrame()\n", frame_count);
-        }
+        // Frame update
         mmFrame();
+        // Focused check near suspected static rows: dump first 4 mixer channels at rows 20..22
+        {
+            mm_word row = mmGetPositionRow();
+            if (row >= 20 && row <= 22) {
+                extern volatile unsigned int mm_mix_channels;
+                extern unsigned int mm_ratescale;
+                typedef struct { unsigned int src; unsigned int read; unsigned short freq; unsigned char vol; unsigned char pan; } mm_mixer_channel;
+                mm_mixer_channel* ch = (mm_mixer_channel*)(mm_mix_channels);
+                unsigned i;
+                for (i = 0; i < 4; ++i) {
+                    mm_mixer_channel* c = &ch[i];
+                    mgba_printf("[C MIX] i=%u src=%x read=%u freq=%u vol=%u pan=%u\n", i, c->src, c->read, c->freq, c->vol, c->pan);
+                }
+                // Focused RATEC on channel 2
+                mm_mixer_channel* c2 = &ch[2];
+                if (mm_ratescale) {
+                    unsigned int rate_est = ((unsigned int)c2->freq << 10) / mm_ratescale;
+                    mgba_printf("[RATEC] ch=2 freq=%u ratescale=%u rate_est=%u\n", (unsigned)c2->freq, (unsigned)mm_ratescale, rate_est);
+                }
+            }
+        }
         // Early mixer snapshot for first few frames, to compare with Zig
-        if (frame_count < 4) {
+        if (0 && frame_count < 4) {
             extern volatile unsigned int mm_mix_channels;
             extern unsigned int mm_ratescale;
             typedef struct { unsigned int src; unsigned int read; unsigned short freq; unsigned char vol; unsigned char pan; } mm_mixer_channel;
@@ -88,9 +105,7 @@ int main(void) {
                 }
             }
         }
-        if (frame_count < 10 || (frame_count % 300) == 0) {
-            mgba_printf("[main] frame %u mmVBlank()\n", frame_count);
-        }
+        // Prune per-frame prints
         VBlankIntrWait();
         *vid = col;
         col ^= 0x7FFF; // toggle

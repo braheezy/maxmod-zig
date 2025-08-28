@@ -628,7 +628,11 @@ pub const struct_tmslhead = extern struct {
     pub fn sampleTable(self: anytype) @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), ?*anyopaque) {
         const Intermediate = @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), u8);
         const ReturnType = @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), ?*anyopaque);
-        return @as(ReturnType, @ptrCast(@alignCast(@as(Intermediate, @ptrCast(self)) + 12)));
+        // In the GBA path used by our port, mp_solution points just after the
+        // 8-byte MAS prefix, so the sample table starts at base+8.
+        // Verified against logs: the first u32 at base+8 equals the first
+        // entry we expect (0x298), and indexing aligns with C when using +8.
+        return @as(ReturnType, @ptrCast(@alignCast(@as(Intermediate, @ptrCast(self)) + 8)));
     }
 };
 pub const msl_head = struct_tmslhead;
