@@ -63,52 +63,55 @@ int main(void) {
     volatile u16 *vid = (u16*)0x06000000;
     u16 col = 0x7FFF; // white BGR15
     unsigned frame_count = 0;
+    mm_word prev_pos = 0xFFFF;
+    mm_word prev_row = 0xFFFF;
+    mm_word prev_tick = 0xFFFF;
+    mm_word prev_order = 0xFFFF;
+    unsigned row_log_budget = 24; // bump budget to see first two patterns
+    unsigned order_log_budget = 20; // track order changes
+    unsigned early_mix_budget = 50; // early mixer state
     while (1) {
         // Update Maxmod first so DMA has fresh data by VBlank
-        // Frame update
         mmFrame();
-        // Focused check near suspected static rows: dump first 4 mixer channels at rows 20..22
-        {
+
+        // Comprehensive telemetry: position, order, and early mixer state
+        if (row_log_budget > 0 || order_log_budget > 0 || early_mix_budget > 0) {
+            mm_word pos = mmGetPosition();
             mm_word row = mmGetPositionRow();
-            if (row >= 20 && row <= 22) {
-                extern volatile unsigned int mm_mix_channels;
-                extern unsigned int mm_ratescale;
-                typedef struct { unsigned int src; unsigned int read; unsigned short freq; unsigned char vol; unsigned char pan; } mm_mixer_channel;
-                mm_mixer_channel* ch = (mm_mixer_channel*)(mm_mix_channels);
-                unsigned i;
-                for (i = 0; i < 4; ++i) {
-                    mm_mixer_channel* c = &ch[i];
-                    mgba_printf("[C MIX] i=%u src=%x read=%u freq=%u vol=%u pan=%u\n", i, c->src, c->read, c->freq, c->vol, c->pan);
-                }
-                // Focused RATEC on channel 2
-                mm_mixer_channel* c2 = &ch[2];
-                if (mm_ratescale) {
-                    unsigned int rate_est = ((unsigned int)c2->freq << 10) / mm_ratescale;
-                    mgba_printf("[RATEC] ch=2 freq=%u ratescale=%u rate_est=%u\n", (unsigned)c2->freq, (unsigned)mm_ratescale, rate_est);
-                }
+            mm_word tick = mmGetPositionTick();
+            mm_word order = mmGetPosition() >> 16; // extract order from position
+
+            // Position logging at tick==0
+            if (tick == 0 && row != prev_row && row_log_budget > 0) {
+                mgba_printf("[POS] pos=%u row=%u tick=%u mixlen=%u\n", (unsigned)pos, (unsigned)row, (unsigned)tick, (unsigned)mm_mixlen);
+                prev_pos = pos;
+                prev_row = row;
+                prev_tick = tick;
+                row_log_budget -= 1;
+            } else {
+                prev_pos = pos;
+                prev_row = row;
+                prev_tick = tick;
+            }
+
+            // Order change logging
+            if (order != prev_order && order_log_budget > 0) {
+                mgba_printf("[ORDER] order=%u pos=%u row=%u tick=%u\n", (unsigned)order, (unsigned)pos, (unsigned)row, (unsigned)tick);
+                prev_order = order;
+                order_log_budget -= 1;
+            }
+
+            // Early mixer state logging (first few frames)
+            if (early_mix_budget > 0 && frame_count < 10) {
+                mgba_printf("[EARLY] frame=%u pos=%u row=%u tick=%u order=%u\n", (unsigned)frame_count, (unsigned)pos, (unsigned)row, (unsigned)tick, (unsigned)order);
+                early_mix_budget -= 1;
             }
         }
-        // Early mixer snapshot for first few frames, to compare with Zig
-        if (0 && frame_count < 4) {
-            extern volatile unsigned int mm_mix_channels;
-            extern unsigned int mm_ratescale;
-            typedef struct { unsigned int src; unsigned int read; unsigned short freq; unsigned char vol; unsigned char pan; } mm_mixer_channel;
-            mm_mixer_channel* ch = (mm_mixer_channel*)(mm_mix_channels);
-            unsigned i;
-            for (i = 0; i < 4; ++i) {
-                mm_mixer_channel* c = &ch[i];
-                mgba_printf("[C MIX] i=%u src=%x read=%u freq=%u vol=%u pan=%u\n", i, c->src, c->read, c->freq, c->vol, c->pan);
-                if (mm_ratescale) {
-                    // Estimate pre-scale rate written by set_pitch: rate ~= (freq << 10) / mm_ratescale
-                    unsigned int rate_est = ((unsigned int)c->freq << 10) / mm_ratescale;
-                    mgba_printf("[C RATE] i=%u rate_est=%u ratescale=%u\n", i, rate_est, mm_ratescale);
-                }
-            }
-        }
-        // Prune per-frame prints
-        VBlankIntrWait();
+
+        // Toggle pixel and wait for VBlank
         *vid = col;
         col ^= 0x7FFF; // toggle
+        VBlankIntrWait();
         frame_count += 1;
     }
 }

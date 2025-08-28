@@ -188,6 +188,15 @@ pub const struct___sbuf = extern struct {
     _base: [*c]u8 = @import("std").mem.zeroes([*c]u8),
     _size: c_int = @import("std").mem.zeroes(c_int),
 };
+// Debug configuration - can be toggled at build time
+const debug_enabled = @import("builtin").mode == .Debug;
+
+// Debug printing helper that can be compiled out
+inline fn debugPrint(comptime fmt: []const u8, args: anytype) void {
+    if (debug_enabled) {
+        @import("gba").debug.print(fmt, args) catch {};
+    }
+}
 pub const struct___sFILE = extern struct {
     _p: [*c]u8 = @import("std").mem.zeroes([*c]u8),
     _r: c_int = @import("std").mem.zeroes(c_int),
@@ -933,6 +942,10 @@ pub export fn mmMixerSetRead(arg_channel: c_int, arg_value: mm_word) void {
         const tmp = channel;
         if (tmp >= 0) break :blk mm_mix_channels + @as(usize, @intCast(tmp)) else break :blk mm_mix_channels - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
     }).*.read = value;
+    if ((channel == 0 or channel == 1 or channel == 9) and g_set_debug_budget > 0) {
+        @import("gba").debug.print("[SETREAD] ch={d} v={d}\n", .{ channel, value }) catch {};
+        g_set_debug_budget -= 1;
+    }
 }
 pub export fn mmMixerEnd() void {
     @as([*c]volatile u16, @ptrFromInt(@as(c_int, 67108994))).* = 0;
@@ -959,6 +972,10 @@ pub export fn mmMixerSetVolume(arg_channel: c_int, arg_volume: mm_word) void {
         const tmp = channel;
         if (tmp >= 0) break :blk mm_mix_channels + @as(usize, @intCast(tmp)) else break :blk mm_mix_channels - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
     }).*.vol = @as(mm_byte, @bitCast(@as(u8, @truncate(volume))));
+    if ((channel == 0 or channel == 1 or channel == 9) and g_set_debug_budget > 0) {
+        @import("gba").debug.print("[SETVOL] ch={d} v={d}\n", .{ channel, volume }) catch {};
+        g_set_debug_budget -= 1;
+    }
 }
 pub export fn mmMixerSetPan(arg_channel: c_int, arg_panning: mm_byte) void {
     var channel = arg_channel;
@@ -969,6 +986,10 @@ pub export fn mmMixerSetPan(arg_channel: c_int, arg_panning: mm_byte) void {
         const tmp = channel;
         if (tmp >= 0) break :blk mm_mix_channels + @as(usize, @intCast(tmp)) else break :blk mm_mix_channels - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
     }).*.pan = panning;
+    if ((channel == 0 or channel == 1 or channel == 9) and g_set_debug_budget > 0) {
+        @import("gba").debug.print("[SETPAN] ch={d} v={d}\n", .{ channel, panning }) catch {};
+        g_set_debug_budget -= 1;
+    }
 }
 pub export fn mmMixerMulFreq(arg_channel: c_int, arg_factor: mm_word) void {
     var channel = arg_channel;
@@ -985,6 +1006,10 @@ pub export fn mmMixerMulFreq(arg_channel: c_int, arg_factor: mm_word) void {
         const tmp = channel;
         if (tmp >= 0) break :blk mm_mix_channels + @as(usize, @intCast(tmp)) else break :blk mm_mix_channels - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
     }).*.freq = freq;
+    if ((channel == 0 or channel == 1 or channel == 9) and g_set_debug_budget > 0) {
+        @import("gba").debug.print("[MULFREQ] ch={d} v={d}\n", .{ channel, freq }) catch {};
+        g_set_debug_budget -= 1;
+    }
 }
 pub export fn mmMixerStopChannel(arg_channel: c_int) void {
     var channel = arg_channel;
@@ -992,7 +1017,7 @@ pub export fn mmMixerStopChannel(arg_channel: c_int) void {
     (blk: {
         const tmp = channel;
         if (tmp >= 0) break :blk mm_mix_channels + @as(usize, @intCast(tmp)) else break :blk mm_mix_channels - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-    }).*.src = @as(c_uint, 1) << @intCast((@sizeOf(usize) *% @as(c_uint, @bitCast(@as(c_int, 8)))) -% @as(c_uint, @bitCast(@as(c_int, 1))));
+    }).*.src = MIXCH_GBA_SRC_STOPPED;
 }
 pub export fn mmMixerSetFreq(arg_channel: c_int, arg_rate: mm_word) void {
     var channel = arg_channel;
@@ -1003,7 +1028,13 @@ pub export fn mmMixerSetFreq(arg_channel: c_int, arg_rate: mm_word) void {
         const tmp = channel;
         if (tmp >= 0) break :blk mm_mix_channels + @as(usize, @intCast(tmp)) else break :blk mm_mix_channels - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
     }).*.freq = rate << @intCast(2);
+    if ((channel == 0 or channel == 1 or channel == 9) and g_set_debug_budget > 0) {
+        @import("gba").debug.print("[SETFREQ] ch={d} v={d}\n", .{ channel, @as(c_int, @intCast(rate << @intCast(2))) }) catch {};
+        g_set_debug_budget -= 1;
+    }
 }
+
+var g_set_debug_budget: u32 = 64;
 pub var vblank_handler_enabled: bool = @as(c_int, 0) != 0;
 pub const __llvm__ = @as(c_int, 1);
 pub const __clang__ = @as(c_int, 1);

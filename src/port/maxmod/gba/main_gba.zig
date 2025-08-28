@@ -803,11 +803,10 @@ pub export fn mmEnd() bool {
 pub extern fn mmVBlank() void;
 pub extern fn mmSetVBlankHandler(function: mm_voidfunc) void;
 pub extern fn mmSetEventHandler(handler: mm_callback) void;
-var g_postmix_budget: u32 = 0;
-var g_premix_budget: u32 = 0;
+var g_postmix_budget: u32 = 4;
+var g_premix_budget: u32 = 8;
 pub export fn mmFrame() void {
     if (!mm_initialized) return;
-    const dbg_frame_detail = false;
     // Update effects and sublayer first to mirror C reference ordering
     mmUpdateEffects();
     mppUpdateSub();
@@ -857,18 +856,21 @@ pub export fn mmFrame() void {
         var sampcount: c_int = @as(c_int, @bitCast(@as(c_uint, mpp_layerp.*.unnamed_0.sampcount)));
         _ = &sampcount;
         sample_num -= sampcount;
+        @import("gba").debug.print(
+            "[mmFrame] sample logic: tickrate={d} sampcount={d} sample_num={d} remaining_len={d}\n",
+            .{ @as(c_int, @intCast(mpp_layerp.*.tickrate)), sampcount, sample_num, remaining_len },
+        ) catch {};
         if (sample_num < @as(c_int, 0)) {
             sample_num = 0;
         }
         if (sample_num >= remaining_len) break;
         mpp_layerp.*.unnamed_0.sampcount = 0;
         remaining_len -= sample_num;
+        @import("gba").debug.print("[MIX] num={d}\n", .{sample_num}) catch {};
         mmMixerMix(@as(mm_word, @bitCast(sample_num)));
-        if (dbg_frame_detail) @import("gba").debug.print("[mmFrame] calling mppProcessTick() pos={d} row={d} tick={d}\n", .{ @as(c_int, @intCast(mpp_layerp.*.position)), @as(c_int, @intCast(mpp_layerp.*.row)), @as(c_int, @intCast(mpp_layerp.*.tick)) }) catch unreachable;
+        @import("gba").debug.print("[mmFrame] calling mppProcessTick() pos={d} row={d} tick={d}\n", .{ @as(c_int, @intCast(mpp_layerp.*.position)), @as(c_int, @intCast(mpp_layerp.*.row)), @as(c_int, @intCast(mpp_layerp.*.tick)) }) catch unreachable;
         mppProcessTick();
-        // Always log tick progression for early debugging
-        // Reduced debug output - only log critical timing info
-        // @import("gba").debug.print("[mmFrame] TICK ADVANCE pos={d} row={d} tick={d} speed={d} tickrate={d}\n", .{ @as(c_int, @intCast(mpp_layerp.*.position)), @as(c_int, @intCast(mpp_layerp.*.row)), @as(c_int, @intCast(mpp_layerp.*.tick)), @as(c_int, @intCast(mpp_layerp.*.speed)), @as(c_int, @intCast(mpp_layerp.*.tickrate)) }) catch unreachable;
+        @import("gba").debug.print("[mmFrame] after mppProcessTick() pos={d} row={d} tick={d} isplaying={d}\n", .{ @as(c_int, @intCast(mpp_layerp.*.position)), @as(c_int, @intCast(mpp_layerp.*.row)), @as(c_int, @intCast(mpp_layerp.*.tick)), @as(c_int, @intCast(mpp_layerp.*.isplaying)) }) catch unreachable;
         // Snapshot immediately after tick processing (post-UMIX binding) before next mix
         if (g_premix_budget > 0 and mm_mix_channels != @as([*c]mm_mixer_channel, @ptrFromInt(0))) {
             const ch0a: [*c]mm_mixer_channel = mm_mix_channels;
@@ -880,6 +882,7 @@ pub export fn mmFrame() void {
         }
     }
     mpp_layerp.*.unnamed_0.sampcount +%= @as(mm_hword, @bitCast(@as(c_short, @truncate(remaining_len))));
+    @import("gba").debug.print("[MIX] tail={d}\n", .{remaining_len}) catch {};
     mmMixerMix(@as(mm_word, @bitCast(remaining_len)));
     // Bounded post-mix snapshot prints to verify mixer read advancement
     if (g_postmix_budget > 0 and mm_mix_channels != @as([*c]mm_mixer_channel, @ptrFromInt(0))) {

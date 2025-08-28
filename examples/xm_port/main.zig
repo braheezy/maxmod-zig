@@ -56,50 +56,52 @@ export fn main() void {
     // No artificial warm-up in the C example; proceed immediately
 
     var frame_count: u32 = 0;
+    var prev_pos: u32 = 0xFFFF;
+    var prev_row: u32 = 0xFFFF;
+    var prev_tick: u32 = 0xFFFF;
+    var prev_order: u32 = 0xFFFF;
+    var row_log_budget: u32 = 24; // bump budget to see first two patterns
+    var order_log_budget: u32 = 20; // track order changes
+    var early_mix_budget: u32 = 50; // early mixer state
     while (true) {
         // Mix and service VBlank each frame
         // Frame update
         mm_port_core_mas.mmFrame();
-        // Focused check near suspected static rows: dump first 4 mixer channels at rows 20..22
-        {
+
+        // Comprehensive telemetry: position, order, and early mixer state
+        if (row_log_budget > 0 or order_log_budget > 0 or early_mix_budget > 0) {
+            const pos: u32 = mm_port_gba_mixer.mmGetPosition();
             const row: u32 = mm_port_gba_mixer.mmGetPositionRow();
-            if (row >= 20 and row <= 22) {
-                const CDbgMix = extern struct { src: u32, read: u32, freq: u16, vol: u8, pan: u8 };
-                const base_ptr: [*]const CDbgMix = @ptrCast(mm_port_gba_mixer.mm_get_mix_channels_ptr());
-                var i: usize = 0;
-                while (i < 4) : (i += 1) {
-                    const c = base_ptr[i];
-                    gba.debug.print("[C MIX] i={d} src={x} read={d} freq={d} vol={d} pan={d}\n", .{ i, c.src, c.read, c.freq, c.vol, c.pan }) catch unreachable;
-                }
-                // Focused RATEC on channel 2
-                const c2 = base_ptr[2];
-                const rs = mm_port_gba_mixer.mm_ratescale;
-                if (rs != 0) {
-                    const rate_est: u32 = (@as(u32, c2.freq) << 10) / rs;
-                    gba.debug.print("[RATEC] ch=2 freq={d} ratescale={d} rate_est={d}\n", .{ @as(u32, c2.freq), rs, rate_est }) catch unreachable;
-                }
+            const tick: u32 = mm_port_gba_mixer.mmGetPositionTick();
+            const order: u32 = pos >> 16; // extract order from position
+
+            // Position logging at tick==0
+            if (tick == 0 and row != prev_row and row_log_budget > 0) {
+                gba.debug.print("[POS] pos={d} row={d} tick={d} mixlen={d}\n", .{ pos, row, tick, mm_port_shim.mm_mixlen }) catch unreachable;
+                prev_pos = pos;
+                prev_row = row;
+                prev_tick = tick;
+                row_log_budget -= 1;
+            } else {
+                prev_pos = pos;
+                prev_row = row;
+                prev_tick = tick;
+            }
+
+            // Order change logging
+            if (order != prev_order and order_log_budget > 0) {
+                gba.debug.print("[ORDER] order={d} pos={d} row={d} tick={d}\n", .{ order, pos, row, tick }) catch unreachable;
+                prev_order = order;
+                order_log_budget -= 1;
+            }
+
+            // Early mixer state logging (first few frames)
+            if (early_mix_budget > 0 and frame_count < 10) {
+                gba.debug.print("[EARLY] frame={d} pos={d} row={d} tick={d} order={d}\n", .{ frame_count, pos, row, tick, order }) catch unreachable;
+                early_mix_budget -= 1;
             }
         }
-        // Mirror C reference: dump first 4 mixer channels after mmFrame()
-        // Treat memory as the same faux C layout used by the C demo:
-        // struct { u32 src; u32 read; u16 freq; u8 vol; u8 pan; }
-        if (false and frame_count < 4) {
-            const CDbgMix = extern struct { src: u32, read: u32, freq: u16, vol: u8, pan: u8 };
-            const base_ptr: [*]const CDbgMix = @ptrCast(mm_port_gba_mixer.mm_get_mix_channels_ptr());
-            var i: usize = 0;
-            while (i < 4) : (i += 1) {
-                const c = base_ptr[i];
-                gba.debug.print(
-                    "[C MIX] i={d} src={x} read={d} freq={d} vol={d} pan={d}\n",
-                    .{ i, c.src, c.read, c.freq, c.vol, c.pan },
-                ) catch unreachable;
-                const rs = mm_port_gba_mixer.mm_ratescale;
-                if (rs != 0) {
-                    const rate_est: u32 = (@as(u32, c.freq) << 10) / rs;
-                    gba.debug.print("[C RATE] i={d} rate_est={d} ratescale={d}\n", .{ i, rate_est, rs }) catch unreachable;
-                }
-            }
-        }
+
         // Prune per-frame prints
         // Let IRQ call mmVBlank() and wait for VBlank like C reference
         gba.display.vSync();

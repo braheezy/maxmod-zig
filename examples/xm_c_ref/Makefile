@@ -15,7 +15,7 @@ SPECS := -specs=gba.specs
 CFLAGS := -mthumb -mcpu=arm7tdmi -O2 -ffreestanding -std=gnu11 -D__GBA__ -I$(GBAINC) -I$(DEVKITARM)/arm-none-eabi/include -I../../maxmod/include
 LDFLAGS := $(SPECS) -L$(GBALIB)
 
-# Prefer local Maxmod build over system lib
+# Use system's prebuilt libmm
 MAXMODLIB := ../../maxmod/lib
 
 ## Sources
@@ -50,8 +50,8 @@ $(SOUNDBANK_OBJ): $(MSL_BIN)
 
 
 $(BIN): $(OBJS)
-	# Link local Maxmod first to avoid picking up devkitPro's libmm
-	$(CC) $(LDFLAGS) $(OBJS) $(MAXMODLIB)/libmm.a -L$(GBALIB) -lgba -lc -lgcc -o $(TARGET).elf
+	# Link against system's prebuilt libmm
+	$(CC) $(LDFLAGS) $(OBJS) $(MAXMODLIB)/libmm.a -lgba -lc -lgcc -o $(TARGET).elf
 	$(OBJCOPY) -O binary $(TARGET).elf $(BIN)
 	gbafix $(BIN) -t"XM CREF" -cXMCF -m00 -r00
 

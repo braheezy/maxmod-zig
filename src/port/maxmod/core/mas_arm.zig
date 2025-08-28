@@ -18,6 +18,16 @@ pub const __builtin_exp2 = @import("std").zig.c_builtins.__builtin_exp2;
 pub const __builtin_exp2f = @import("std").zig.c_builtins.__builtin_exp2f;
 pub const __builtin_log = @import("std").zig.c_builtins.__builtin_log;
 pub const __builtin_logf = @import("std").zig.c_builtins.__builtin_logf;
+
+// Debug configuration - can be toggled at build time
+const debug_enabled = @import("builtin").mode == .Debug;
+
+// Debug printing helper that can be compiled out
+inline fn debugPrint(comptime fmt: []const u8, args: anytype) void {
+    if (debug_enabled) {
+        @import("gba").debug.print(fmt, args) catch {};
+    }
+}
 pub const __builtin_log2 = @import("std").zig.c_builtins.__builtin_log2;
 pub const __builtin_log2f = @import("std").zig.c_builtins.__builtin_log2f;
 pub const __builtin_log10 = @import("std").zig.c_builtins.__builtin_log10;
@@ -590,7 +600,7 @@ pub export fn mmAllocChannel() linksection(".iwram") mm_word {
             best_volume = fvol << @intCast(23);
         }
     }
-    @import("gba").debug.print("[mmAllocChannel] return={d}\n", .{@as(c_int, @intCast(best_channel))}) catch unreachable;
+    @import("gba").debug.print("[mmAllocChannel] return={d} bitmask={x}\n", .{ @as(c_int, @intCast(best_channel)), @as(c_int, @intCast(mm_ch_mask)) }) catch unreachable;
     return best_channel;
 }
 // /Users/michaelbraha/personal/gba/maxmod-zig/maxmod/source/core/mas_arm.c:359:9: warning: TODO implement translation of stmt class GotoStmtClass
@@ -689,7 +699,7 @@ pub export fn mmUpdateChannel_T0(arg_module_channel: [*c]mm_module_channel, arg_
         if (volume < 0) volume = 0;
         if (volume > 128) volume = 128;
         mpp_vars.afvol = @as(mm_byte, @intCast(volume));
-        // Mark this active channel as UPDATED (parity with C: first DISPAN sees UPDATED set)
+        // Match C: mark UPDATED here so mpp_Update_ACHN() won't re-enter this tick
         act_ch_mut.*.flags |= @as(mm_byte, @intCast(MCAF_UPDATED));
         act_ch_mut.*.flags |= @as(mm_byte, @intCast(MCAF_START));
         // No extra UCT0 debug in C reference
@@ -786,13 +796,12 @@ pub export fn mmReadPattern(arg_mpp_layer: [*c]mpl_layer_information) linksectio
     _ = &pattern;
     var update_bits: mm_word = 0;
     _ = &update_bits;
-    // Reduced debug output - only log critical pattern reading info
-    // @import("gba").debug.print("[Z mmReadPattern] start pattread=0x{x} pattread_p=0x{x} nch={d} row={d}\n", .{
-    //     @intFromPtr(mpp_layer.*.pattread),
-    //     @intFromPtr(mpp_vars.pattread_p),
-    //     @as(c_int, @intCast(mpp_nchannels)),
-    //     @as(c_int, @intCast(mpp_layer.*.row)),
-    // }) catch unreachable;
+    @import("gba").debug.print("[Z mmReadPattern] start pattread=0x{x} pattread_p=0x{x} nch={d} row={d}\n", .{
+        @intFromPtr(mpp_layer.*.pattread),
+        @intFromPtr(mpp_vars.pattread_p),
+        @as(c_int, @intCast(mpp_nchannels)),
+        @as(c_int, @intCast(mpp_layer.*.row)),
+    }) catch unreachable;
     var debug_detail: bool = false;
     // Show detailed per-field reads for debugging - enable for more rows to see the issue
     if (mpp_layer.*.row < 10) debug_detail = true;
@@ -1385,10 +1394,13 @@ pub fn mmChannelStartACHN(arg_module_channel: [*c]mm_module_channel, arg_active_
     if (@as(c_int, @bitCast(@as(c_uint, module_channel.*.inst))) == @as(c_int, 0)) return @as(mm_byte, @bitCast(@as(u8, @truncate(module_channel.*.bflags))));
     var instrument: *mm_mas_instrument = mpp_InstrumentPointer(mpp_layer, @as(mm_word, @bitCast(@as(c_uint, module_channel.*.inst)))) orelse unreachable;
     _ = &instrument;
-    // Translate-c exposes note_map_offset and is_note_map_invalid as separate fields.
-    // Use them directly to avoid bitfield packing mismatches.
-    const nm_off: usize = @as(usize, @intCast(instrument.*.note_map_offset));
-    const invalid_map: bool = (instrument.*.is_note_map_invalid != 0);
+    // CRITICAL FIX: Translate-c expanded C bitfields as separate mm_hword fields, breaking layout.
+    // C bitfields: note_map_offset:15, is_note_map_invalid:1 packed in one mm_hword.
+    // Read raw bytes at offset 8 (after 8 mm_byte fields) and decode manually.
+    const inst_bytes: [*]const u8 = @ptrCast(instrument);
+    const bitfield_raw: u16 = @as(u16, inst_bytes[8]) | (@as(u16, inst_bytes[9]) << 8);
+    const nm_off: usize = @as(usize, @intCast(bitfield_raw & 0x7FFF)); // bits 0-14
+    const invalid_map: bool = ((bitfield_raw & 0x8000) != 0); // bit 15
     // One-time detailed dump for mapping on first two channels at tick 0
     if (mpp_layer.*.tick == 0 and channel_counter < 2) {
         const inst_base_dbg: usize = @intFromPtr(instrument);
@@ -1397,19 +1409,19 @@ pub fn mmChannelStartACHN(arg_module_channel: [*c]mm_module_channel, arg_active_
         const map_ptr_dbg: [*]const mm_hword = @ptrFromInt(nm_ptr_dbg);
         const raw_entry_dbg: mm_hword = map_ptr_dbg[idx_dbg];
         // Dump first 16 bytes of instrument to verify bitfield packing
-        const inst_bytes: [*]const u8 = @ptrFromInt(inst_base_dbg);
-        const b0: u8 = inst_bytes[0];
-        const b1: u8 = inst_bytes[1];
-        const b2: u8 = inst_bytes[2];
-        const b3: u8 = inst_bytes[3];
-        const b4: u8 = inst_bytes[4];
-        const b5: u8 = inst_bytes[5];
-        const b6: u8 = inst_bytes[6];
-        const b7: u8 = inst_bytes[7];
-        const b8: u8 = inst_bytes[8];
-        const b9: u8 = inst_bytes[9];
-        const b10: u8 = inst_bytes[10];
-        const b11: u8 = inst_bytes[11];
+        const inst_bytes_dbg: [*]const u8 = @ptrFromInt(inst_base_dbg);
+        const b0: u8 = inst_bytes_dbg[0];
+        const b1: u8 = inst_bytes_dbg[1];
+        const b2: u8 = inst_bytes_dbg[2];
+        const b3: u8 = inst_bytes_dbg[3];
+        const b4: u8 = inst_bytes_dbg[4];
+        const b5: u8 = inst_bytes_dbg[5];
+        const b6: u8 = inst_bytes_dbg[6];
+        const b7: u8 = inst_bytes_dbg[7];
+        const b8: u8 = inst_bytes_dbg[8];
+        const b9: u8 = inst_bytes_dbg[9];
+        const b10: u8 = inst_bytes_dbg[10];
+        const b11: u8 = inst_bytes_dbg[11];
         @import("gba").debug.print(
             "[INST] ch={d} inst_ptr={x} bytes: {x:0>2} {x:0>2} {x:0>2} {x:0>2} {x:0>2} {x:0>2} {x:0>2} {x:0>2} nm_lo={x:0>2} nm_hi={x:0>2} res_lo={x:0>2} res_hi={x:0>2}\n",
             .{ @as(c_int, @intCast(channel_counter)), inst_base_dbg, b0, b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11 },

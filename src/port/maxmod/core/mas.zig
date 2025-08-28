@@ -18,6 +18,16 @@ pub const __builtin_exp2 = @import("std").zig.c_builtins.__builtin_exp2;
 pub const __builtin_exp2f = @import("std").zig.c_builtins.__builtin_exp2f;
 pub const __builtin_log = @import("std").zig.c_builtins.__builtin_log;
 pub const __builtin_logf = @import("std").zig.c_builtins.__builtin_logf;
+
+// Debug configuration - can be toggled at build time
+const debug_enabled = @import("builtin").mode == .Debug;
+
+// Debug printing helper that can be compiled out
+inline fn debugPrint(comptime fmt: []const u8, args: anytype) void {
+    if (debug_enabled) {
+        @import("gba").debug.print(fmt, args) catch {};
+    }
+}
 pub const __builtin_log2 = @import("std").zig.c_builtins.__builtin_log2;
 pub const __builtin_log2f = @import("std").zig.c_builtins.__builtin_log2f;
 pub const __builtin_log10 = @import("std").zig.c_builtins.__builtin_log10;
@@ -970,15 +980,19 @@ pub const mm_mas_ds_sample = struct_tmm_mas_ds_sample;
 // - Only log on tick==0 (first tick of a row)
 // - Only log for first two channels to reduce volume
 // - Global budget to cap total prints per session
-var umix_debug_budget: c_int = 400;
+var umix_debug_budget: c_int = 2000;
 pub inline fn umix_channel_index_from_mix(mix_ch: [*c]const mm_mixer_channel) c_int {
     const offset = @intFromPtr(mix_ch) - @intFromPtr(&mm_mix_channels[0]);
     return @as(c_int, @intCast(offset / @sizeOf(mm_mixer_channel)));
 }
 pub inline fn umix_allow_log_ch(layer: [*c]const mpl_layer_information, ch_idx: c_int) bool {
     if (umix_debug_budget <= 0) return false;
+    // Allow channels 0,1,9 for focused early-audio tracing (cymbal/drums/bassline)
+    if (!(ch_idx == 0 or ch_idx == 1 or ch_idx == 9)) return false;
+    // Allow all ticks for channel 9 debugging
+    if (ch_idx == 9) return true;
+    // Only gate by tick for non-9 channels
     if (layer.*.tick != 0) return false;
-    if (ch_idx < 0 or ch_idx >= 2) return false;
     umix_debug_budget -= 1;
     return true;
 } // No per-channel tick suppression: match C's umix_allow_log_ch behavior
@@ -1232,11 +1246,8 @@ pub export fn mppProcessTick() linksection(".iwram") void {
     }
     var new_row: c_int = @as(c_int, @bitCast(@as(c_uint, layer.*.row))) + @as(c_int, 1);
     _ = &new_row;
-    // Reduced debug output - only log critical timing info
-    // @import("gba").debug.print("[mppProcessTick] row check: current={d} new={d} nrows={d} condition={d}\n", .{ @as(c_int, @intCast(layer.*.row)), new_row, @as(c_int, @intCast(layer.*.nrows)), @as(c_int, @intCast(@as(c_int, @bitCast(@as(c_uint, layer.*.nrows))) + @as(c_int, 1))) }) catch unreachable;
     if (new_row != (@as(c_int, @bitCast(@as(c_uint, layer.*.nrows))) + @as(c_int, 1))) {
         layer.*.row = @as(mm_byte, @bitCast(@as(i8, @truncate(new_row))));
-        // @import("gba").debug.print("[mppProcessTick] ROW ADVANCED to {d}\n", .{@as(c_int, @intCast(layer.*.row))}) catch unreachable;
         return;
     }
     mpp_setposition(layer, @as(mm_word, @bitCast(@as(c_int, @bitCast(@as(c_uint, layer.*.position))) + @as(c_int, 1))));
@@ -3996,9 +4007,8 @@ pub fn mpp_Update_ACHN_notest_envelopes(arg_layer: [*c]mpl_layer_information, ar
             // Always scale AFV by envelope factor (parity with C)
             const afv: mm_sword = @as(mm_sword, @intCast(mpp_vars.afvol));
             mpp_vars.afvol = @as(mm_byte, @intCast((@as(c_int, @intCast(afv)) * @as(c_int, @intCast(value_mul_64))) >> (6 + 6)));
-            // At tick 0, also mark UPDATED and VOLENV
+            // At tick 0, mark VOLENV only (C does not set UPDATED here)
             if (layer.*.tick == 0) {
-                act_ch.*.flags |= @as(mm_byte, @intCast(MCAF_UPDATED));
                 act_ch.*.flags |= @as(mm_byte, @intCast(MCAF_VOLENV));
             }
         }
@@ -4183,13 +4193,6 @@ pub fn mpp_Update_ACHN_notest_set_pitch_volume(arg_layer: [*c]mpl_layer_informat
         const sample_bytes: [*]const u8 = @ptrCast(sample);
         const c5speed: u16 = @as(u16, sample_bytes[2]) | (@as(u16, sample_bytes[3]) << 8);
         var value: mm_word = (((period >> @intCast(8)) *% (@as(mm_word, @intCast(@as(u32, c5speed))) << @intCast(2))) >> @intCast(8));
-        // Empirically match C reference: slight bias differs when period is 256-aligned
-        // This mirrors the integer rounding behavior observed in the C logs.
-        if ((period & @as(mm_word, 0xFF)) == 0) {
-            value +%= 1;
-        } else if (value >= 2) {
-            value -%= 2;
-        }
         if (mpp_clayer == @as(c_uint, @bitCast(MM_MAIN))) {
             value = (value *% mm_masterpitch) >> @intCast(10);
         }
@@ -4275,6 +4278,8 @@ pub fn mpp_Update_ACHN_notest_disable_and_panning(arg_volume: mm_word, arg_act_c
     const act_ch = arg_act_ch;
     const mix_ch = arg_mix_ch;
 
+    // Removed phantom channel 9 blocking - channel 9 is a valid instrument channel
+
     // After computing final volume, write mix_ch.vol and log DISPAN like C
 
     if (volume == 0) {
@@ -4321,10 +4326,24 @@ pub fn mpp_Update_ACHN_notest_disable_and_panning(arg_volume: mm_word, arg_act_c
     }
     mix_ch.*.pan = @as(mm_byte, @intCast(newpan));
     const stopped: c_int = if ((mix_ch.*.src & MIXCH_GBA_SRC_STOPPED) != 0) 1 else 0;
-    @import("gba").debug.print(
-        "[UMIX] audible vol={d} pan={d} stopped={d}\n",
-        .{ @as(c_int, @intCast(mix_ch.*.vol)), @as(c_int, @intCast(mix_ch.*.pan)), stopped },
-    ) catch unreachable;
+    if (umix_allow_log_ch(mpp_layerp, umix_channel_index_from_mix(mix_ch))) {
+        @import("gba").debug.print(
+            "[UMIX] audible ch={d} vol={d} pan={d} stopped={d}\n",
+            .{ @as(c_int, @intCast(act_ch.*.parent)), @as(c_int, @intCast(mix_ch.*.vol)), @as(c_int, @intCast(mix_ch.*.pan)), stopped },
+        ) catch unreachable;
+    }
+    // Extra early identical probe: first tick/row only, channel 0
+    {
+        const layer = mpp_layerp;
+        if (layer.*.position == 0 and layer.*.row == 0 and layer.*.tick == 0) {
+            if (umix_channel_index_from_mix(mix_ch) == 0) {
+                @import("gba").debug.print(
+                    "[EARLY-UMIX] ch={d} src={x} read={d} vol={d} pan={d} freq={d}\n",
+                    .{ @as(c_int, 0), mix_ch.*.src, @as(c_int, @intCast(mix_ch.*.read)), @as(c_int, @intCast(mix_ch.*.vol)), @as(c_int, @intCast(mix_ch.*.pan)), @as(c_int, @intCast(mix_ch.*.freq)) },
+                ) catch {};
+            }
+        }
+    }
 }
 pub const __llvm__ = @as(c_int, 1);
 pub const __clang__ = @as(c_int, 1);
