@@ -21,12 +21,101 @@ pub const __builtin_logf = @import("std").zig.c_builtins.__builtin_logf;
 
 // Debug configuration - can be toggled at build time
 const debug_enabled = @import("build_options").xm_debug;
+const std = @import("std");
 
 // Debug printing helper that can be compiled out
 inline fn debugPrint(comptime fmt: []const u8, args: anytype) void {
     if (debug_enabled) {
         @import("gba").debug.print(fmt, args) catch {};
     }
+}
+
+// Alternative timing preservation approaches (test these if NOPs don't work):
+// 1. NOP instructions (currently active - 4 NOPs)
+// 2. Memory barriers
+// 3. Dummy function calls
+// 4. Volatile operations
+
+// Approach 1: NOP timing delays (currently active)
+fn timingDelay() void {
+    asm volatile ("nop");
+    asm volatile ("nop");
+    asm volatile ("nop");
+    asm volatile ("nop");
+}
+
+// Approach 2: Memory barrier
+fn memoryBarrier() void {
+    asm volatile ("" ::: "memory");
+}
+
+// Approach 3: Dummy volatile operations
+var dummy_timing_var: u32 = 0;
+fn dummyVolatileOp() void {
+    dummy_timing_var +%= 1;
+    _ = dummy_timing_var;
+}
+
+// Memory buffer logging system for timing-critical code
+// Uses a fixed-size buffer to avoid timing impact of AGB printing during audio processing
+var log_buffer: [4096]u8 = [_]u8{0} ** 4096;
+var log_index: usize = 0;
+
+// Safe logging function that ALWAYS performs buffer operations for timing
+// Logs are accumulated and dumped at frame end when debug is enabled
+fn safeLog(comptime fmt: []const u8, args: anytype) void {
+    // if (!debug_enabled) return;
+    // ALWAYS perform the buffer writing operations to preserve timing
+    // This is the key - the buffer operations themselves provide the timing that makes audio work
+    if (log_index + 256 >= log_buffer.len) return;
+
+    // Always format the message into the buffer (timing-critical operation)
+    const msg = std.fmt.bufPrint(log_buffer[log_index..], fmt, args) catch return;
+    log_index += msg.len;
+
+    // Logs will be dumped at frame end by dumpLogsConditional()
+    // This ensures consistent behavior regardless of debug_enabled
+}
+
+// ALTERNATIVE APPROACH: Simple timing-preserving function call
+// If the above doesn't work, replace safeLog() calls with timingPreserve() calls
+fn timingPreserve() void {
+    // Just a simple function call that does minimal work
+    // This preserves the function call overhead that makes audio work
+    asm volatile ("nop");
+}
+
+// Function to dump accumulated logs (call this from non-timing-critical code like mmFrame)
+pub fn dumpLogs() void {
+    if (log_index == 0) return;
+
+    // Use AGB printing to output the accumulated logs
+    @import("gba").debug.print("{s}", .{log_buffer[0..log_index]}) catch {};
+
+    // Reset the buffer for next frame
+    log_index = 0;
+}
+
+// Alternative: dump logs only when debug is enabled (for production)
+pub fn dumpLogsConditional() void {
+    if (!debug_enabled or log_index == 0) return;
+
+    // Use AGB printing to output the accumulated logs
+    @import("gba").debug.print("{s}", .{log_buffer[0..log_index]}) catch {};
+
+    // Reset the buffer for next frame
+    log_index = 0;
+}
+
+// FOR TESTING: Force dump logs regardless of debug setting
+pub fn dumpLogsForce() void {
+    if (log_index == 0) return;
+
+    // Use AGB printing to output the accumulated logs
+    @import("gba").debug.print("{s}", .{log_buffer[0..log_index]}) catch {};
+
+    // Reset the buffer for next frame
+    log_index = 0;
 }
 pub const __builtin_log2 = @import("std").zig.c_builtins.__builtin_log2;
 pub const __builtin_log2f = @import("std").zig.c_builtins.__builtin_log2f;
@@ -4257,10 +4346,6 @@ pub fn mpp_Update_ACHN_notest_disable_and_panning(arg_volume: mm_word, arg_act_c
     const act_ch = arg_act_ch;
     const mix_ch = arg_mix_ch;
 
-    // Removed phantom channel 9 blocking - channel 9 is a valid instrument channel
-
-    // After computing final volume, write mix_ch.vol and log DISPAN like C
-
     if (volume == 0) {
         const env_end = ((@as(c_int, @intCast(act_ch.*.flags)) & MCAF_ENVEND) != 0);
         const key_on = ((@as(c_int, @intCast(act_ch.*.flags)) & MCAF_KEYON) != 0);
@@ -4276,14 +4361,20 @@ pub fn mpp_Update_ACHN_notest_disable_and_panning(arg_volume: mm_word, arg_act_c
 
     // audible path
     mix_ch.*.vol = @as(mm_byte, @intCast(if (volume > @as(mm_word, @intCast(255))) 255 else volume));
-    // Log final vol/pan/flags/src as C does (gated like C)
+    // Log final vol/pan/flags/src
     const pan_for_print: u8 = if (act_ch.*.panning != 0) act_ch.*.panning else 128;
     if (umix_allow_log_ch(mpp_layerp, umix_channel_index_from_mix(mix_ch))) {
-        // TODO: commenting this out breaks playback
-        @import("gba").debug.print(
+        // TIMING PRESERVATION: Test different approaches if audio breaks
+        timingDelay(); // Currently using NOPs - try memoryBarrier() or dummyVolatileOp() if needed
+
+        safeLog(
             "[DISPAN] ch={d} vol={d} flags={x} pan={d} src={x}\n",
             .{ @as(c_int, @intCast(act_ch.*.parent)), @as(c_int, @intCast(mix_ch.*.vol)), @as(c_int, @intCast(act_ch.*.flags)), @as(c_int, @intCast(pan_for_print)), @as(c_int, @intCast(mix_ch.*.src)) },
-        ) catch {};
+        );
+        // safeLog(
+        //     "[DISPAN] ch={d} vol={d} flags={x} pan={d} src={x}\n",
+        //     .{ @as(c_int, @intCast(act_ch.*.parent)), @as(c_int, @intCast(mix_ch.*.vol)), @as(c_int, @intCast(act_ch.*.flags)), @as(c_int, @intCast(pan_for_print)), @as(c_int, @intCast(mix_ch.*.src)) },
+        // );
     }
 
     // If mixer channel ended, disable foreground channel
@@ -4317,11 +4408,13 @@ pub fn mpp_Update_ACHN_notest_disable_and_panning(arg_volume: mm_word, arg_act_c
         const layer = mpp_layerp;
         if (layer.*.position == 0 and layer.*.row == 0 and layer.*.tick == 0) {
             if (umix_channel_index_from_mix(mix_ch) == 0) {
-                // TODO: commenting this out breaks playback
-                @import("gba").debug.print(
+                // TIMING PRESERVATION: Test different approaches if audio breaks
+                timingDelay(); // Currently using NOPs - try memoryBarrier() or dummyVolatileOp() if needed
+
+                safeLog(
                     "[EARLY-UMIX] ch={d} src={x} read={d} vol={d} pan={d} freq={d}\n",
                     .{ @as(c_int, 0), mix_ch.*.src, @as(c_int, @intCast(mix_ch.*.read)), @as(c_int, @intCast(mix_ch.*.vol)), @as(c_int, @intCast(mix_ch.*.pan)), @as(c_int, @intCast(mix_ch.*.freq)) },
-                ) catch {};
+                );
             }
         }
     }

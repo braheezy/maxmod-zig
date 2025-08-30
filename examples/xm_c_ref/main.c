@@ -16,6 +16,10 @@
 extern const unsigned char _binary_bad_apple_mas_start[];
 extern const unsigned char _binary_bad_apple_mas_end[];
 
+// Override maxmod's internal debug function at link time (disable logs)
+void mm_dbgf(const char *fmt, ...) __attribute__((weak));
+void mm_dbgf(const char *fmt, ...) { (void)fmt; }
+
 // Use mmInitDefault() for a canonical setup matching mmutil test ROMs
 #define CHANNELS 32
 
@@ -28,6 +32,7 @@ int main(void) {
     irqInit();
     irqSet(IRQ_VBLANK, mmVBlank);
     irqEnable(IRQ_VBLANK);
+    // ALWAYS enable debug backends for comparison
     mgba_open();
     agb_print_init();
 
@@ -43,19 +48,21 @@ int main(void) {
     const unsigned bank_len = (unsigned)((uintptr_t)&_binary_soundbank_bin_end - (uintptr_t)_binary_soundbank_bin_start);
 
     // Initialize Maxmod with defaults (match Zig logs)
-    // Prune noisy prints to keep emulation fast
+    mgba_printf("[main] mmInitDefault() starting with bank_len=%u\n", bank_len);
     mmInitDefault((mm_addr)sb, CHANNELS);
-    // mgba_printf("[main] mmInitDefault() done; mm_mixlen=%u\n", (unsigned)mm_mixlen);
+    mgba_printf("[main] mmInitDefault() done; mm_mixlen=%u\n", (unsigned)mm_mixlen);
 
     // Ensure sane defaults in case the soundbank header was empty
     mmSetModuleVolume(0x400);
     mmSetEffectsVolume(0x400);
+    mgba_printf("[main] volumes set: module=0x%x effects=0x%x\n", 0x400, 0x400);
     // Do not override module tempo/pitch unless needed
 
     // Module count and start (match Zig logs)
-    // mgba_printf("[main] module_count=%u\n", (unsigned)mmGetModuleCount());
-    // mgba_printf("[main] mmStart(0, MM_PLAY_LOOP)\n");
+    mgba_printf("[main] module_count=1 (hardcoded, mmGetModuleCount not available)\n");
+    mgba_printf("[main] mmStart(0, MM_PLAY_LOOP)\n");
     mmStart(MOD_BAD_APPLE, MM_PLAY_LOOP);
+    mgba_printf("[main] mmStart() called\n");
 
     // Use tempo/pitch from MAS header (don't override)
 
@@ -72,40 +79,41 @@ int main(void) {
     unsigned early_mix_budget = 50; // early mixer state
     while (1) {
         // Update Maxmod first so DMA has fresh data by VBlank
+        mgba_printf("[FRAME] frame=%u calling mmFrame()\n", frame_count);
         mmFrame();
+        mgba_printf("[FRAME] frame=%u mmFrame() returned\n", frame_count);
 
-        // Comprehensive telemetry: position, order, and early mixer state
-        if (row_log_budget > 0 || order_log_budget > 0 || early_mix_budget > 0) {
-            mm_word pos = mmGetPosition();
-            mm_word row = mmGetPositionRow();
-            mm_word tick = mmGetPositionTick();
-            mm_word order = mmGetPosition() >> 16; // extract order from position
+        // ALWAYS log position data for comparison
+        mm_word pos = mmGetPosition();
+        mm_word row = mmGetPositionRow();
+        mm_word tick = mmGetPositionTick();
+        mm_word order = mmGetPosition() >> 16; // extract order from position
 
-            // Position logging at tick==0
-            if (tick == 0 && row != prev_row && row_log_budget > 0) {
-                mgba_printf("[POS] pos=%u row=%u tick=%u mixlen=%u\n", (unsigned)pos, (unsigned)row, (unsigned)tick, (unsigned)mm_mixlen);
-                prev_pos = pos;
-                prev_row = row;
-                prev_tick = tick;
-                row_log_budget -= 1;
-            } else {
-                prev_pos = pos;
-                prev_row = row;
-                prev_tick = tick;
-            }
+        mgba_printf("[POS] frame=%u pos=%u row=%u tick=%u order=%u mixlen=%u\n",
+                   frame_count, (unsigned)pos, (unsigned)row, (unsigned)tick, (unsigned)order, (unsigned)mm_mixlen);
 
-            // Order change logging
-            if (order != prev_order && order_log_budget > 0) {
-                mgba_printf("[ORDER] order=%u pos=%u row=%u tick=%u\n", (unsigned)order, (unsigned)pos, (unsigned)row, (unsigned)tick);
-                prev_order = order;
-                order_log_budget -= 1;
-            }
+        // Track changes
+        if (pos != prev_pos) {
+            mgba_printf("[CHANGE] frame=%u pos: %u -> %u\n", frame_count, (unsigned)prev_pos, (unsigned)pos);
+            prev_pos = pos;
+        }
+        if (row != prev_row) {
+            mgba_printf("[CHANGE] frame=%u row: %u -> %u\n", frame_count, (unsigned)prev_row, (unsigned)row);
+            prev_row = row;
+        }
+        if (tick != prev_tick) {
+            mgba_printf("[CHANGE] frame=%u tick: %u -> %u\n", frame_count, (unsigned)prev_tick, (unsigned)tick);
+            prev_tick = tick;
+        }
+        if (order != prev_order) {
+            mgba_printf("[CHANGE] frame=%u order: %u -> %u\n", frame_count, (unsigned)prev_order, (unsigned)order);
+            prev_order = order;
+        }
 
-            // Early mixer state logging (first few frames)
-            if (early_mix_budget > 0 && frame_count < 10) {
-                mgba_printf("[EARLY] frame=%u pos=%u row=%u tick=%u order=%u\n", (unsigned)frame_count, (unsigned)pos, (unsigned)row, (unsigned)tick, (unsigned)order);
-                early_mix_budget -= 1;
-            }
+        // Log every frame for first 100 frames
+        if (frame_count < 100) {
+            mgba_printf("[DETAIL] frame=%u pos=%u row=%u tick=%u order=%u\n",
+                       frame_count, (unsigned)pos, (unsigned)row, (unsigned)tick, (unsigned)order);
         }
 
         // Toggle pixel and wait for VBlank

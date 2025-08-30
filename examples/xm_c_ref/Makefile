@@ -16,10 +16,17 @@ CFLAGS := -mthumb -mcpu=arm7tdmi -O2 -ffreestanding -std=gnu11 -D__GBA__ -I$(GBA
 LDFLAGS := $(SPECS) -L$(GBALIB)
 
 # Use system's prebuilt libmm
-MAXMODLIB := ../../maxmod/lib
+MAXMODLIB := /opt/devkitpro/libgba/lib
 
 ## Sources
+# Define DEBUG_LOG to enable logging to mGBA/AGBPrint
+ifdef DEBUG
+CFLAGS += -DDEBUG_LOG
+endif
+
+# Example sources
 THUMB_SRCS := main.c mgba.c agbprint.c
+
 # Build MSL soundbank (C mmutil) from bad_apple.xm and embed it.
 MSL_BIN := soundbank.bin
 SOUNDBANK_OBJ := soundbank.o
@@ -50,10 +57,14 @@ $(SOUNDBANK_OBJ): $(MSL_BIN)
 
 
 $(BIN): $(OBJS)
-	# Link against system's prebuilt libmm
-	$(CC) $(LDFLAGS) $(OBJS) $(MAXMODLIB)/libmm.a -lgba -lc -lgcc -o $(TARGET).elf
+	# Link against prebuilt libmm.a
+	$(CC) $(LDFLAGS) $(OBJS) -L$(MAXMODLIB) -lmm -lgba -lc -lgcc -o $(TARGET).elf
 	$(OBJCOPY) -O binary $(TARGET).elf $(BIN)
 	gbafix $(BIN) -t"XM CREF" -cXMCF -m00 -r00
 
 clean:
 	rm -f $(OBJS) $(TARGET).elf $(BIN) $(TARGET).map
+
+# Assembly rule (if any .s are added later)
+%.o: %.s
+	$(CC) $(CFLAGS) -c $< -o $@

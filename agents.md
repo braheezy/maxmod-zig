@@ -7,10 +7,9 @@ The strategy we employ is to add identical debug AGB prints to the C and Zig cod
 For the C:
 - build: make -C example/xm_c_ref clean && make -C example/xm_c_ref all
 - run : timeout 4.5 mgba examples/xm_c_ref/xm_cref.gba &> c.log
-- note: The prints in the C seem to slow it down so in the same amount of wall time, the C advances though less audio and less processing than the zig. this means you need to timeout longer on the C to get to the same place in playback. maybe there is another counter of sorts to use instead of guessing with time.
 For the Zig:
 - build: zig build xm-port
-- run: timeout 3.5 mgba zig-out/bin/xm-port.gba &> zig.log
+- run: timeout 4.5 mgba zig-out/bin/xm-port.gba &> zig.log
 
 You are forbidden from running `git` commands. You do not need to capture build logs.
 
@@ -31,3 +30,10 @@ You must always ensure the zig builds with `zig build xm-port`.
 This has nothing to do with the mmutil folder. We generated the soundbank using the c based mmutil, guaranteeing that our input data is bit identical. you should only be working on files the in `src/port/` directory
 
 Never create new log files. Overwrite the previous c.log or zig.log.
+
+## Current Bug
+XM playback was completed, so I started removing debug AGB prints in the Zig. This revealed that if the either of the two debug prints in mpp_Update_ACHN_notest_disable_and_panning in mas.zig are removed, audio playback regresses
+
+None of the alternate options helped. so it's definitely the timing of std.fmt.bufPrint and it only works for the exact number of fmt args being handled. If I remove a single format arg being printed, like print a smaller message, then the audio regresses.
+
+This is bad. how can we not depend on such fragily buffer formatting to get our audio working? They are unrelated things. How does the C code achieve the correct timing without depending on such hacks?

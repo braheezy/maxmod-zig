@@ -907,6 +907,10 @@ pub export fn mmFrame() void {
         }
         g_postmix_budget -= 1;
     }
+
+    // Dump accumulated logs from timing-critical audio processing
+    // This happens at the end of each frame when timing is less critical
+    @import("../core/mas.zig").dumpLogsConditional();
 }
 pub export fn mmGetModuleCount() mm_word {
     return mmModuleCount;
