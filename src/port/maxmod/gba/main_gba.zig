@@ -847,7 +847,7 @@ pub export fn mmFrame() void {
             },
         );
     }
-    mmUpdateEffects();
+    // mmUpdateEffects();
     // mppUpdateSub(); // Don't call this - it sets mpp_nchannels=4 for jingle mode
     mpp_channels = mm_pchannels;
     mpp_nchannels = @as(mm_byte, @bitCast(@as(u8, @truncate(mm_num_mch))));
@@ -2516,7 +2516,7 @@ pub const ACHN_RESERVED = @as(c_int, 1);
 pub const ACHN_BACKGROUND = @as(c_int, 2);
 pub const ACHN_FOREGROUND = @as(c_int, 3);
 pub const ACHN_CUSTOM = @as(c_int, 4);
-pub const MIXCH_GBA_SRC_STOPPED = @as(c_uint, 1) << ((@import("std").zig.c_translation.sizeof(usize) * @as(c_int, 8)) - @as(c_int, 1));
+pub const MIXCH_GBA_SRC_STOPPED: usize = (@as(usize, 1) << (@bitSizeOf(usize) - 1));
 pub const MM_CORE_PLAYER_TYPES_H__ = "";
 pub const MP_SCHANNELS = @as(c_int, 4);
 pub const NO_CHANNEL_AVAILABLE = @as(c_int, 255);
