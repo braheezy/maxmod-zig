@@ -4365,16 +4365,11 @@ pub fn mpp_Update_ACHN_notest_disable_and_panning(arg_volume: mm_word, arg_act_c
     const pan_for_print: u8 = if (act_ch.*.panning != 0) act_ch.*.panning else 128;
     if (umix_allow_log_ch(mpp_layerp, umix_channel_index_from_mix(mix_ch))) {
         // TIMING PRESERVATION: Test different approaches if audio breaks
-        timingDelay(); // Currently using NOPs - try memoryBarrier() or dummyVolatileOp() if needed
 
         safeLog(
             "[DISPAN] ch={d} vol={d} flags={x} pan={d} src={x}\n",
-            .{ @as(c_int, @intCast(act_ch.*.parent)), @as(c_int, @intCast(mix_ch.*.vol)), @as(c_int, @intCast(act_ch.*.flags)), @as(c_int, @intCast(pan_for_print)), @as(c_int, @intCast(mix_ch.*.src)) },
+            .{ act_ch.*.parent, mix_ch.*.vol, act_ch.*.flags, pan_for_print, mix_ch.*.src },
         );
-        // safeLog(
-        //     "[DISPAN] ch={d} vol={d} flags={x} pan={d} src={x}\n",
-        //     .{ @as(c_int, @intCast(act_ch.*.parent)), @as(c_int, @intCast(mix_ch.*.vol)), @as(c_int, @intCast(act_ch.*.flags)), @as(c_int, @intCast(pan_for_print)), @as(c_int, @intCast(mix_ch.*.src)) },
-        // );
     }
 
     // If mixer channel ended, disable foreground channel
@@ -4409,7 +4404,6 @@ pub fn mpp_Update_ACHN_notest_disable_and_panning(arg_volume: mm_word, arg_act_c
         if (layer.*.position == 0 and layer.*.row == 0 and layer.*.tick == 0) {
             if (umix_channel_index_from_mix(mix_ch) == 0) {
                 // TIMING PRESERVATION: Test different approaches if audio breaks
-                timingDelay(); // Currently using NOPs - try memoryBarrier() or dummyVolatileOp() if needed
 
                 safeLog(
                     "[EARLY-UMIX] ch={d} src={x} read={d} vol={d} pan={d} freq={d}\n",
