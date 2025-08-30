@@ -20,8 +20,8 @@ pub export fn free(_: ?*anyopaque) callconv(.C) void {
     // no-op
 }
 
-const core = @import("mm_port_core_mas");
-const gba = @import("gba");
+const core = @import("core/mas.zig");
+// const gba = @import("gba");
 pub extern var mp_solution: [*c]core.msl_head;
 
 pub export var mmLayerMain: core.mpl_layer_information = .{};

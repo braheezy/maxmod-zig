@@ -19,8 +19,7 @@ pub const __builtin_exp2f = @import("std").zig.c_builtins.__builtin_exp2f;
 pub const __builtin_log = @import("std").zig.c_builtins.__builtin_log;
 pub const __builtin_logf = @import("std").zig.c_builtins.__builtin_logf;
 
-// Debug configuration - can be toggled at build time
-const debug_enabled = @import("builtin").mode == .Debug;
+const debug_enabled = @import("build_options").xm_debug;
 
 // Debug printing helper that can be compiled out
 inline fn debugPrint(comptime fmt: []const u8, args: anytype) void {
@@ -600,7 +599,7 @@ pub export fn mmAllocChannel() linksection(".iwram") mm_word {
             best_volume = fvol << @intCast(23);
         }
     }
-    @import("gba").debug.print("[mmAllocChannel] return={d} bitmask={x}\n", .{ @as(c_int, @intCast(best_channel)), @as(c_int, @intCast(mm_ch_mask)) }) catch unreachable;
+    debugPrint("[mmAllocChannel] return={d} bitmask={x}\n", .{ @as(c_int, @intCast(best_channel)), @as(c_int, @intCast(mm_ch_mask)) });
     return best_channel;
 }
 // /Users/michaelbraha/personal/gba/maxmod-zig/maxmod/source/core/mas_arm.c:359:9: warning: TODO implement translation of stmt class GotoStmtClass
@@ -654,7 +653,7 @@ pub export fn mmUpdateChannel_T0(arg_module_channel: [*c]mm_module_channel, arg_
 
         // One-time channel start log (first two channels, tick==0 only)
         if (mpp_layer.*.tick == 0 and channel_counter < 2) {
-            @import("gba").debug.print("[CHSTART] ch={d} inst={d} sample={d} src={x} flags={x}\n", .{ @as(c_int, @intCast(channel_counter)), @as(c_int, @intCast(module_channel.*.inst)), @as(c_int, @intCast(act_ch_mut.*.sample)), @intFromPtr(sample), @as(c_int, @intCast(module_channel.*.flags)) }) catch unreachable;
+            debugPrint("[CHSTART] ch={d} inst={d} sample={d} src={x} flags={x}\n", .{ @as(c_int, @intCast(channel_counter)), @as(c_int, @intCast(module_channel.*.inst)), @as(c_int, @intCast(act_ch_mut.*.sample)), @intFromPtr(sample), @as(c_int, @intCast(module_channel.*.flags)) });
         }
 
         // On new note, seed module channel volume from sample default volume (XM semantics)
@@ -796,12 +795,12 @@ pub export fn mmReadPattern(arg_mpp_layer: [*c]mpl_layer_information) linksectio
     _ = &pattern;
     var update_bits: mm_word = 0;
     _ = &update_bits;
-    @import("gba").debug.print("[Z mmReadPattern] start pattread=0x{x} pattread_p=0x{x} nch={d} row={d}\n", .{
+    debugPrint("[Z mmReadPattern] start pattread=0x{x} pattread_p=0x{x} nch={d} row={d}\n", .{
         @intFromPtr(mpp_layer.*.pattread),
         @intFromPtr(mpp_vars.pattread_p),
         @as(c_int, @intCast(mpp_nchannels)),
         @as(c_int, @intCast(mpp_layer.*.row)),
-    }) catch unreachable;
+    });
     var debug_detail: bool = false;
     // Show detailed per-field reads for debugging - enable for more rows to see the issue
     if (mpp_layer.*.row < 10) debug_detail = true;
@@ -813,7 +812,7 @@ pub export fn mmReadPattern(arg_mpp_layer: [*c]mpl_layer_information) linksectio
             break :blk tmp;
         }).*;
         _ = &read_byte;
-        if (debug_detail) @import("gba").debug.print("[Z mmReadPattern] read_byte={x} at pos=0x{x}\n", .{ @as(c_int, @intCast(read_byte)), @intFromPtr(pattern - 1) }) catch unreachable;
+        if (debug_detail) debugPrint("[Z mmReadPattern] read_byte={x} at pos=0x{x}\n", .{ @as(c_int, @intCast(read_byte)), @intFromPtr(pattern - 1) });
         // Let the translated C code handle everything (including XM files)
         if ((@as(c_int, @bitCast(@as(c_uint, read_byte))) & @as(c_int, 127)) == @as(c_int, 0)) {
             // No extra mmReadPattern break log in C reference
@@ -822,11 +821,11 @@ pub export fn mmReadPattern(arg_mpp_layer: [*c]mpl_layer_information) linksectio
         var pattern_flags: mm_word = 0;
         _ = &pattern_flags;
         const chan_calculation = (@as(c_int, @bitCast(@as(c_uint, read_byte))) & @as(c_int, 127)) - @as(c_int, 1);
-        if (debug_detail) @import("gba").debug.print("[Z mmReadPattern] chan_calc=(({x} & 127 0x7F 0x7F)-1)={d}\n", .{ @as(c_int, @intCast(read_byte)), chan_calculation }) catch unreachable;
+        if (debug_detail) debugPrint("[Z mmReadPattern] chan_calc=(({x} & 127 0x7F 0x7F)-1)={d}\n", .{ @as(c_int, @intCast(read_byte)), chan_calculation });
         var chan_num: mm_byte = @as(mm_byte, @bitCast(@as(i8, @truncate(chan_calculation))));
         _ = &chan_num;
         if (@as(c_int, @bitCast(@as(c_uint, chan_num))) >= @as(c_int, @bitCast(@as(c_uint, mpp_nchannels)))) {
-            @import("gba").debug.print(
+            debugPrint(
                 "[mmReadPattern] error: chan {d} >= nch {d} (flags={x} row={d})\n",
                 .{
                     @as(c_int, @intCast(chan_num)),
@@ -834,7 +833,7 @@ pub export fn mmReadPattern(arg_mpp_layer: [*c]mpl_layer_information) linksectio
                     @as(c_int, @intCast(read_byte)),
                     @as(c_int, @intCast(mpp_layer.*.row)),
                 },
-            ) catch unreachable;
+            );
             // Non-XM mode: return error for invalid channels
             return 0;
         }
@@ -848,7 +847,7 @@ pub export fn mmReadPattern(arg_mpp_layer: [*c]mpl_layer_information) linksectio
                 ref.* += 1;
                 break :blk tmp;
             }).*;
-            if (debug_detail) @import("gba").debug.print("[Z mmReadPattern] cflags={x} at pos=0x{x}\n", .{ @as(c_int, @intCast(module_channel.*.cflags)), @intFromPtr(pattern - 1) }) catch unreachable;
+            if (debug_detail) debugPrint("[Z mmReadPattern] cflags={x} at pos=0x{x}\n", .{ @as(c_int, @intCast(module_channel.*.cflags)), @intFromPtr(pattern - 1) });
         }
         var compr_flags: mm_word = @as(mm_word, @bitCast(@as(c_uint, module_channel.*.cflags)));
         _ = &compr_flags;
@@ -860,7 +859,7 @@ pub export fn mmReadPattern(arg_mpp_layer: [*c]mpl_layer_information) linksectio
                 break :blk tmp;
             }).*;
             _ = &note;
-            if (debug_detail) @import("gba").debug.print("[Z mmReadPattern] note={x} at pos=0x{x}\n", .{ @as(c_int, @intCast(note)), @intFromPtr(pattern - 1) }) catch unreachable;
+            if (debug_detail) debugPrint("[Z mmReadPattern] note={x} at pos=0x{x}\n", .{ @as(c_int, @intCast(note)), @intFromPtr(pattern - 1) });
             if (@as(c_int, @bitCast(@as(c_uint, note))) == @as(c_int, 254)) {
                 pattern_flags |= @as(mm_word, @bitCast(@as(c_int, 128)));
             } else if (@as(c_int, @bitCast(@as(c_uint, note))) == @as(c_int, 255)) {
@@ -915,17 +914,17 @@ pub export fn mmReadPattern(arg_mpp_layer: [*c]mpl_layer_information) linksectio
                 ref.* += 1;
                 break :blk tmp;
             }).*;
-            if (debug_detail) @import("gba").debug.print("[Z mmReadPattern] effect={x:0>2} param={x:0>2} at pos=0x{x}\n", .{ module_channel.*.effect, module_channel.*.param, @intFromPtr(pattern - 2) }) catch unreachable;
+            if (debug_detail) debugPrint("[Z mmReadPattern] effect={x:0>2} param={x:0>2} at pos=0x{x}\n", .{ module_channel.*.effect, module_channel.*.param, @intFromPtr(pattern - 2) });
         }
         // Map compressed field-presence bits into module_channel.flags upper nibble.
         // Bit layout from C: note=1<<0, inst=1<<1, vol=1<<2, eff=1<<3;
         // runtime flags expect these at bits 4..7. Use right shift by 4 (like C code).
         module_channel.*.flags = @as(mm_byte, @bitCast(@as(u8, @truncate(pattern_flags | (compr_flags >> @intCast(4))))));
-        if (debug_detail) @import("gba").debug.print("[Z mmReadPattern] end chan {d}, pattern now 0x{x}\n", .{ @as(c_int, @intCast(chan_num)), @intFromPtr(pattern) }) catch unreachable;
+        if (debug_detail) debugPrint("[Z mmReadPattern] end chan {d}, pattern now 0x{x}\n", .{ @as(c_int, @intCast(chan_num)), @intFromPtr(pattern) });
     }
     mpp_layer.*.pattread = pattern;
     mpp_layer.*.mch_update = update_bits;
-    @import("gba").debug.print("[Z mmReadPattern] row end, pattread=0x{x} update_bits={x}\n", .{ @intFromPtr(mpp_layer.*.pattread), @as(c_int, @intCast(update_bits)) }) catch unreachable;
+    debugPrint("[Z mmReadPattern] row end, pattread=0x{x} update_bits={x}\n", .{ @intFromPtr(mpp_layer.*.pattread), @as(c_int, @intCast(update_bits)) });
     return 1;
 }
 pub extern fn mpp_Process_VolumeCommand([*c]mpl_layer_information, [*c]mm_active_channel, [*c]mm_module_channel, mm_word) mm_word;
@@ -1422,14 +1421,14 @@ pub fn mmChannelStartACHN(arg_module_channel: [*c]mm_module_channel, arg_active_
         const b9: u8 = inst_bytes_dbg[9];
         const b10: u8 = inst_bytes_dbg[10];
         const b11: u8 = inst_bytes_dbg[11];
-        @import("gba").debug.print(
+        debugPrint(
             "[INST] ch={d} inst_ptr={x} bytes: {x:0>2} {x:0>2} {x:0>2} {x:0>2} {x:0>2} {x:0>2} {x:0>2} {x:0>2} nm_lo={x:0>2} nm_hi={x:0>2} res_lo={x:0>2} res_hi={x:0>2}\n",
             .{ @as(c_int, @intCast(channel_counter)), inst_base_dbg, b0, b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11 },
-        ) catch {};
-        @import("gba").debug.print(
+        );
+        debugPrint(
             "[MAPDBG] ch={d} inst_ptr={x} nmap_off={x} map_ptr={x} pnoter={d} entry={x} invalid={d}\n",
             .{ @as(c_int, @intCast(channel_counter)), inst_base_dbg, nm_off, nm_ptr_dbg, @as(c_int, @intCast(module_channel.*.pnoter)), @as(c_int, @intCast(raw_entry_dbg)), @as(c_int, @intCast(@intFromBool(invalid_map))) },
-        ) catch {};
+        );
     }
     if (invalid_map) {
         // No valid note map: use instrument default mapping
@@ -1453,10 +1452,10 @@ pub fn mmChannelStartACHN(arg_module_channel: [*c]mm_module_channel, arg_active_
     }
     // Minimal mapping debug on first channels/tick 0 (guarded)
     if (mpp_layer.*.tick == 0 and channel_counter < 2) {
-        @import("gba").debug.print(
+        debugPrint(
             "[BINDMAP] ch={d} inst={d} pnoter={d} invalid={d} nmap_off={x} note={d} sample={d}\n",
             .{ @as(c_int, @intCast(channel_counter)), @as(c_int, @intCast(module_channel.*.inst)), @as(c_int, @intCast(module_channel.*.pnoter)), @as(c_int, @intCast(@intFromBool(invalid_map))), @as(c_int, @intCast(nm_off)), @as(c_int, @intCast(module_channel.*.note)), if (active_channel != null) @as(c_int, @intCast(active_channel.*.sample)) else 0 },
-        ) catch {};
+        );
     }
     return module_channel.*.note;
 }

@@ -215,6 +215,9 @@ pub fn build(b: *std.Build) void {
 
     const xm_opts = b.addOptions();
     xm_opts.addOption([]const u8, "xm_name", selected_xm);
+
+    const xm_debug = b.option(bool, "xmdebug", "Enable XM debug mode") orelse false;
+    xm_opts.addOption(bool, "xm_debug", xm_debug);
     // xm_example.root_module.addOptions("build_options", xm_opts);
 
     // Generate a MAS file from the XM for runtime integration
@@ -245,26 +248,33 @@ pub fn build(b: *std.Build) void {
     // Do NOT link the Zig maxmod runtime; use only translated port files + asm mixer
     xm_port_example.addObjectFile(b.path("mixer_asm.o"));
 
+    const maxmod_zig = b.createModule(.{ .root_source_file = b.path("src/port/maxmod/maxmod.zig"), .target = gba_target, .optimize = optimize });
+    maxmod_zig.addImport("gba", gba_mod);
+    xm_port_example.root_module.addImport("maxmod", maxmod_zig);
+
+    const build_options_mod = xm_opts.createModule();
+    maxmod_zig.addImport("build_options", build_options_mod);
+
     // Add translated Maxmod port modules only
-    const mm_port_core_mas = b.createModule(.{ .root_source_file = b.path("src/port/maxmod/core/mas.zig"), .target = gba_target, .optimize = optimize });
-    mm_port_core_mas.addImport("gba", gba_mod);
+    // const mm_port_core_mas = b.createModule(.{ .root_source_file = b.path("src/port/maxmod/core/mas.zig"), .target = gba_target, .optimize = optimize });
+    // mm_port_core_mas.addImport("gba", gba_mod);
     const mm_port_core_effect = b.createModule(.{ .root_source_file = b.path("src/port/maxmod/core/effect.zig"), .target = gba_target, .optimize = optimize });
-    const mm_port_core_mas_arm = b.createModule(.{ .root_source_file = b.path("src/port/maxmod/core/mas_arm.zig"), .target = gba_target, .optimize = optimize });
-    mm_port_core_mas_arm.addImport("gba", gba_mod);
+    // const mm_port_core_mas_arm = b.createModule(.{ .root_source_file = b.path("src/port/maxmod/core/mas_arm.zig"), .target = gba_target, .optimize = optimize });
+    // mm_port_core_mas_arm.addImport("gba", gba_mod);
     const mm_port_gba_mixer = b.createModule(.{ .root_source_file = b.path("src/port/maxmod/gba/mixer.zig"), .target = gba_target, .optimize = optimize });
     mm_port_gba_mixer.addImport("gba", gba_mod);
-    const mm_port_gba_main = b.createModule(.{ .root_source_file = b.path("src/port/maxmod/gba/main_gba.zig"), .target = gba_target, .optimize = optimize });
-    mm_port_gba_main.addImport("gba", gba_mod);
-    const mm_port_shim = b.createModule(.{ .root_source_file = b.path("src/port/shim.zig"), .target = gba_target, .optimize = optimize });
-    mm_port_shim.addImport("gba", gba_mod);
-    mm_port_shim.addImport("mm_port_core_mas", mm_port_core_mas);
-    mm_port_gba_main.addImport("gba", gba_mod);
-    xm_port_example.root_module.addImport("mm_port_core_mas", mm_port_core_mas);
+    // const mm_port_gba_main = b.createModule(.{ .root_source_file = b.path("src/port/maxmod/gba/main_gba.zig"), .target = gba_target, .optimize = optimize });
+    // mm_port_gba_main.addImport("gba", gba_mod);
+    // const mm_port_shim = b.createModule(.{ .root_source_file = b.path("src/port/shim.zig"), .target = gba_target, .optimize = optimize });
+    // mm_port_shim.addImport("gba", gba_mod);
+    // mm_port_shim.addImport("mm_port_core_mas", mm_port_core_mas);
+    // mm_port_gba_main.addImport("gba", gba_mod);
+    // xm_port_example.root_module.addImport("mm_port_core_mas", mm_port_core_mas);
     xm_port_example.root_module.addImport("mm_port_core_effect", mm_port_core_effect);
-    xm_port_example.root_module.addImport("mm_port_core_mas_arm", mm_port_core_mas_arm);
+    // xm_port_example.root_module.addImport("mm_port_core_mas_arm", mm_port_core_mas_arm);
     xm_port_example.root_module.addImport("mm_port_gba_mixer", mm_port_gba_mixer);
-    xm_port_example.root_module.addImport("mm_port_gba_main", mm_port_gba_main);
-    xm_port_example.root_module.addImport("mm_port_shim", mm_port_shim);
+    // xm_port_example.root_module.addImport("mm_port_gba_main", mm_port_gba_main);
+    // xm_port_example.root_module.addImport("mm_port_shim", mm_port_shim);
 
     // Share same XM args/options, but use the C-mmutil soundbank for ported ROM parity
     // xm_port_example.step.dependOn(&copy_xm.step);
@@ -272,7 +282,7 @@ pub fn build(b: *std.Build) void {
     // The C Makefile expects the bank at examples/xm/soundbank.bin; mirror that here for parity.
     // const copy_bank_for_port = b.addSystemCommand(&.{ "cp", "examples/xm/soundbank.bin", "examples/xm_port/soundbank.bin" });
     // xm_port_example.step.dependOn(&copy_bank_for_port.step);
-    xm_port_example.root_module.addOptions("build_options", xm_opts);
+    xm_port_example.root_module.addImport("build_options", build_options_mod);
 
     // Hook into top-level step and install artifact
     xm_port_step.dependOn(&xm_port_example.step);

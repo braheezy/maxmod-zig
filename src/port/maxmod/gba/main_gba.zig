@@ -1,3 +1,13 @@
+// Debug configuration - can be toggled at build time
+const debug_enabled = @import("build_options").xm_debug;
+
+// Debug printing helper that can be compiled out
+inline fn debugPrint(comptime fmt: []const u8, args: anytype) void {
+    if (debug_enabled) {
+        @import("gba").debug.print(fmt, args) catch {};
+    }
+}
+
 pub const __builtin_bswap16 = @import("std").zig.c_builtins.__builtin_bswap16;
 pub const __builtin_bswap32 = @import("std").zig.c_builtins.__builtin_bswap32;
 pub const __builtin_bswap64 = @import("std").zig.c_builtins.__builtin_bswap64;
@@ -624,7 +634,7 @@ pub const MM_MIXLEN_27KHZ: c_int = 1792;
 pub const MM_MIXLEN_31KHZ: c_int = 2112;
 pub const mm_mixlen_enum = c_uint;
 pub export fn mmInitDefault(arg_soundbank: mm_addr, arg_number_of_channels: mm_word) bool {
-    @import("gba").debug.print("[mmInitDefault] soundbank=0x{x} nch={d}\n", .{ @intFromPtr(arg_soundbank), arg_number_of_channels }) catch unreachable;
+    debugPrint("[mmInitDefault] soundbank=0x{x} nch={d}\n", .{ @intFromPtr(arg_soundbank), arg_number_of_channels });
     var soundbank = arg_soundbank;
     _ = &soundbank;
     var number_of_channels = arg_number_of_channels;
@@ -661,11 +671,11 @@ pub export fn mmInitDefault(arg_soundbank: mm_addr, arg_number_of_channels: mm_w
     };
     _ = &setup;
     if (!mmInit(&setup)) {
-        @import("gba").debug.print("[mmInitDefault] mmInit failed\n", .{}) catch unreachable;
+        debugPrint("[mmInitDefault] mmInit failed\n", .{});
         free(mm_init_default_buffer);
         return @as(c_int, 0) != 0;
     }
-    @import("gba").debug.print("[mmInitDefault] done mm_mixlen={d}\n", .{mm_mixlen}) catch unreachable;
+    debugPrint("[mmInitDefault] done mm_mixlen={d}\n", .{mm_mixlen});
     return @as(c_int, 1) != 0;
 }
 // MSL head data (exactly like C): 2x u16, then 4-byte padding to align tables
@@ -754,7 +764,7 @@ pub export fn mmInit(arg_setup: [*c]mm_gba_system) bool {
     parseBankPointers(mm_bank_base);
     // Point mp_solution to head_data base (without prefix) for any legacy users
     mp_solution = @constCast(@ptrCast(@alignCast(mm_bank_base + mm_head_off)));
-    @import("gba").debug.print("[mmInit] mp_solution=0x{x} sampleCount={d} moduleCount={d}\n", .{ @intFromPtr(mp_solution), @as(c_int, @intCast(mm_sample_count_u16)), @as(c_int, @intCast(mm_module_count_u16)) }) catch unreachable;
+    debugPrint("[mmInit] mp_solution=0x{x} sampleCount={d} moduleCount={d}\n", .{ @intFromPtr(mp_solution), @as(c_int, @intCast(mm_sample_count_u16)), @as(c_int, @intCast(mm_module_count_u16)) });
     mmSampleCount = @as(mm_word, @intCast(mm_sample_count_u16));
     mmModuleCount = @as(mm_word, @intCast(mm_module_count_u16));
     mm_achannels = @as([*c]mm_active_channel, @ptrCast(@alignCast(setup.*.active_channels)));
@@ -774,7 +784,7 @@ pub export fn mmInit(arg_setup: [*c]mm_gba_system) bool {
     const ch_bytes: usize = if (ch_end > ch_base) ch_end - ch_base else 0;
     _ = ch_bytes; // silence unused in release
     // Log parity with C reference
-    @import("gba").debug.print("[mmInit] mmMixerInit done, mm_num_mch={d} mm_num_ach={d} mm_mixlen={d}\n", .{ mm_num_mch, mm_num_ach, mm_mixlen }) catch unreachable;
+    debugPrint("[mmInit] mmMixerInit done, mm_num_mch={d} mm_num_ach={d} mm_mixlen={d}\n", .{ mm_num_mch, mm_num_ach, mm_mixlen });
     // Build channel mask safely for up to 32 channels
     // Avoid undefined shift when mm_num_ach == 32 on 32-bit types
     // Match C: mm_ch_mask = (1U << mm_num_ach) - 1; (32 -> 0xFFFF_FFFF)
@@ -810,7 +820,7 @@ pub export fn mmFrame() void {
     // Update effects and sublayer first to mirror C reference ordering
     mmUpdateEffects();
     mppUpdateSub();
-    @import("gba").debug.print(
+    debugPrint(
         "[mmFrame] enter mixlen={d} isplaying={d} valid={d} mode={d} flags={x} tickrate={d} row={d} main_ptr=0x{x} sub_ptr=0x{x} mpp=0x{x}\n",
         .{
             mm_mixlen,
@@ -824,10 +834,10 @@ pub export fn mmFrame() void {
             @intFromPtr(&mmLayerSub),
             @intFromPtr(mpp_layerp),
         },
-    ) catch unreachable;
+    );
     // Do not coerce flags; rely on real state like the C reference
     if (mmLayerMain.valid == 0) {
-        @import("gba").debug.print(
+        debugPrint(
             "[mmFrame] main(isply={d},valid={d}) sub(isply={d},valid={d})\n",
             .{
                 @as(c_int, @intCast(mmLayerMain.isplaying)),
@@ -835,7 +845,7 @@ pub export fn mmFrame() void {
                 @as(c_int, @intCast(mmLayerSub.isplaying)),
                 @as(c_int, @intCast(mmLayerSub.valid)),
             },
-        ) catch unreachable;
+        );
     }
     mmUpdateEffects();
     // mppUpdateSub(); // Don't call this - it sets mpp_nchannels=4 for jingle mode
@@ -844,7 +854,7 @@ pub export fn mmFrame() void {
     mpp_clayer = @as(c_uint, @bitCast(MM_MAIN));
     mpp_layerp = &mmLayerMain;
     if (@as(c_int, @bitCast(@as(c_uint, mpp_layerp.*.isplaying))) == @as(c_int, 0)) {
-        @import("gba").debug.print("[mmFrame] not playing, mixing {d} (valid={d}) [STOPPING PLAYBACK]\n", .{ mm_mixlen, @as(c_int, @intCast(mpp_layerp.*.valid)) }) catch unreachable;
+        debugPrint("[mmFrame] not playing, mixing {d} (valid={d}) [STOPPING PLAYBACK]\n", .{ mm_mixlen, @as(c_int, @intCast(mpp_layerp.*.valid)) });
         mmMixerMix(mm_mixlen);
         return;
     }
@@ -856,33 +866,33 @@ pub export fn mmFrame() void {
         var sampcount: c_int = @as(c_int, @bitCast(@as(c_uint, mpp_layerp.*.unnamed_0.sampcount)));
         _ = &sampcount;
         sample_num -= sampcount;
-        @import("gba").debug.print(
+        debugPrint(
             "[mmFrame] sample logic: tickrate={d} sampcount={d} sample_num={d} remaining_len={d}\n",
             .{ @as(c_int, @intCast(mpp_layerp.*.tickrate)), sampcount, sample_num, remaining_len },
-        ) catch {};
+        );
         if (sample_num < @as(c_int, 0)) {
             sample_num = 0;
         }
         if (sample_num >= remaining_len) break;
         mpp_layerp.*.unnamed_0.sampcount = 0;
         remaining_len -= sample_num;
-        @import("gba").debug.print("[MIX] num={d}\n", .{sample_num}) catch {};
+        debugPrint("[MIX] num={d}\n", .{sample_num});
         mmMixerMix(@as(mm_word, @bitCast(sample_num)));
-        @import("gba").debug.print("[mmFrame] calling mppProcessTick() pos={d} row={d} tick={d}\n", .{ @as(c_int, @intCast(mpp_layerp.*.position)), @as(c_int, @intCast(mpp_layerp.*.row)), @as(c_int, @intCast(mpp_layerp.*.tick)) }) catch unreachable;
+        debugPrint("[mmFrame] calling mppProcessTick() pos={d} row={d} tick={d}\n", .{ @as(c_int, @intCast(mpp_layerp.*.position)), @as(c_int, @intCast(mpp_layerp.*.row)), @as(c_int, @intCast(mpp_layerp.*.tick)) });
         mppProcessTick();
-        @import("gba").debug.print("[mmFrame] after mppProcessTick() pos={d} row={d} tick={d} isplaying={d}\n", .{ @as(c_int, @intCast(mpp_layerp.*.position)), @as(c_int, @intCast(mpp_layerp.*.row)), @as(c_int, @intCast(mpp_layerp.*.tick)), @as(c_int, @intCast(mpp_layerp.*.isplaying)) }) catch unreachable;
+        debugPrint("[mmFrame] after mppProcessTick() pos={d} row={d} tick={d} isplaying={d}\n", .{ @as(c_int, @intCast(mpp_layerp.*.position)), @as(c_int, @intCast(mpp_layerp.*.row)), @as(c_int, @intCast(mpp_layerp.*.tick)), @as(c_int, @intCast(mpp_layerp.*.isplaying)) });
         // Snapshot immediately after tick processing (post-UMIX binding) before next mix
         if (g_premix_budget > 0 and mm_mix_channels != @as([*c]mm_mixer_channel, @ptrFromInt(0))) {
             const ch0a: [*c]mm_mixer_channel = mm_mix_channels;
-            @import("gba").debug.print(
+            debugPrint(
                 "[PREMIX] ch0 src={x} read={d} vol={d} freq={d}\n",
                 .{ ch0a[0].src, @as(c_int, @intCast(ch0a[0].read)), @as(c_int, @intCast(ch0a[0].vol)), @as(c_int, @intCast(ch0a[0].freq)) },
-            ) catch {};
+            );
             g_premix_budget -= 1;
         }
     }
     mpp_layerp.*.unnamed_0.sampcount +%= @as(mm_hword, @bitCast(@as(c_short, @truncate(remaining_len))));
-    @import("gba").debug.print("[MIX] tail={d}\n", .{remaining_len}) catch {};
+    debugPrint("[MIX] tail={d}\n", .{remaining_len});
     mmMixerMix(@as(mm_word, @bitCast(remaining_len)));
     // Bounded post-mix snapshot prints to verify mixer read advancement
     if (g_postmix_budget > 0 and mm_mix_channels != @as([*c]mm_mixer_channel, @ptrFromInt(0))) {
@@ -890,10 +900,10 @@ pub export fn mmFrame() void {
         // Print first 4 channels for clarity
         var i: usize = 0;
         while (i < 4) : (i += 1) {
-            @import("gba").debug.print(
+            debugPrint(
                 "[POSTMIX] ch{d} src={x} read={d} vol={d} freq={d}\n",
                 .{ @as(c_int, @intCast(i)), ch_base_ptr[i].src, @as(c_int, @intCast(ch_base_ptr[i].read)), @as(c_int, @intCast(ch_base_ptr[i].vol)), @as(c_int, @intCast(ch_base_ptr[i].freq)) },
-            ) catch {};
+            );
         }
         g_postmix_budget -= 1;
     }

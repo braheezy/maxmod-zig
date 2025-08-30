@@ -20,7 +20,7 @@ pub const __builtin_log = @import("std").zig.c_builtins.__builtin_log;
 pub const __builtin_logf = @import("std").zig.c_builtins.__builtin_logf;
 
 // Debug configuration - can be toggled at build time
-const debug_enabled = @import("builtin").mode == .Debug;
+const debug_enabled = @import("build_options").xm_debug;
 
 // Debug printing helper that can be compiled out
 inline fn debugPrint(comptime fmt: []const u8, args: anytype) void {
@@ -579,7 +579,7 @@ pub export fn mmStart(arg_id: mm_word, arg_mode: mm_pmode) void {
     const mc = mmGetModuleCount();
     // C reference does not log mmStart internals beyond the caller's message
     if (id >= mc) {
-        @import("gba").debug.print("[mmStart] early return: id>=count\n", .{}) catch unreachable;
+        debugPrint("[mmStart] early return: id>=count\n", .{});
         return;
     }
     mpps_backdoor(id, mode, @as(c_uint, @bitCast(MM_MAIN)));
@@ -587,13 +587,13 @@ pub export fn mmStart(arg_id: mm_word, arg_mode: mm_pmode) void {
 pub export fn mmPause() void {
     if (@as(c_int, @bitCast(@as(c_uint, mmLayerMain.valid))) == @as(c_int, 0)) return;
     mmLayerMain.isplaying = 0;
-    @import("gba").debug.print("[mmPause] main.isplaying -> 0\n", .{}) catch unreachable;
+    debugPrint("[mmPause] main.isplaying -> 0\n", .{});
     mpp_suspend(@as(c_uint, @bitCast(MM_MAIN)));
 }
 pub export fn mmResume() void {
     if (@as(c_int, @bitCast(@as(c_uint, mmLayerMain.valid))) == @as(c_int, 0)) return;
     mmLayerMain.isplaying = 1;
-    @import("gba").debug.print("[mmResume] main.isplaying -> 1\n", .{}) catch unreachable;
+    debugPrint("[mmResume] main.isplaying -> 1\n", .{});
 }
 pub export fn mmStop() void {
     mpp_clayer = @as(c_uint, @bitCast(MM_MAIN));
@@ -613,7 +613,7 @@ pub export fn mmSetPositionEx(arg_position: mm_word, arg_row: mm_word) void {
     _ = &position;
     var row = arg_row;
     _ = &row;
-    @import("gba").debug.print("[mmSetPositionEx] position={d} row={d}\n", .{ position, row }) catch unreachable;
+    debugPrint("[mmSetPositionEx] position={d} row={d}\n", .{ position, row });
     mpp_setposition(&mmLayerMain, position);
     if (row != @as(mm_word, @bitCast(@as(c_int, 0)))) {
         mpph_FastForward(&mmLayerMain, row);
@@ -702,7 +702,7 @@ pub export fn mmPlayModule(arg_address: usize, arg_mode: mm_word, arg_layer: mm_
     _ = &mode;
     var layer = arg_layer;
     _ = &layer;
-    @import("gba").debug.print("[mmPlayModule] address=0x{x} mode={d} layer={d}\n", .{ address, mode, layer }) catch unreachable;
+    debugPrint("[mmPlayModule] address=0x{x} mode={d} layer={d}\n", .{ address, mode, layer });
     // Read MAS header fields byte-wise to avoid layout drift
     const hptr: [*]const u8 = @ptrFromInt(address);
     const order_count: u8 = hptr[0];
@@ -732,12 +732,12 @@ pub export fn mmPlayModule(arg_address: usize, arg_mode: mm_word, arg_layer: mm_
         channels = @as([*c]mm_module_channel, @ptrCast(@alignCast(&mm_schannels[@as(usize, @intCast(0))])));
         num_ch = 4;
     }
-    @import("gba").debug.print(
+    debugPrint(
         "[mmPlayModule] num_ch={d} channels_ptr=0x{x} layer_info=0x{x}\n",
         .{ num_ch, @intFromPtr(channels), @intFromPtr(layer_info) },
-    ) catch unreachable;
+    );
     // Print header info after num_ch to match C ordering
-    @import("gba").debug.print(
+    debugPrint(
         "[mmPlayModule] hdr: orders={d} instr={d} sampl={d} pattn={d} flags={x} spd={d} tempo={d} gvol={d}\n",
         .{
             @as(c_int, @intCast(order_count)),
@@ -749,7 +749,7 @@ pub export fn mmPlayModule(arg_address: usize, arg_mode: mm_word, arg_layer: mm_
             @as(c_int, @intCast(tempo_b)),
             @as(c_int, @intCast(gvol_b)),
         },
-    ) catch unreachable;
+    );
     layer_info.*.mode = @as(mm_byte, @bitCast(@as(u8, @truncate(mode))));
     layer_info.*.songadr = header;
     // C reference does not log pre-reset internals here
@@ -761,14 +761,14 @@ pub export fn mmPlayModule(arg_address: usize, arg_mode: mm_word, arg_layer: mm_
     layer_info.*.insttable = @constCast(@ptrCast(@alignCast(&tables_ptr[0])));
     layer_info.*.samptable = @constCast(@ptrCast(@alignCast(&tables_ptr[instn_size])));
     layer_info.*.patttable = @constCast(@ptrCast(@alignCast(&tables_ptr[instn_size + sampn_size])));
-    @import("gba").debug.print(
+    debugPrint(
         "[mmPlayModule] tables inst=0x{x} samp=0x{x} patt=0x{x}\n",
         .{ @intFromPtr(layer_info.*.insttable), @intFromPtr(layer_info.*.samptable), @intFromPtr(layer_info.*.patttable) },
-    ) catch unreachable;
+    );
     mpp_setposition(layer_info, @as(mm_word, @bitCast(@as(c_int, 0))));
-    @import("gba").debug.print("[mmPlayModule] after setposition pos={d} row={d} tick={d}\n", .{ @as(c_int, @intCast(layer_info.*.position)), @as(c_int, @intCast(layer_info.*.row)), @as(c_int, @intCast(layer_info.*.tick)) }) catch unreachable;
+    debugPrint("[mmPlayModule] after setposition pos={d} row={d} tick={d}\n", .{ @as(c_int, @intCast(layer_info.*.position)), @as(c_int, @intCast(layer_info.*.row)), @as(c_int, @intCast(layer_info.*.tick)) });
     mpp_setbpm(layer_info, @as(mm_word, @bitCast(@as(c_uint, header.*.initial_tempo))));
-    @import("gba").debug.print("[mpp_setbpm] MAIN tickrate={d}\n", .{@as(c_int, @intCast(layer_info.*.tickrate))}) catch unreachable;
+    debugPrint("[mpp_setbpm] MAIN tickrate={d}\n", .{@as(c_int, @intCast(layer_info.*.tickrate))});
     layer_info.*.global_volume = header.*.global_volume;
     var flags: mm_word = @as(mm_word, @bitCast(@as(c_uint, header.*.flags)));
     _ = &flags;
@@ -778,10 +778,10 @@ pub export fn mmPlayModule(arg_address: usize, arg_mode: mm_word, arg_layer: mm_
     // C reference does not emit a separate line here; omit
     layer_info.*.isplaying = 1;
     layer_info.*.valid = 1;
-    @import("gba").debug.print(
+    debugPrint(
         "[mmPlayModule] set isplaying={d} valid={d} speed={d} tempo={d}\n",
         .{ @as(c_int, @intCast(layer_info.*.isplaying)), @as(c_int, @intCast(layer_info.*.valid)), @as(c_int, @intCast(layer_info.*.speed)), @as(c_int, @intCast(header.*.initial_tempo)) },
-    ) catch unreachable;
+    );
     mpp_resetvars(layer_info);
     {
         var i: mm_word = 0;
@@ -806,10 +806,10 @@ pub export fn mmPlayModule(arg_address: usize, arg_mode: mm_word, arg_layer: mm_
         }
     }
     // C reference does not log an extra exit line here
-    @import("gba").debug.print(
+    debugPrint(
         "[mmPlayModule] end isplaying={d} valid={d} pos={d} row={d} tick={d}\n",
         .{ @as(c_int, @intCast(layer_info.*.isplaying)), @as(c_int, @intCast(layer_info.*.valid)), @as(c_int, @intCast(layer_info.*.position)), @as(c_int, @intCast(layer_info.*.row)), @as(c_int, @intCast(layer_info.*.tick)) },
-    ) catch unreachable;
+    );
 }
 pub export fn mmJingleStart(arg_module_ID: mm_word, arg_mode: mm_pmode) void {
     var module_ID = arg_module_ID;
@@ -827,13 +827,13 @@ pub fn mmJingle(arg_module_ID: mm_word) callconv(.c) void {
 pub export fn mmJinglePause() void {
     if (@as(c_int, @bitCast(@as(c_uint, mmLayerSub.valid))) == @as(c_int, 0)) return;
     mmLayerSub.isplaying = 0;
-    @import("gba").debug.print("[mmPause JINGLE] sub.isplaying -> 0\n", .{}) catch unreachable;
+    debugPrint("[mmPause JINGLE] sub.isplaying -> 0\n", .{});
     mpp_suspend(@as(c_uint, @bitCast(MM_JINGLE)));
 }
 pub export fn mmJingleResume() void {
     if (@as(c_int, @bitCast(@as(c_uint, mmLayerSub.valid))) == @as(c_int, 0)) return;
     mmLayerSub.isplaying = 1;
-    @import("gba").debug.print("[mmResume JINGLE] sub.isplaying -> 1\n", .{}) catch unreachable;
+    debugPrint("[mmResume JINGLE] sub.isplaying -> 1\n", .{});
 }
 pub export fn mmJingleStop() void {
     mpp_clayer = @as(c_uint, @bitCast(MM_JINGLE));
@@ -1901,7 +1901,7 @@ pub fn mpp_setbpm(arg_layer_info: [*c]mpl_layer_information, arg_bpm: mm_word) c
         rate &= @as(mm_word, @bitCast(~@as(c_int, 1)));
         layer_info.*.tickrate = @as(mm_hword, @bitCast(@as(c_ushort, @truncate(rate))));
     } else {
-        @import("gba").debug.print("[mpp_setbpm] SUB tickrate={d}\n", .{@as(c_int, @intCast(layer_info.*.tickrate))}) catch unreachable;
+        debugPrint("[mpp_setbpm] SUB tickrate={d}\n", .{@as(c_int, @intCast(layer_info.*.tickrate))});
     }
 }
 pub fn mpp_suspend(arg_layer: mm_layer_type) callconv(.c) void {
@@ -1950,14 +1950,14 @@ pub fn mpps_backdoor(arg_id: mm_word, arg_mode: mm_pmode, arg_layer: mm_layer_ty
     const module_table_bytes: [*]const u8 = @ptrCast(moduleTable_ptr);
     const ptr_off: [*]const u8 = module_table_bytes + (@as(usize, @intCast(id)) * 4);
     const entry_off: mm_word = @as(mm_word, @intCast(@as(u32, ptr_off[0]) | (@as(u32, ptr_off[1]) << 8) | (@as(u32, ptr_off[2]) << 16) | (@as(u32, ptr_off[3]) << 24)));
-    @import("gba").debug.print("[mpps_backdoor] id={d} mode={d} layer={d} sampleCount={d}\n", .{ id, mode, layer, sampleCount }) catch unreachable;
-    @import("gba").debug.print("[mpps_backdoor] moduleTable=0x{x} entry_off={x}\n", .{ @intFromPtr(module_table_bytes), entry_off }) catch unreachable;
+    debugPrint("[mpps_backdoor] id={d} mode={d} layer={d} sampleCount={d}\n", .{ id, mode, layer, sampleCount });
+    debugPrint("[mpps_backdoor] moduleTable=0x{x} entry_off={x}\n", .{ @intFromPtr(module_table_bytes), entry_off });
     // Offsets in the module table point to the start of each MAS file,
     // which begins with an 8-byte mm_mas_prefix. Skip it to reach the
     // module header, matching the C reference implementation.
     var moduleAddress: usize = (@as(usize, @intCast(@intFromPtr(mp_solution))) +% entry_off) +% @sizeOf(mm_mas_prefix);
     _ = &moduleAddress;
-    @import("gba").debug.print("[mpps_backdoor] moduleAddress=0x{x}\n", .{moduleAddress}) catch unreachable;
+    debugPrint("[mpps_backdoor] moduleAddress=0x{x}\n", .{moduleAddress});
     mmPlayModule(moduleAddress, @as(mm_word, @bitCast(mode)), @as(mm_word, @bitCast(layer)));
 }
 pub fn mpp_resetchannels(arg_channels: [*c]mm_module_channel, arg_num_ch: mm_word) callconv(.c) void {
@@ -2021,7 +2021,7 @@ pub fn mppStop() callconv(.c) void {
         channels = mm_pchannels;
         num_ch = mm_num_mch;
     }
-    @import("gba").debug.print("[mppStop] layer={d} isplaying->0 valid->0\n", .{mpp_clayer}) catch unreachable;
+    debugPrint("[mppStop] layer={d} isplaying->0 valid->0\n", .{mpp_clayer});
     layer_info.*.isplaying = 0;
     layer_info.*.valid = 0;
     mpp_resetchannels(channels, num_ch);
@@ -2064,7 +2064,7 @@ pub fn mpp_setposition(arg_layer_info: [*c]mpl_layer_information, arg_position: 
     var patt: [*c]mm_mas_pattern = mpp_PatternPointer(layer_info, @as(mm_word, @bitCast(@as(c_uint, entry))));
     _ = &patt;
     // No C reference logs for patt_ptr/data
-    @import("gba").debug.print("[mpp_setposition] pattern=0x{x} row_count={d}\n", .{ @intFromPtr(patt), @as(c_int, @intCast(patt.*.row_count)) }) catch unreachable;
+    debugPrint("[mpp_setposition] pattern=0x{x} row_count={d}\n", .{ @intFromPtr(patt), @as(c_int, @intCast(patt.*.row_count)) });
     layer_info.*.nrows = patt.*.row_count;
     layer_info.*.tick = 0;
     layer_info.*.row = 0;
@@ -2933,10 +2933,7 @@ pub fn mpph_VolumeSlide64(arg_volume: c_int, arg_param: mm_word, arg_tick: mm_wo
     _ = &layer;
     const out = mpph_VolumeSlide(volume, param, tick, @as(c_int, 64), layer);
     if (layer.*.row < 6 and layer.*.tick <= 1) {
-        @import("gba").debug.print(
-            "[VOL64] tick={d} param={x} in={d} out={d}\n",
-            .{ @as(c_int, @intCast(tick)), @as(c_int, @intCast(param)), @as(c_int, @intCast(arg_volume)), @as(c_int, @intCast(out)) },
-        ) catch {};
+        debugPrint("[VOL64] tick={d} param={x} in={d} out={d}\n", .{ @as(c_int, @intCast(tick)), @as(c_int, @intCast(param)), @as(c_int, @intCast(arg_volume)), @as(c_int, @intCast(out)) });
     }
     return out;
 }
@@ -3230,10 +3227,7 @@ pub fn mppe_VolumeSlide(arg_param: mm_word, arg_channel: [*c]mm_module_channel, 
     _ = &layer;
     const ch_idx_dbg: c_int = @as(c_int, @intCast((@intFromPtr(channel) - @intFromPtr(mpp_channels)) / @sizeOf(mm_module_channel)));
     if (ch_idx_dbg >= 0 and ch_idx_dbg < 2 and layer.*.row < 6) {
-        @import("gba").debug.print(
-            "[VOLCMD] ch={d} before vol={d} cvol={d} param={x} tick={d}\n",
-            .{ ch_idx_dbg, @as(c_int, @intCast(channel.*.volume)), @as(c_int, @intCast(channel.*.cvolume)), @as(c_int, @intCast(param)), @as(c_int, @intCast(layer.*.tick)) },
-        ) catch {};
+        debugPrint("[VOLCMD] ch={d} before vol={d} cvol={d} param={x} tick={d}\n", .{ ch_idx_dbg, @as(c_int, @intCast(channel.*.volume)), @as(c_int, @intCast(channel.*.cvolume)), @as(c_int, @intCast(param)), @as(c_int, @intCast(layer.*.tick)) });
     }
     const vol_word = mpph_VolumeSlide64(
         @as(c_int, @intCast(channel.*.volume)),
@@ -3243,10 +3237,7 @@ pub fn mppe_VolumeSlide(arg_param: mm_word, arg_channel: [*c]mm_module_channel, 
     );
     channel.*.volume = @as(mm_byte, @intCast(@as(c_int, @intCast(vol_word))));
     if (ch_idx_dbg >= 0 and ch_idx_dbg < 2 and layer.*.row < 6) {
-        @import("gba").debug.print(
-            "[VOLCMD] ch={d} after vol={d}\n",
-            .{ ch_idx_dbg, @as(c_int, @intCast(channel.*.volume)) },
-        ) catch {};
+        debugPrint("[VOLCMD] ch={d} after vol={d}\n", .{ ch_idx_dbg, @as(c_int, @intCast(channel.*.volume)) });
     }
 }
 pub fn mppe_Portamento(arg_param: mm_word, arg_period: mm_word, arg_channel: [*c]mm_module_channel, arg_layer: [*c]mpl_layer_information) callconv(.c) mm_word {
@@ -3967,10 +3958,10 @@ pub fn mpp_Update_ACHN_notest_envelopes(arg_layer: [*c]mpl_layer_information, ar
         const ch_idx_dbg2: c_int = @as(c_int, @intCast((act_addr_dbg2 - base_addr_dbg2) / @sizeOf(mm_active_channel)));
         if (ch_idx_dbg2 >= 0 and ch_idx_dbg2 < 2) {
             const vol_enabled_dbg: c_int = @as(c_int, @intCast(@intFromBool((@as(c_int, @intCast(instrument.*.env_flags)) & MAS_INSTR_FLAG_VOL_ENV_ENABLED) != 0)));
-            @import("gba").debug.print(
+            debugPrint(
                 "[ENVDBG2] ch={d} env_flags=0x{x} vol_enabled={d}\n",
                 .{ ch_idx_dbg2, @as(c_int, @intCast(instrument.*.env_flags)), vol_enabled_dbg },
-            ) catch {};
+            );
         }
     }
 
@@ -3988,7 +3979,7 @@ pub fn mpp_Update_ACHN_notest_envelopes(arg_layer: [*c]mpl_layer_information, ar
                 const base_addr_dbg: usize = @intFromPtr(&mm_achannels[0]);
                 const ch_idx_dbg: c_int = @as(c_int, @intCast((act_addr_dbg - base_addr_dbg) / @sizeOf(mm_active_channel)));
                 if (ch_idx_dbg >= 0 and ch_idx_dbg < 2) {
-                    @import("gba").debug.print("[ENVDBG] ch={d} exit={d} flags=0x{x}\n", .{ ch_idx_dbg, @as(c_int, @intCast(exit_value)), @as(c_int, @intCast(act_ch.*.flags)) }) catch {};
+                    debugPrint("[ENVDBG] ch={d} exit={d} flags=0x{x}\n", .{ ch_idx_dbg, @as(c_int, @intCast(exit_value)), @as(c_int, @intCast(act_ch.*.flags)) });
                 }
             }
             if (layer.*.tick != 0) {
@@ -4092,13 +4083,13 @@ pub fn mpp_Update_ACHN_notest_update_mix(arg_layer: [*c]mpl_layer_information, a
     const mix_ch: [*c]mm_mixer_channel = &mm_mix_channels[@as(usize, @intCast(channel))];
     // UMIX trace: snapshot before possible (re)bind
     if (umix_allow_log_ch(layer, @as(c_int, @intCast(channel)))) {
-        @import("gba").debug.print("[UMIX] ch={d} flags={x:0>2} sample={d} src0={x:0>8} read0={d}\n", .{
+        debugPrint("[UMIX] ch={d} flags={x:0>2} sample={d} src0={x:0>8} read0={d}\n", .{
             @as(c_uint, @intCast(channel)),
             @as(c_uint, @intCast(act_ch.*.flags)),
             @as(c_uint, @intCast(act_ch.*.sample)),
             @as(c_uint, @intCast(mix_ch.*.src)),
             @as(c_uint, @intCast(mix_ch.*.read)),
-        }) catch unreachable;
+        });
     }
     var should_umix_log: bool = false; // will enable only on bind
     // No pre-bind UMIX dump in C reference
@@ -4140,17 +4131,11 @@ pub fn mpp_Update_ACHN_notest_update_mix(arg_layer: [*c]mpl_layer_information, a
             // Gate BIND/HDR like C (only on bind and only early channels/first tick)
             should_umix_log = (mpp_layerp.*.tick == 0 and channel < 2);
             if (should_umix_log) {
-                @import("gba").debug.print(
-                    "[BIND] ch={d} id={d} src={x} def_freq={d} len={d}\n",
-                    .{ @as(c_int, @intCast(channel)), @as(c_int, @intCast(sample.*.msl_id)), @as(c_int, @intCast(mix_ch.*.src)), @as(c_int, @intCast(def_le)), @as(c_int, @intCast(len_le)) },
-                ) catch {};
+                debugPrint("[BIND] ch={d} id={d} src={x} def_freq={d} len={d}\n", .{ @as(c_int, @intCast(channel)), @as(c_int, @intCast(sample.*.msl_id)), @as(c_int, @intCast(mix_ch.*.src)), @as(c_int, @intCast(def_le)), @as(c_int, @intCast(len_le)) });
                 const w0: u32 = @as(u32, hb[0]) | (@as(u32, hb[1]) << 8) | (@as(u32, hb[2]) << 16) | (@as(u32, hb[3]) << 24);
                 const w1: u32 = @as(u32, hb[4]) | (@as(u32, hb[5]) << 8) | (@as(u32, hb[6]) << 16) | (@as(u32, hb[7]) << 24);
                 const w2: u32 = @as(u32, hb[8]) | (@as(u32, hb[9]) << 8) | (@as(u32, hb[10]) << 16) | (@as(u32, hb[11]) << 24);
-                @import("gba").debug.print(
-                    "[HDR] w0={x} w1={x} w2={x} len={d} loop={d} fmt={d} def={d}\n",
-                    .{ w0, w1, w2, @as(c_int, @intCast(len_le)), @as(c_int, @intCast(loop_le)), @as(c_int, @intCast(fmt_b)), @as(c_int, @intCast(def_le)) },
-                ) catch {};
+                debugPrint("[HDR] w0={x} w1={x} w2={x} len={d} loop={d} fmt={d} def={d}\n", .{ w0, w1, w2, @as(c_int, @intCast(len_le)), @as(c_int, @intCast(loop_le)), @as(c_int, @intCast(fmt_b)), @as(c_int, @intCast(def_le)) });
             }
             // initialize read pointer
             mix_ch.*.read = @as(mm_word, @intCast(@as(u32, mpp_vars.sampoff))) << (MP_SAMPFRAC + 8);
@@ -4159,10 +4144,7 @@ pub fn mpp_Update_ACHN_notest_update_mix(arg_layer: [*c]mpl_layer_information, a
 
     if (did_bind and should_umix_log) {
         const umix_idx_for_log: u32 = @as(u32, @intCast(mix_ch.*.read)) >> @intCast(MP_SAMPFRAC + 8);
-        @import("gba").debug.print(
-            "[UMIX] -> src={x:0>8} read={d} idx={d} len={d} loop={d}\n",
-            .{ @as(u32, @intCast(mix_ch.*.src)), @as(u32, @intCast(mix_ch.*.read)), umix_idx_for_log, umix_len_for_log, umix_loop_for_log },
-        ) catch unreachable;
+        debugPrint("[UMIX] -> src={x:0>8} read={d} idx={d} len={d} loop={d}\n", .{ @as(u32, @intCast(mix_ch.*.src)), @as(u32, @intCast(mix_ch.*.read)), umix_idx_for_log, umix_len_for_log, umix_loop_for_log });
     }
     return mix_ch;
 }
@@ -4263,10 +4245,7 @@ pub fn mpp_Update_ACHN_notest_set_pitch_volume(arg_layer: [*c]mpl_layer_informat
         const mix_idx: c_int = @as(c_int, @intCast((@intFromPtr(mix_ch) - @intFromPtr(mm_mix_channels)) / @sizeOf(mm_mixer_channel)));
         // Gate like C: only tick==0 and first two mixer channels
         if (tnow == 0 and mix_idx >= 0 and mix_idx < 2) {
-            @import("gba").debug.print(
-                "[UMIX] set_pitch period={d} freq={d} fvol={d}\n",
-                .{ @as(c_int, @intCast(period)), @as(c_int, @intCast(mix_ch.*.freq)), @as(c_int, @intCast(act_ch.*.fvol)) },
-            ) catch {};
+            debugPrint("[UMIX] set_pitch period={d} freq={d} fvol={d}\n", .{ @as(c_int, @intCast(period)), @as(c_int, @intCast(mix_ch.*.freq)), @as(c_int, @intCast(act_ch.*.fvol)) });
         }
     }
     // Do not set mix_ch.vol here; the C path applies panning/disable logic before volume write
@@ -4300,6 +4279,7 @@ pub fn mpp_Update_ACHN_notest_disable_and_panning(arg_volume: mm_word, arg_act_c
     // Log final vol/pan/flags/src as C does (gated like C)
     const pan_for_print: u8 = if (act_ch.*.panning != 0) act_ch.*.panning else 128;
     if (umix_allow_log_ch(mpp_layerp, umix_channel_index_from_mix(mix_ch))) {
+        // TODO: commenting this out breaks playback
         @import("gba").debug.print(
             "[DISPAN] ch={d} vol={d} flags={x} pan={d} src={x}\n",
             .{ @as(c_int, @intCast(act_ch.*.parent)), @as(c_int, @intCast(mix_ch.*.vol)), @as(c_int, @intCast(act_ch.*.flags)), @as(c_int, @intCast(pan_for_print)), @as(c_int, @intCast(mix_ch.*.src)) },
@@ -4327,16 +4307,17 @@ pub fn mpp_Update_ACHN_notest_disable_and_panning(arg_volume: mm_word, arg_act_c
     mix_ch.*.pan = @as(mm_byte, @intCast(newpan));
     const stopped: c_int = if ((mix_ch.*.src & MIXCH_GBA_SRC_STOPPED) != 0) 1 else 0;
     if (umix_allow_log_ch(mpp_layerp, umix_channel_index_from_mix(mix_ch))) {
-        @import("gba").debug.print(
+        debugPrint(
             "[UMIX] audible ch={d} vol={d} pan={d} stopped={d}\n",
             .{ @as(c_int, @intCast(act_ch.*.parent)), @as(c_int, @intCast(mix_ch.*.vol)), @as(c_int, @intCast(mix_ch.*.pan)), stopped },
-        ) catch unreachable;
+        );
     }
     // Extra early identical probe: first tick/row only, channel 0
     {
         const layer = mpp_layerp;
         if (layer.*.position == 0 and layer.*.row == 0 and layer.*.tick == 0) {
             if (umix_channel_index_from_mix(mix_ch) == 0) {
+                // TODO: commenting this out breaks playback
                 @import("gba").debug.print(
                     "[EARLY-UMIX] ch={d} src={x} read={d} vol={d} pan={d} freq={d}\n",
                     .{ @as(c_int, 0), mix_ch.*.src, @as(c_int, @intCast(mix_ch.*.read)), @as(c_int, @intCast(mix_ch.*.vol)), @as(c_int, @intCast(mix_ch.*.pan)), @as(c_int, @intCast(mix_ch.*.freq)) },

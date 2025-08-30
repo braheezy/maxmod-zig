@@ -1,11 +1,12 @@
 const gba = @import("gba");
 
-const mm_port_core_mas = @import("mm_port_core_mas");
+const mm_port_core_mas = @import("maxmod").mas;
 const mm_port_core_effect = @import("mm_port_core_effect");
-const mm_port_core_mas_arm = @import("mm_port_core_mas_arm");
+const mm_port_core_mas_arm = @import("maxmod").mas_arm;
 const mm_port_gba_mixer = @import("mm_port_gba_mixer");
-const mm_port_gba_main = @import("mm_port_gba_main");
-const mm_port_shim = @import("mm_port_shim");
+const mm_port_gba_main = @import("maxmod").gba;
+const mm_port_shim = @import("maxmod").shim;
+const build_options = @import("build_options");
 
 // Functions imported from port modules
 
@@ -28,7 +29,9 @@ export fn main() void {
         _ = mm_port_shim;
     }
     gba.interrupt.init();
-    gba.debug.init();
+    if (build_options.xm_debug) {
+        gba.debug.init();
+    }
     // Prune noisy prints to keep emulation fast
 
     // Basic display so we know it's alive
@@ -47,7 +50,9 @@ export fn main() void {
     // Hardcode soundbank.h metadata (module ID 0 == MOD_BAD_APPLE)
     mm_port_core_mas.mmSetModuleVolume(0x400);
     mm_port_core_mas.mmSetEffectsVolume(0x400);
-    // gba.debug.print("[main] mmInitDefault() done; mm_mixlen={d}\n", .{mm_port_shim.mm_mixlen}) catch unreachable;
+    if (build_options.xm_debug) {
+        gba.debug.print("[main] mmInitDefault() done; mm_mixlen={d}\n", .{mm_port_shim.mm_mixlen}) catch unreachable;
+    }
 
     const module_count = mm_port_core_mas.mmGetModuleCount();
     _ = module_count; // silence unused after print pruning
@@ -77,7 +82,9 @@ export fn main() void {
 
             // Position logging at tick==0
             if (tick == 0 and row != prev_row and row_log_budget > 0) {
-                gba.debug.print("[POS] pos={d} row={d} tick={d} mixlen={d}\n", .{ pos, row, tick, mm_port_shim.mm_mixlen }) catch unreachable;
+                if (build_options.xm_debug) {
+                    gba.debug.print("[POS] pos={d} row={d} tick={d} mixlen={d}\n", .{ pos, row, tick, mm_port_shim.mm_mixlen }) catch unreachable;
+                }
                 prev_pos = pos;
                 prev_row = row;
                 prev_tick = tick;
@@ -90,14 +97,18 @@ export fn main() void {
 
             // Order change logging
             if (order != prev_order and order_log_budget > 0) {
-                gba.debug.print("[ORDER] order={d} pos={d} row={d} tick={d}\n", .{ order, pos, row, tick }) catch unreachable;
+                if (build_options.xm_debug) {
+                    gba.debug.print("[ORDER] order={d} pos={d} row={d} tick={d}\n", .{ order, pos, row, tick }) catch unreachable;
+                }
                 prev_order = order;
                 order_log_budget -= 1;
             }
 
             // Early mixer state logging (first few frames)
             if (early_mix_budget > 0 and frame_count < 10) {
-                gba.debug.print("[EARLY] frame={d} pos={d} row={d} tick={d} order={d}\n", .{ frame_count, pos, row, tick, order }) catch unreachable;
+                if (build_options.xm_debug) {
+                    gba.debug.print("[EARLY] frame={d} pos={d} row={d} tick={d} order={d}\n", .{ frame_count, pos, row, tick, order }) catch unreachable;
+                }
                 early_mix_budget -= 1;
             }
         }
