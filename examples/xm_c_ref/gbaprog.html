@@ -1,0 +1,278 @@
+
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<title>Maxmod - Documentation</title>
+<link rel="stylesheet" href="../ref.css" type="text/css" />
+</head>
+<body>
+
+<script type="text/javascript">
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script>
+<script type="text/javascript">
+try {
+var pageTracker = _gat._getTracker("UA-6663369-1");
+pageTracker._trackPageview();
+} catch(err) {}</script>
+<h1 class="func"><div style="float: right;"><img alt="GBA"src="../gbabig.png"/></div>GBA Programming Guide</h1><div class="back"><a class="noblock" href="../index.html">Back to Index</a></div><p>
+	Here is a guide to step through the basics of installation/usage 
+	of Maxmod in a GBA project. This tutorial will assume that you are using the
+	default GBA template (makefile) from devkitPro.
+</p>
+
+
+<h2>Linking</h2>
+
+
+<p>
+	Firstly, <b>libmm</b> must be added to your library references. 
+	Add <b>-lmm</b> to the <b>LIBS</b> in your makefile.
+</p>
+
+<table><tr><td class="code">
+<pre class="code">
+<ccc>#---------------------------------------------------------------------------------
+# any extra libraries we wish to link with the project
+#---------------------------------------------------------------------------------</ccc>
+<cca>LIBS</cca>    := <b>-lmm</b> -lgba
+</pre>
+</td></tr></table>
+
+<p>
+	Next, you need to tell the makefile to make a soundbank file for you. 
+	What is a soundbank file? It's a file that contains all the samples and 
+	modules for your project!
+</p>
+
+<p>
+	Add a new directory to your project; I'll call it "audio". Add a 
+	variable to the directory section of the makefile.
+</p>
+
+<table><tr><td class="code">
+<pre class="code">
+<ccc>#---------------------------------------------------------------------------------
+# TARGET is the name of the output
+# BUILD is the directory where object files & intermediate files will be placed
+# SOURCES is a list of directories containing source code
+# INCLUDES is a list of directories containing extra header files
+# AUDIO is a list of directories containing sound and music files
+#---------------------------------------------------------------------------------</ccc>
+<cca>TARGET</cca>   :=  <cca>$(shell basename $(CURDIR))</cca>
+<cca>BUILD</cca>    :=  build
+<cca>SOURCES</cca>  :=  gfx source data  
+<cca>INCLUDES</cca> :=  include build
+<b><cca>AUDIO</cca>    :=  audio</b>
+</pre>
+</td></tr></table>
+
+<p>
+	Next, you need to build a list of the files in the audio directory. 
+	Also add the soundbank output file to your binary file list.
+</p>
+
+<table><tr><td class="code">
+<pre class="code">
+<cca>CFILES</cca>    :=  <cca>$(foreach dir</cca>,<cca>$(SOURCES)</cca>,<cca>$(notdir $(wildcard $(dir)</cca>/*.c<cca>)))</cca>
+<cca>CPPFILES</cca>  :=  <cca>$(foreach dir</cca>,<cca>$(SOURCES)</cca>,<cca>$(notdir $(wildcard $(dir)</cca>/*.cpp<cca>)))</cca>
+<cca>SFILES</cca>    :=  <cca>$(foreach dir</cca>,<cca>$(SOURCES)</cca>,<cca>$(notdir $(wildcard $(dir)</cca>/*.s<cca>)))</cca>
+<cca>BINFILES</cca>  :=  <cca>$(foreach dir</cca>,<cca>$(SOURCES)</cca>,<cca>$(notdir $(wildcard $(dir)</cca>/*.bin<cca>)))</cca> <b>soundbank.bin</b>
+
+<ccc># build audio file list, include full path</ccc>
+<b><cca>export AUDIOFILES</cca> := <cca>$(foreach dir</cca>,<cca>$(notdir $(wildcard $(AUDIO)</cca>/*.*<cca>))</cca>,<cca>$(CURDIR)</cca>/<cca>$(AUDIO)</cca>/<cca>$(dir))</cca></b>
+</pre>
+</td></tr></table>
+
+<p>
+	Finally, you need a rule to make the soundbank file with the 
+	<i>Maxmod Utility</i>. Scroll down to the bottom somewhere and add 
+	something like this. You also need a rule to convert the output 
+	binary so it can be linked in.
+</p>
+
+<table><tr><td class="code">
+<pre class="code">
+<ccc>#-------------------------------------------------------------
+# rule for converting the output into an object file
+#-------------------------------------------------------------</ccc>
+<ccd>%.bin.o</ccd>:	%.bin
+<ccc>#-------------------------------------------------------------</ccc>
+	@<cca>$(bin2o)</cca>
+
+<ccc>#-------------------------------------------------------------
+# rule for generating soundbank file from audio files
+#-------------------------------------------------------------</ccc>
+<ccd>soundbank.bin</ccd>:	<cca>$(AUDIOFILES)</cca>
+<ccc>#-------------------------------------------------------------</ccc>
+	@mmutil <cca>$^</cca> -osoundbank.bin -hsoundbank.h
+</pre>
+</td></tr></table>
+
+<p>
+	Now the soundbank file should be generated and linked into the project 
+	automatically. Load the audio folder with a few modules (and maybe some WAV files) to test with!
+</p>
+
+
+<h2>Setup</h2>
+
+
+<p>
+	Now it's time to initialize Maxmod. <b>maxmod.h</b> has the definitions 
+	for a GBA project, include it in your source files. Also, include the 
+	generated soundbank header too.
+</p>
+
+<table><tr><td class="code"><pre class="code">
+<ccb>#include</ccb> &lt;maxmod.h&gt;    <ccc>// Maxmod definitions for GBA</ccc>
+<ccb>#include</ccb> "soundbank.h"  <ccc>// Soundbank definitions</ccc>
+</pre></td></tr></table>
+<p>
+	Maxmod may be initialized now. The GBA library is customizable, so you 
+	can configure how many channels or what mixing rate to use, but for this
+	example, we will just use the easy method. mmInitDefault. It's two parameters
+	are the soundbank address, and the number of channels to allocate. It sets up
+	everything for us (including VBlank IRQ [with libgba]) and uses 16KHz mixing rate.
+</p>
+
+<table><tr><td class="code"><pre class="code">
+<ccb>#include</ccb> &lt;maxmod.h&gt;
+<ccb>#include</ccb> "soundbank.h"
+<ccb>#include</ccb> "soundbank_bin.h" <ccc>// Soundbank binary reference</ccc>
+
+<ccb>int</ccb> main( <ccb>void</ccb> ) {
+    <ccc>// Initialize maxmod with default settings
+    // pass soundbank address, and allocate 8 channels.</ccc>
+    mmInitDefault( soundbank_bin, 8 );
+
+    ...
+}
+</pre></td></tr></table>
+<h2>Playing Music</h2>
+
+<p>
+	Let's have a look at the soundbank header generated by the Maxmod 
+	Utiltiy.
+</p>
+
+<table><tr><td class="code"><pre class="code">
+<ccb>#define</ccb> MOD_SONG1        0
+<ccb>#define</ccb> MOD_SONG2        1
+<ccb>#define</ccb> MOD_CREDITS      2
+<ccb>#define</ccb> MOD_ANOTHER      3
+<ccb>#define</ccb> MOD_SECRET       4
+<ccb>#define</ccb> SFX_BLASTER      179
+<ccb>#define</ccb> SFX_PHASER       180
+<ccb>#define</ccb> MSL_NSONGS       5
+<ccb>#define</ccb> MSL_NSAMPS       181
+<ccb>#define</ccb> MSL_BANKSIZE     186
+</pre></td></tr></table>
+<p>
+	Definitions prefixed by <b>MOD_</b> are <i>module IDs</i>. 
+	Definitions prefixed by <b>SFX_</b> are <i>sample IDs</i>. 
+	<b>MSL_NSONGS</b> is the total number of modules in the soundbank, 
+	<b>MSL_NSAMPS</b> is the total number of samples, and 
+	<b>MSL_BANKSIZE</b> is the total number of modules plus samples 
+	(useful for DS projects).
+</p>
+<p>
+	Use mmStart to play a song.
+</p>
+
+<table><tr><td class="code"><pre class="code">
+mmStart( MOD_SONG2, MM_PLAY_LOOP );
+<ccc>// Song is playing now (well... almost)</ccc>
+</pre></td></tr></table>
+<p>
+	Not just yet! The actual song playback (and software mixing) occurs 
+	when you call <b>mmFrame</b>. This must be called <i>every</i> frame (60hz)
+	(in your main loop).
+</p>
+
+<table><tr><td class="code"><pre class="code">
+<ccb>while</ccb>(1) {
+    <ccc>// ..process game logic..</ccc>
+    
+    <ccc>// Update Maxmod</ccc>
+    mmFrame();
+    
+    <ccc>// Wait for new frame (SWI 5)</ccc>
+    VBlankIntrWait();
+    
+    <ccc>// ..update graphical data..</ccc>
+}
+</pre></td></tr></table>
+
+<h2>Sound Effects</h2>
+
+
+<p>
+	The simplest way to play a sound is with <b>mmEffect</b>.
+</p>
+
+<table><tr><td class="code"><pre class="code">
+<ccc>// Play SFX_BLASTER at default pitch with full volume and center panning</ccc>
+mmEffect( SFX_BLASTER );
+</pre></td></tr></table>
+<p>
+	If you need more control; use mmEffectEx to specify rate, volume, 
+	and panning (and more).
+</p>
+
+<table><tr><td class="code"><pre class="code">
+<ccc>// Play sound at half playback rate, 200/255 volume, and center panning</ccc>
+mm_sound_effect sound;
+sound.id      = SFX_BLASTER; <ccc>// sample ID (make sure it is loaded)</ccc>
+sound.rate    = 0x400/2;     <ccc>// playback rate, 1024 = original sound</ccc>
+sound.handle  = 0;           <ccc>// 0 = allocate new handle</ccc>
+sound.volume  = 200;         <ccc>// 200/255 volume level</ccc>
+sound.panning = 128;         <ccc>// centered panning</ccc>
+
+mmEffectEx( &sound );
+</pre></td></tr></table>
+<p>
+	mmEffect and mmEffectEx both return an <i>mm_sfxhand</i> type. 
+	This can be used to modify the sound effect while it's playing.
+</p>
+
+<table><tr><td class="code"><pre class="code">
+mysound = mmEffect( SFX_BLASTER );
+
+<ccc>// Change pitch to +1 octave</ccc>
+mmEffectRate( mysound, 1024*2 );
+
+<ccc>// Change volume to half level (128/255)</ccc>
+mmEffectVolume( mysound, 128 );
+
+<ccc>// Change panning to far-right</ccc>
+mmEffectPanning( mysound, 255 );
+</pre></td></tr></table>
+<p>
+	To stop an effect that's playing:
+</p>
+
+<table><tr><td class="code"><pre class="code">
+<ccc>// Stop sound effect</ccc>
+mmEffectCancel( mysound );
+</pre></td></tr></table>
+<p>
+	Sometimes the effect you just played isn't <i>so</i> important. 
+	You can mark it as a <i>background</i> effect with <b>mmEffectRelease</b>. 
+</p>
+
+<table><tr><td class="code"><pre class="code">
+mmEffectRelease( mysound );
+<ccc>// Now the sound is allowed to be interrupted by other effects/music (if the need arises)</ccc>
+</pre></td></tr></table>
+<h2>Closing</h2>
+
+<p>
+	For a better understanding, please have a look at the source code for the GBA examples.
+</p>
+
+
+
+</body>
+</html>
