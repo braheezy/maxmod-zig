@@ -5,7 +5,7 @@ The goal is to always identically match the C. We have a working `examples/xm_c_
 The strategy we employ is to add identical debug AGB prints to the C and Zig code at the same points in execution. We print important data about the playback. If the zig is different from the C at all, we investigate and fix the code causing this, resolving the discrepancy. The `maxmod` and `mmutil` source code is local and can be inspected to understand the semantics and intent. We are using bit-identical input data and have transpiled the same logic. We should be able to match the reference C data with 100% accuracy.
 
 For the C:
-- build: make -C example/xm_c_ref clean && make -C example/xm_c_ref all
+- build: make -C examples/xm_c_ref clean && make -C examples/xm_c_ref all
 - run : timeout 4.5 mgba examples/xm_c_ref/xm_cref.gba &> c.log
 For the Zig:
 - build: zig build xm-port

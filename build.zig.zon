@@ -15,6 +15,9 @@
         .ziggba = .{
             .path = "my-ZigGBA",
         },
+        .mmutil_zig = .{
+            .path = "../mmutil-zig",
+        },
     },
     .paths = .{
         "build.zig",

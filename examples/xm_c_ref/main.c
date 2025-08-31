@@ -77,6 +77,21 @@ int main(void) {
     unsigned row_log_budget = 24; // bump budget to see first two patterns
     unsigned order_log_budget = 20; // track order changes
     unsigned early_mix_budget = 50; // early mixer state
+    // Observe mixer channel state (symbol exported by libmm)
+    typedef struct {
+        void *src;
+        mm_word read;
+        mm_byte vol;
+        mm_byte pan;
+        mm_byte _pad0;
+        mm_byte _pad1;
+        mm_word freq;
+    } mm_mixer_channel;
+    extern volatile mm_mixer_channel *mm_mixchannels;
+
+    // Track last-seen CH2 fields to print only on change
+    mm_mixer_channel ch2_prev = {0};
+
     while (1) {
         // Update Maxmod first so DMA has fresh data by VBlank
         mgba_printf("[FRAME] frame=%u calling mmFrame()\n", frame_count);
@@ -114,6 +129,17 @@ int main(void) {
         if (frame_count < 100) {
             mgba_printf("[DETAIL] frame=%u pos=%u row=%u tick=%u order=%u\n",
                        frame_count, (unsigned)pos, (unsigned)row, (unsigned)tick, (unsigned)order);
+        }
+
+        // Mixer observation for CH2 (safe client-side logging)
+        if (frame_count < 1000) {
+            volatile mm_mixer_channel *ch2 = &mm_mixchannels[2];
+            if (ch2->src != ch2_prev.src || ch2->read != ch2_prev.read || ch2->vol != ch2_prev.vol ||
+                ch2->pan != ch2_prev.pan || ch2->freq != ch2_prev.freq) {
+                mgba_printf("[CH2-MX] src=%p read=%u vol=%u pan=%u freq=%u\n",
+                            ch2->src, (unsigned)ch2->read, (unsigned)ch2->vol, (unsigned)ch2->pan, (unsigned)ch2->freq);
+                ch2_prev = *ch2;
+            }
         }
 
         // Toggle pixel and wait for VBlank

@@ -1,9 +1,9 @@
 const gba = @import("gba");
 
 const mm_port_core_mas = @import("maxmod").mas;
-const mm_port_core_effect = @import("mm_port_core_effect");
+const mm_port_core_effect = @import("maxmod").sfx;
 const mm_port_core_mas_arm = @import("maxmod").mas_arm;
-const mm_port_gba_mixer = @import("mm_port_gba_mixer");
+const mm_port_gba_mixer = @import("maxmod").mixer;
 const mm_port_gba_main = @import("maxmod").gba;
 const mm_port_shim = @import("maxmod").shim;
 const build_options = @import("build_options");
@@ -45,11 +45,11 @@ export fn main() void {
     // const bank_ptr: usize = @intFromPtr(&bank_data[0]);
     // gba.debug.print("[main] mmInitDefault() starting with bank_ptr=0x{x}\n", .{bank_ptr}) catch unreachable;
     // Match C reference (CHANNELS = 32)
-    _ = mm_port_core_mas.mmInitDefault(@ptrCast(@constCast(&bank_data[0])), 32);
+    _ = mm_port_gba_main.mmInitDefault(@ptrCast(@constCast(&bank_data[0])), 32);
     // gba.debug.print("[main] mmInitDefault() done; mm_mixlen={d}\n", .{mm_port_shim.mm_mixlen}) catch unreachable;
     // Hardcode soundbank.h metadata (module ID 0 == MOD_BAD_APPLE)
     mm_port_core_mas.mmSetModuleVolume(0x400);
-    mm_port_core_mas.mmSetEffectsVolume(0x400);
+    mm_port_core_effect.mmSetEffectsVolume(0x400);
     // gba.debug.print("[main] volumes set: module=0x{x} effects=0x{x}\n", .{ 0x400, 0x400 }) catch unreachable;
 
     // const module_count = mm_port_core_mas.mmGetModuleCount();
