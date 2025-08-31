@@ -2,6 +2,9 @@
 
 This is a WIP port of the MaxMod audio library to Zig for Game Boy Advance development.
 
+> [!WARNING]
+> XM playback works, but there is a terrible bug that makes playback bad for most files so you probably don't want to use this unless you want to fix it!!
+
 ## Usage
 
 ### Building
@@ -11,38 +14,13 @@ This is a WIP port of the MaxMod audio library to Zig for Game Boy Advance devel
 zig build
 
 # Build and run SFX example with custom WAV
-zig build sfx -- your_audio.wav
-
-# Build and run a MOD example with a .mod file
-zig build mod -- your_mod.mod
+zig build xm -- your_audio.xm
 ```
 
 ### In Your Project
 
-```zig
-const maxmod = @import("maxmod_gba");
-
-// Initialize audio system
-maxmod.init();
-
-// Play a sound effect
-maxmod.playSound(sound_id);
-
-// Play music
-maxmod.startMusic(music_id);
-
-// Update audio (call in main loop)
-maxmod.update();
-```
+TBD. See [`examples`](./examples/) for now.
 
 ## Showcase
 
-**SFX**
-
-https://github.com/user-attachments/assets/ee1a2599-9459-4a85-8607-8c36f3911537
-
-**MOD**
-
-https://github.com/user-attachments/assets/5cf24596-9afc-4a35-a754-c9cdb83f7cb9
-
-
+**XM**
