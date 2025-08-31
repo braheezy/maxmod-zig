@@ -30,6 +30,8 @@ inline fn debugPrint(comptime fmt: []const u8, args: anytype) void {
     }
 }
 
+pub export var mmLayerMain: mpl_layer_information = .{};
+
 // Alternative timing preservation approaches (test these if NOPs don't work):
 // 1. NOP instructions (currently active - 4 NOPs)
 // 2. Memory barriers
@@ -763,26 +765,27 @@ pub export fn mmSetModulePitch(arg_pitch: mm_word) void {
     }
     mm_masterpitch = pitch;
 }
-pub const struct_tmm_mas_head = extern struct {
-    order_count: mm_byte = @import("std").mem.zeroes(mm_byte),
-    instr_count: mm_byte = @import("std").mem.zeroes(mm_byte),
-    sampl_count: mm_byte = @import("std").mem.zeroes(mm_byte),
-    pattn_count: mm_byte = @import("std").mem.zeroes(mm_byte),
-    flags: mm_byte = @import("std").mem.zeroes(mm_byte),
-    global_volume: mm_byte = @import("std").mem.zeroes(mm_byte),
-    initial_speed: mm_byte = @import("std").mem.zeroes(mm_byte),
-    initial_tempo: mm_byte = @import("std").mem.zeroes(mm_byte),
-    repeat_position: mm_byte = @import("std").mem.zeroes(mm_byte),
-    reserved: [3]mm_byte = @import("std").mem.zeroes([3]mm_byte),
-    channel_volume: [32]mm_byte = @import("std").mem.zeroes([32]mm_byte),
-    channel_panning: [32]mm_byte = @import("std").mem.zeroes([32]mm_byte),
-    sequence: [200]mm_byte = @import("std").mem.zeroes([200]mm_byte),
-    pub fn tables(self: anytype) @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), ?*anyopaque) {
-        const Intermediate = @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), u8);
-        const ReturnType = @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), ?*anyopaque);
-        return @as(ReturnType, @ptrCast(@alignCast(@as(Intermediate, @ptrCast(self)) + 276)));
-    }
-};
+pub const struct_tmm_mas_head = @import("mas_arm.zig").struct_tmm_mas_head;
+// pub const struct_tmm_mas_head = extern struct {
+//     order_count: mm_byte = @import("std").mem.zeroes(mm_byte),
+//     instr_count: mm_byte = @import("std").mem.zeroes(mm_byte),
+//     sampl_count: mm_byte = @import("std").mem.zeroes(mm_byte),
+//     pattn_count: mm_byte = @import("std").mem.zeroes(mm_byte),
+//     flags: mm_byte = @import("std").mem.zeroes(mm_byte),
+//     global_volume: mm_byte = @import("std").mem.zeroes(mm_byte),
+//     initial_speed: mm_byte = @import("std").mem.zeroes(mm_byte),
+//     initial_tempo: mm_byte = @import("std").mem.zeroes(mm_byte),
+//     repeat_position: mm_byte = @import("std").mem.zeroes(mm_byte),
+//     reserved: [3]mm_byte = @import("std").mem.zeroes([3]mm_byte),
+//     channel_volume: [32]mm_byte = @import("std").mem.zeroes([32]mm_byte),
+//     channel_panning: [32]mm_byte = @import("std").mem.zeroes([32]mm_byte),
+//     sequence: [200]mm_byte = @import("std").mem.zeroes([200]mm_byte),
+//     pub fn tables(self: anytype) @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), ?*anyopaque) {
+//         const Intermediate = @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), u8);
+//         const ReturnType = @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), ?*anyopaque);
+//         return @as(ReturnType, @ptrCast(@alignCast(@as(Intermediate, @ptrCast(self)) + 276)));
+//     }
+// };
 pub const mm_mas_head = struct_tmm_mas_head;
 pub export fn mmPlayModule(arg_address: usize, arg_mode: mm_word, arg_layer: mm_word) void {
     var address = arg_address;
@@ -951,7 +954,6 @@ pub extern fn mmEffectScaleRate(handle: mm_sfxhand, factor: mm_word) void;
 pub extern fn mmEffectActive(handle: mm_sfxhand) mm_bool;
 pub extern fn mmEffectCancel(handle: mm_sfxhand) mm_word;
 pub extern fn mmEffectRelease(handle: mm_sfxhand) void;
-// pub extern fn mmSetEffectsVolume(volume: mm_word) void;
 pub extern fn mmEffectCancelAll() void;
 pub const struct_tmm_mas_prefix = extern struct {
     size: mm_word = @import("std").mem.zeroes(mm_word),
@@ -1169,39 +1171,40 @@ const union_unnamed_9 = extern union {
     sampcount: mm_hword,
     tickfrac: mm_hword,
 };
-pub const mpl_layer_information = extern struct {
-    tick: mm_byte = @import("std").mem.zeroes(mm_byte),
-    row: mm_byte = @import("std").mem.zeroes(mm_byte),
-    position: mm_byte = @import("std").mem.zeroes(mm_byte),
-    nrows: mm_byte = @import("std").mem.zeroes(mm_byte),
-    global_volume: mm_byte = @import("std").mem.zeroes(mm_byte),
-    speed: mm_byte = @import("std").mem.zeroes(mm_byte),
-    isplaying: mm_byte = @import("std").mem.zeroes(mm_byte),
-    bpm: mm_byte = @import("std").mem.zeroes(mm_byte),
-    insttable: [*c]mm_word = @import("std").mem.zeroes([*c]mm_word),
-    samptable: [*c]mm_word = @import("std").mem.zeroes([*c]mm_word),
-    patttable: [*c]mm_word = @import("std").mem.zeroes([*c]mm_word),
-    songadr: [*c]mm_mas_head = @import("std").mem.zeroes([*c]mm_mas_head),
-    flags: mm_byte = @import("std").mem.zeroes(mm_byte),
-    oldeffects: mm_byte = @import("std").mem.zeroes(mm_byte),
-    pattjump: mm_byte = @import("std").mem.zeroes(mm_byte),
-    pattjump_row: mm_byte = @import("std").mem.zeroes(mm_byte),
-    fpattdelay: mm_byte = @import("std").mem.zeroes(mm_byte),
-    pattdelay: mm_byte = @import("std").mem.zeroes(mm_byte),
-    ploop_row: mm_byte = @import("std").mem.zeroes(mm_byte),
-    ploop_times: mm_byte = @import("std").mem.zeroes(mm_byte),
-    ploop_adr: [*c]mm_byte = @import("std").mem.zeroes([*c]mm_byte),
-    pattread: [*c]mm_byte = @import("std").mem.zeroes([*c]mm_byte),
-    ploop_jump: mm_byte = @import("std").mem.zeroes(mm_byte),
-    valid: mm_byte = @import("std").mem.zeroes(mm_byte),
-    tickrate: mm_hword = @import("std").mem.zeroes(mm_hword),
-    unnamed_0: union_unnamed_9 = @import("std").mem.zeroes(union_unnamed_9),
-    mode: mm_byte = @import("std").mem.zeroes(mm_byte),
-    reserved2: mm_byte = @import("std").mem.zeroes(mm_byte),
-    mch_update: mm_word = @import("std").mem.zeroes(mm_word),
-    volume: mm_hword = @import("std").mem.zeroes(mm_hword),
-    reserved3: mm_hword = @import("std").mem.zeroes(mm_hword),
-};
+pub const mpl_layer_information = @import("mas_arm.zig").mpl_layer_information;
+// pub const mpl_layer_information = extern struct {
+//     tick: mm_byte = @import("std").mem.zeroes(mm_byte),
+//     row: mm_byte = @import("std").mem.zeroes(mm_byte),
+//     position: mm_byte = @import("std").mem.zeroes(mm_byte),
+//     nrows: mm_byte = @import("std").mem.zeroes(mm_byte),
+//     global_volume: mm_byte = @import("std").mem.zeroes(mm_byte),
+//     speed: mm_byte = @import("std").mem.zeroes(mm_byte),
+//     isplaying: mm_byte = @import("std").mem.zeroes(mm_byte),
+//     bpm: mm_byte = @import("std").mem.zeroes(mm_byte),
+//     insttable: [*c]mm_word = @import("std").mem.zeroes([*c]mm_word),
+//     samptable: [*c]mm_word = @import("std").mem.zeroes([*c]mm_word),
+//     patttable: [*c]mm_word = @import("std").mem.zeroes([*c]mm_word),
+//     songadr: [*c]mm_mas_head = @import("std").mem.zeroes([*c]mm_mas_head),
+//     flags: mm_byte = @import("std").mem.zeroes(mm_byte),
+//     oldeffects: mm_byte = @import("std").mem.zeroes(mm_byte),
+//     pattjump: mm_byte = @import("std").mem.zeroes(mm_byte),
+//     pattjump_row: mm_byte = @import("std").mem.zeroes(mm_byte),
+//     fpattdelay: mm_byte = @import("std").mem.zeroes(mm_byte),
+//     pattdelay: mm_byte = @import("std").mem.zeroes(mm_byte),
+//     ploop_row: mm_byte = @import("std").mem.zeroes(mm_byte),
+//     ploop_times: mm_byte = @import("std").mem.zeroes(mm_byte),
+//     ploop_adr: [*c]mm_byte = @import("std").mem.zeroes([*c]mm_byte),
+//     pattread: [*c]mm_byte = @import("std").mem.zeroes([*c]mm_byte),
+//     ploop_jump: mm_byte = @import("std").mem.zeroes(mm_byte),
+//     valid: mm_byte = @import("std").mem.zeroes(mm_byte),
+//     tickrate: mm_hword = @import("std").mem.zeroes(mm_hword),
+//     unnamed_0: union_unnamed_9 = @import("std").mem.zeroes(union_unnamed_9),
+//     mode: mm_byte = @import("std").mem.zeroes(mm_byte),
+//     reserved2: mm_byte = @import("std").mem.zeroes(mm_byte),
+//     mch_update: mm_word = @import("std").mem.zeroes(mm_word),
+//     volume: mm_hword = @import("std").mem.zeroes(mm_hword),
+//     reserved3: mm_hword = @import("std").mem.zeroes(mm_hword),
+// };
 pub const mpv_active_information = extern struct {
     reserved: mm_word = @import("std").mem.zeroes(mm_word),
     pattread_p: [*c]mm_byte = @import("std").mem.zeroes([*c]mm_byte),
@@ -1213,7 +1216,6 @@ pub const mpv_active_information = extern struct {
     reserved2: mm_hword = @import("std").mem.zeroes(mm_hword),
 };
 pub extern var mm_ch_mask: mm_word;
-pub extern var mmLayerMain: mpl_layer_information;
 pub extern var mmLayerSub: mpl_layer_information;
 pub extern var mpp_layerp: [*c]mpl_layer_information;
 pub extern var mpp_vars: mpv_active_information;
@@ -1345,7 +1347,8 @@ pub extern fn mmAllocChannel() mm_word;
 pub extern fn mmUpdateChannel_T0([*c]mm_module_channel, [*c]mpl_layer_information, mm_byte) void;
 pub extern fn mmUpdateChannel_TN([*c]mm_module_channel, [*c]mpl_layer_information) void;
 pub extern fn mmGetPeriod([*c]mpl_layer_information, mm_word, mm_byte) mm_word;
-pub extern fn mmReadPattern([*c]mpl_layer_information) mm_bool;
+// pub extern fn mmReadPattern([*c]mpl_layer_information) mm_bool;
+const mmReadPattern = @import("mas_arm.zig").mmReadPattern;
 pub export fn mpp_Process_VolumeCommand(arg_layer: [*c]mpl_layer_information, arg_act_ch: [*c]mm_active_channel, arg_channel: [*c]mm_module_channel, arg_period: mm_word) mm_word {
     var layer = arg_layer;
     _ = &layer;

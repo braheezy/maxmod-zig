@@ -1096,7 +1096,6 @@ pub const mpv_active_information = extern struct {
     reserved2: mm_hword = @import("std").mem.zeroes(mm_hword),
 };
 pub extern var mm_ch_mask: mm_word;
-pub extern var mmLayerMain: mpl_layer_information;
 pub extern var mmLayerSub: mpl_layer_information;
 pub extern var mpp_layerp: [*c]mpl_layer_information;
 pub extern var mpp_vars: mpv_active_information;

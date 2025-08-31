@@ -346,7 +346,8 @@ pub extern fn _atoi_r([*c]struct__reent, __nptr: [*c]const u8) c_int;
 pub extern fn atol(__nptr: [*c]const u8) c_long;
 pub extern fn _atol_r([*c]struct__reent, __nptr: [*c]const u8) c_long;
 pub extern fn bsearch(__key: ?*const anyopaque, __base: ?*const anyopaque, __nmemb: usize, __size: usize, _compar: __compar_fn_t) ?*anyopaque;
-pub extern fn calloc(usize, usize) ?*anyopaque;
+// pub extern fn calloc(usize, usize) ?*anyopaque;
+pub const calloc = @import("../shim.zig").calloc;
 pub extern fn div(__numer: c_int, __denom: c_int) div_t;
 pub extern fn exit(__status: c_int) noreturn;
 pub extern fn free(?*anyopaque) void;
@@ -820,33 +821,7 @@ pub export fn mmFrame() void {
     // Update effects and sublayer first to mirror C reference ordering
     mmUpdateEffects();
     mppUpdateSub();
-    debugPrint(
-        "[mmFrame] enter mixlen={d} isplaying={d} valid={d} mode={d} flags={x} tickrate={d} row={d} main_ptr=0x{x} sub_ptr=0x{x} mpp=0x{x}\n",
-        .{
-            mm_mixlen,
-            @as(c_int, @intCast(mmLayerMain.isplaying)),
-            @as(c_int, @intCast(mmLayerMain.valid)),
-            @as(c_int, @intCast(mmLayerMain.mode)),
-            @as(c_int, @intCast(mmLayerMain.flags)),
-            @as(c_int, @intCast(mmLayerMain.tickrate)),
-            @as(c_int, @intCast(mmLayerMain.row)),
-            @intFromPtr(&mmLayerMain),
-            @intFromPtr(&mmLayerSub),
-            @intFromPtr(mpp_layerp),
-        },
-    );
-    // Do not coerce flags; rely on real state like the C reference
-    if (mmLayerMain.valid == 0) {
-        debugPrint(
-            "[mmFrame] main(isply={d},valid={d}) sub(isply={d},valid={d})\n",
-            .{
-                @as(c_int, @intCast(mmLayerMain.isplaying)),
-                @as(c_int, @intCast(mmLayerMain.valid)),
-                @as(c_int, @intCast(mmLayerSub.isplaying)),
-                @as(c_int, @intCast(mmLayerSub.valid)),
-            },
-        );
-    }
+
     // mmUpdateEffects();
     // mppUpdateSub(); // Don't call this - it sets mpp_nchannels=4 for jingle mode
     mpp_channels = mm_pchannels;
@@ -964,7 +939,8 @@ pub extern fn mmEffectScaleRate(handle: mm_sfxhand, factor: mm_word) void;
 pub extern fn mmEffectActive(handle: mm_sfxhand) mm_bool;
 pub extern fn mmEffectCancel(handle: mm_sfxhand) mm_word;
 pub extern fn mmEffectRelease(handle: mm_sfxhand) void;
-pub extern fn mmSetEffectsVolume(volume: mm_word) void;
+// pub extern fn mmSetEffectsVolume(volume: mm_word) void;
+const mmSetEffectsVolume = @import("../core/effect.zig").mmSetEffectsVolume;
 pub extern fn mmEffectCancelAll() void;
 pub const struct_tmm_mas_prefix = extern struct {
     size: mm_word = @import("std").mem.zeroes(mm_word),

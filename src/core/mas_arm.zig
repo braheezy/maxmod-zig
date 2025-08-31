@@ -316,7 +316,6 @@ pub extern fn mmEffectScaleRate(handle: mm_sfxhand, factor: mm_word) void;
 pub extern fn mmEffectActive(handle: mm_sfxhand) mm_bool;
 pub extern fn mmEffectCancel(handle: mm_sfxhand) mm_word;
 pub extern fn mmEffectRelease(handle: mm_sfxhand) void;
-pub extern fn mmSetEffectsVolume(volume: mm_word) void;
 pub extern fn mmEffectCancelAll() void;
 pub const struct_tmm_mas_prefix = extern struct {
     size: mm_word = @import("std").mem.zeroes(mm_word),
@@ -543,7 +542,6 @@ pub const mpv_active_information = extern struct {
     reserved2: mm_hword = @import("std").mem.zeroes(mm_hword),
 };
 pub extern var mm_ch_mask: mm_word;
-pub extern var mmLayerMain: mpl_layer_information;
 pub extern var mmLayerSub: mpl_layer_information;
 pub extern var mpp_layerp: [*c]mpl_layer_information;
 pub extern var mpp_vars: mpv_active_information;

@@ -7,7 +7,7 @@ extern fn memset(dst: [*]u8, c: c_int, n: usize) [*]u8;
 var heap: [4096]u8 = undefined;
 var heap_off: usize = 0;
 
-pub export fn calloc(nmemb: usize, size: usize) callconv(.C) ?*anyopaque {
+pub fn calloc(nmemb: usize, size: usize) callconv(.C) ?*anyopaque {
     const bytes = nmemb * size;
     if (heap_off + bytes > heap.len) return null;
     const ptr = &heap[heap_off];
@@ -24,7 +24,6 @@ const core = @import("core/mas.zig");
 // const gba = @import("gba");
 pub extern var mp_solution: [*c]core.msl_head;
 
-pub export var mmLayerMain: core.mpl_layer_information = .{};
 pub export var mmLayerSub: core.mpl_layer_information = .{};
 // Match C: mpp_layerp starts as null (set by mmFrame)
 pub export var mpp_layerp: [*c]core.mpl_layer_information = @ptrFromInt(0);
