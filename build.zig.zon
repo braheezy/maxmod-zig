@@ -13,7 +13,7 @@
         //     .hash = "ziggba-0.0.0-t2qCXqEFBACiS7kFT28YBRkvZWo6JsZ2HEGRRcn1Poqc",
         // },
         .ziggba = .{
-            .path = "my-ZigGBA",
+            .path = "../my-ZigGBA",
         },
         .mmutil_zig = .{
             .path = "../mmutil-zig",

@@ -29,6 +29,7 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
     maxmod_zig.addImport("gba", gba_mod);
+    maxmod_zig.addObjectFile(b.path("src/mixer_asm.o"));
 
     // Handle file argument
     const file_args = b.args orelse &[_][]const u8{};
@@ -52,7 +53,6 @@ fn createXmExample(
     selected_xm_file: []const u8,
     maxmod_zig: *std.Build.Module,
 ) void {
-    std.debug.print("Creating XM example with {s}\n", .{selected_xm_file});
     const xm_debug = b.option(bool, "xmdebug", "Enable XM debug mode") orelse false;
     const xm_step = b.step("xm", "Build XM demo ROM");
 
@@ -65,7 +65,6 @@ fn createXmExample(
 
     // XM ROM
     const xm_exe = ziggba.addGBAExecutable(b, gba_mod, "xm", "examples/xm/main.zig");
-    xm_exe.addObjectFile(b.path("src/mixer_asm.o"));
 
     xm_exe.root_module.addImport("maxmod", maxmod_zig);
 

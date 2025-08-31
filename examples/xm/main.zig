@@ -1,5 +1,5 @@
 const gba = @import("gba");
-
+const xm_name = @import("build_options").xm_name;
 const mm = @import("maxmod");
 const mas = mm.mas;
 const mixer = mm.mixer;
@@ -18,6 +18,11 @@ export fn main() void {
 
     // Basic display so we know it's alive
     gba.display.ctrl.* = gba.display.Control{ .bg2 = .enable, .mode = .mode3 };
+    gba.text.initBmpDefault(3);
+
+    gba.text.write("#{P:32,64}XM Playback Demo");
+    gba.text.write("#{P:32,80}Playing: ");
+    gba.text.write(xm_name);
 
     // Register Maxmod VBlank handler and enable VBlank IRQ
     _ = gba.interrupt.add(.vblank, vblank_isr);
