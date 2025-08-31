@@ -65,7 +65,7 @@ fn createXmExample(
 
     // XM ROM
     const xm_exe = ziggba.addGBAExecutable(b, gba_mod, "xm", "examples/xm/main.zig");
-    xm_exe.addObjectFile(b.path("mixer_asm.o"));
+    xm_exe.addObjectFile(b.path("src/mixer_asm.o"));
 
     xm_exe.root_module.addImport("maxmod", maxmod_zig);
 
