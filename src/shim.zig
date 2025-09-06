@@ -4,9 +4,10 @@ const mas = @import("core/mas.zig");
 const mm_gba = @import("gba/main_gba.zig");
 
 pub export var mm_ch_mask: u32 = 0;
-pub export var mm_bpmdv: u32 = 38144; // default divisor similar to mode 3
+pub export var mm_mixlen: mm.Word = 0;
+pub extern fn mmMixerMix(samples_count: mm.Word) void;
 
-extern fn memset(dst: [*]u8, c: c_int, n: usize) [*]u8;
+pub extern fn memset(dst: [*]u8, c: c_int, n: usize) [*]u8;
 
 // Very simple bump allocator for tiny needs (calloc/free minimal)
 var heap: [4096]u8 = undefined;
@@ -33,8 +34,6 @@ pub const LayerType = enum {
 };
 pub var mpp_clayer: LayerType = .main;
 pub export var mm_schannels: [4]mm.ModuleChannel = .{ .{}, .{}, .{}, .{} };
-
-pub export var mm_mix_channels: [*c]mm.MixerChannel = @ptrFromInt(0);
 
 // Explicit setter so other modules set the same global symbol
 pub fn mmShimSetChannelMask(mask: u32) callconv(.C) void {
@@ -100,7 +99,7 @@ pub export fn mpp_Update_ACHN_notest_disable_and_panning(volume: mm.Word, act_ch
 
 // Zig implementation of mpp_Update_ACHN_notest_update_mix from C (GBA path)
 pub export fn mpp_Update_ACHN_notest_update_mix(layer: [*c]mm.LayerInfo, act_ch: [*c]mm.ActiveChannel, channel: mm.Word) callconv(.c) [*c]mm.MixerChannel {
-    const mix_ch: [*c]mm.MixerChannel = &mm_mix_channels[@as(usize, @intCast(channel))];
+    const mix_ch: [*c]mm.MixerChannel = &mixer.mm_mix_channels[@as(usize, @intCast(channel))];
 
     // Only (re)bind on start, never reset read on subsequent ticks
     if (((@as(c_int, @intCast(act_ch.*.flags)) & mas.MCAF_START) == 0)) {

@@ -10,7 +10,7 @@ export var header linksection(".gbaheader") = gba.initHeader("XMPRT", "XMPT", "0
 var bank_data: []const u8 = @embedFile("soundbank.bin");
 
 fn vblank_isr() void {
-    mixer.mmVBlank();
+    mixer.vBlank();
 }
 
 export fn main() void {
@@ -38,7 +38,7 @@ export fn main() void {
         // Mix and service VBlank each frame
         mm_gba.frame();
 
-        // Let IRQ call mmVBlank() and wait for VBlank
+        // Let IRQ call mixer.vBlank() and wait for VBlank
         gba.display.vSync();
     }
 }

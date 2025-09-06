@@ -6,18 +6,12 @@ const mixer = @import("mixer.zig");
 
 // Debug configuration - can be toggled at build time
 const debug_enabled = @import("build_options").xm_debug;
-
 // Debug printing helper that can be compiled out
 inline fn debugPrint(comptime fmt: []const u8, args: anytype) void {
     if (debug_enabled) {
         @import("gba").debug.print(fmt, args) catch {};
     }
 }
-
-pub export var mm_mixlen: mm.Word = 0;
-pub extern var mm_ch_mask: mm.Word;
-pub extern var mm_mix_channels: [*c]mm.MixerChannel;
-pub extern fn mmMixerMix(samples_count: mm.Word) void;
 
 pub var layer_main: mm.LayerInfo = .{};
 pub var layer_p: [*c]mm.LayerInfo = @ptrFromInt(0);
@@ -80,63 +74,9 @@ pub fn initDefault(soundbank: mm.Addr, number_of_channels: mm.Word) !void {
         debugPrint("[initDefault] init failed\n", .{});
         return error.FailedToInitialize;
     }
-    debugPrint("[initDefault] done mm_mixlen={d}\n", .{mm_mixlen});
+    debugPrint("[initDefault] done shim.mm_mixlen={d}\n", .{shim.mm_mixlen});
 }
-
-pub fn getModuleTable() [*]const mm.Word {
-    return @ptrCast(module_table);
-}
-
-pub fn getSampleTable() [*]const mm.Word {
-    return @ptrCast(sample_table);
-}
-
-pub fn getSampleCount() mm.Word {
-    return @intCast(sample_count);
-}
-
-pub fn getModuleCount() mm.Word {
-    return @intCast(module_count);
-}
-
-inline fn readLe16(p: [*]const u8) u16 {
-    const b0: u16 = p[0];
-    const b1: u16 = p[1];
-    return b0 | (b1 << 8);
-}
-
-fn parseBankPointers(base: [*]const u8) void {
-    // Try without prefix first (head size 12), then with 8-byte prefix
-    const candidates = [_]usize{ 0, 8 };
-    var chosen: usize = candidates.len;
-    var sc: u16 = 0;
-    var mc: u16 = 0;
-    for (candidates, 0..) |off, idx| {
-        const s = readLe16(base + off + 0);
-        const m = readLe16(base + off + 2);
-        if (m >= 1 and m <= 64 and s >= 1 and s <= 4096) {
-            chosen = idx;
-            sc = s;
-            mc = m;
-            break;
-        }
-    }
-    if (chosen == candidates.len) {
-        // Fallback to zero to avoid nulls
-        chosen = 0;
-        sc = readLe16(base + 0);
-        mc = readLe16(base + 2);
-    }
-    head_off = candidates[chosen];
-    sample_count = sc;
-    module_count = mc;
-    const head_size: usize = 12; // two u16 + two u32 reserved
-    sample_table = @ptrCast(@alignCast(base + head_off + head_size));
-    module_table = sample_table + @as(usize, sc);
-}
-
-pub fn init(arg_setup: *GBASystem) bool {
-    const setup = arg_setup;
+pub fn init(setup: *GBASystem) bool {
     bank_base = @ptrCast(@alignCast(setup.*.soundbank));
     parseBankPointers(bank_base);
     // Point mp_solution to head_data base (without prefix) for any legacy users
@@ -147,20 +87,20 @@ pub fn init(arg_setup: *GBASystem) bool {
     num_mch = setup.*.mod_channel_count;
     num_ach = setup.*.mix_channel_count;
     if ((num_mch > 32 or (num_ach > 32))) return false;
-    mixer.mmMixerInit(setup);
+    mixer.init(setup);
     // Unify mixer and core channel buffers: use mixer-owned channel array
     const mix_ptr: [*c]mm.MixerChannel = mixer.mm_get_mix_channels_ptr();
     if (mix_ptr != @as([*c]mm.MixerChannel, @ptrFromInt(0))) {
-        mm_mix_channels = mix_ptr;
+        mixer.mm_mix_channels = mix_ptr;
     }
     // Log parity with C reference
-    debugPrint("[init] init done, mm_num_mch={d} mm_num_ach={d} mm_mixlen={d}\n", .{ num_mch, num_ach, mm_mixlen });
+    debugPrint("[init] init done, mm_num_mch={d} mm_num_ach={d} shim.mm_mixlen={d}\n", .{ num_mch, num_ach, shim.mm_mixlen });
     // Build channel mask safely for up to 32 channels
     // Avoid undefined shift when mm_num_ach == 32 on 32-bit types
     // Match C: mm_ch_mask = (1U << mm_num_ach) - 1; (32 -> 0xFFFF_FFFF)
-    mm_ch_mask = if (num_ach >= 32) 0xFFFF_FFFF else ((@as(u32, 1) << @intCast(num_ach)) - 1);
+    shim.mm_ch_mask = if (num_ach >= 32) 0xFFFF_FFFF else ((@as(u32, 1) << @intCast(num_ach)) - 1);
     // Propagate to the shared shim symbol (same global)
-    shim.mmShimSetChannelMask(mm_ch_mask);
+    shim.mmShimSetChannelMask(shim.mm_ch_mask);
     mas.mmSetModuleVolume(1024);
     mas.mmSetJingleVolume(1024);
     sfx.mmSetEffectsVolume(1024);
@@ -190,11 +130,11 @@ pub fn frame() void {
     shim.mpp_clayer = .main;
     layer_p = &layer_main;
     if (@as(c_int, @bitCast(@as(c_uint, layer_p.*.isplaying))) == @as(c_int, 0)) {
-        debugPrint("[mmFrame] not playing, mixing {d} (valid={d}) [STOPPING PLAYBACK]\n", .{ mm_mixlen, @as(c_int, @intCast(layer_p.*.valid)) });
-        mmMixerMix(mm_mixlen);
+        debugPrint("[mmFrame] not playing, mixing {d} (valid={d}) [STOPPING PLAYBACK]\n", .{ shim.mm_mixlen, @as(c_int, @intCast(layer_p.*.valid)) });
+        shim.mmMixerMix(shim.mm_mixlen);
         return;
     }
-    var remaining_len: c_int = @bitCast(mm_mixlen);
+    var remaining_len: c_int = @bitCast(shim.mm_mixlen);
     while (true) {
         var sample_num: c_int = @as(c_int, @bitCast(@as(c_uint, layer_p.*.tickrate)));
         const sampcount: c_int = @as(c_int, @bitCast(@as(c_uint, layer_p.*.tick_data.sampcount)));
@@ -210,13 +150,13 @@ pub fn frame() void {
         layer_p.*.tick_data.sampcount = 0;
         remaining_len -= sample_num;
         debugPrint("[MIX] num={d}\n", .{sample_num});
-        mmMixerMix(@as(mm.Word, @bitCast(sample_num)));
+        shim.mmMixerMix(@as(mm.Word, @bitCast(sample_num)));
         debugPrint("[mmFrame] calling mppProcessTick() pos={d} row={d} tick={d}\n", .{ @as(c_int, @intCast(layer_p.*.position)), @as(c_int, @intCast(layer_p.*.row)), @as(c_int, @intCast(layer_p.*.tick)) });
         mas.mppProcessTick();
         debugPrint("[mmFrame] after mppProcessTick() pos={d} row={d} tick={d} isplaying={d}\n", .{ @as(c_int, @intCast(layer_p.*.position)), @as(c_int, @intCast(layer_p.*.row)), @as(c_int, @intCast(layer_p.*.tick)), @as(c_int, @intCast(layer_p.*.isplaying)) });
         // Snapshot immediately after tick processing (post-UMIX binding) before next mix
-        if (premix_budget > 0 and mm_mix_channels != @as([*c]mm.MixerChannel, @ptrFromInt(0))) {
-            const ch0a: [*c]mm.MixerChannel = mm_mix_channels;
+        if (premix_budget > 0 and mixer.mm_mix_channels != @as([*c]mm.MixerChannel, @ptrFromInt(0))) {
+            const ch0a: [*c]mm.MixerChannel = mixer.mm_mix_channels;
             debugPrint(
                 "[PREMIX] ch0 src={x} read={d} vol={d} freq={d}\n",
                 .{ ch0a[0].src, @as(c_int, @intCast(ch0a[0].read)), @as(c_int, @intCast(ch0a[0].vol)), @as(c_int, @intCast(ch0a[0].freq)) },
@@ -226,10 +166,10 @@ pub fn frame() void {
     }
     layer_p.*.tick_data.sampcount +%= @as(mm.Hword, @bitCast(@as(c_short, @truncate(remaining_len))));
     debugPrint("[MIX] tail={d}\n", .{remaining_len});
-    mmMixerMix(@as(mm.Word, @bitCast(remaining_len)));
+    shim.mmMixerMix(@as(mm.Word, @bitCast(remaining_len)));
     // Bounded post-mix snapshot prints to verify mixer read advancement
-    if (postmix_budget > 0 and mm_mix_channels != @as([*c]mm.MixerChannel, @ptrFromInt(0))) {
-        const ch_base_ptr: [*c]mm.MixerChannel = mm_mix_channels;
+    if (postmix_budget > 0 and mixer.mm_mix_channels != @as([*c]mm.MixerChannel, @ptrFromInt(0))) {
+        const ch_base_ptr: [*c]mm.MixerChannel = mixer.mm_mix_channels;
         // Print first 4 channels for clarity
         var i: usize = 0;
         while (i < 4) : (i += 1) {
@@ -240,6 +180,53 @@ pub fn frame() void {
         }
         postmix_budget -= 1;
     }
+}
+pub fn getModuleTable() [*]const mm.Word {
+    return @ptrCast(module_table);
+}
+pub fn getSampleTable() [*]const mm.Word {
+    return @ptrCast(sample_table);
+}
+pub fn getSampleCount() mm.Word {
+    return @intCast(sample_count);
+}
+pub fn getModuleCount() mm.Word {
+    return @intCast(module_count);
+}
+
+inline fn readLe16(p: [*]const u8) u16 {
+    const b0: u16 = p[0];
+    const b1: u16 = p[1];
+    return b0 | (b1 << 8);
+}
+fn parseBankPointers(base: [*]const u8) void {
+    // Try without prefix first (head size 12), then with 8-byte prefix
+    const candidates = [_]usize{ 0, 8 };
+    var chosen: usize = candidates.len;
+    var sc: u16 = 0;
+    var mc: u16 = 0;
+    for (candidates, 0..) |off, idx| {
+        const s = readLe16(base + off + 0);
+        const m = readLe16(base + off + 2);
+        if (m >= 1 and m <= 64 and s >= 1 and s <= 4096) {
+            chosen = idx;
+            sc = s;
+            mc = m;
+            break;
+        }
+    }
+    if (chosen == candidates.len) {
+        // Fallback to zero to avoid nulls
+        chosen = 0;
+        sc = readLe16(base + 0);
+        mc = readLe16(base + 2);
+    }
+    head_off = candidates[chosen];
+    sample_count = sc;
+    module_count = mc;
+    const head_size: usize = 12; // two u16 + two u32 reserved
+    sample_table = @ptrCast(@alignCast(base + head_off + head_size));
+    module_table = sample_table + @as(usize, sc);
 }
 
 // MSL head data (exactly like C): 2x u16, then 4-byte padding to align tables

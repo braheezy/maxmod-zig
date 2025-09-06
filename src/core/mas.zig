@@ -23,7 +23,6 @@ pub const _mbstate_t = extern struct {
     __value: union_unnamed_1 = @import("std").mem.zeroes(union_unnamed_1),
 };
 
-pub extern fn memset(?*anyopaque, c_int, usize) ?*anyopaque;
 pub const mm_sword = c_int;
 pub const mm_shword = c_short;
 pub const mm_bool = u8;
@@ -65,12 +64,12 @@ pub const MMRC_RIGHT: c_int = 2;
 pub const MMRC_BOTH: c_int = 3;
 pub const mm_reverbch = c_uint;
 pub const struct_mmreverbcfg = extern struct {
-    flags: mm.Word = @import("std").mem.zeroes(mm.Word),
+    flags: mm.Word = 0,
     memory: mm.Addr = @import("std").mem.zeroes(mm.Addr),
     delay: mm.Hword = @import("std").mem.zeroes(mm.Hword),
     rate: mm.Hword = @import("std").mem.zeroes(mm.Hword),
     feedback: mm.Hword = @import("std").mem.zeroes(mm.Hword),
-    panning: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    panning: mm.Byte = 0,
 };
 pub const mm_reverb_cfg = struct_mmreverbcfg;
 pub const MM_PLAY_LOOP: c_int = 0;
@@ -95,10 +94,10 @@ const union_unnamed_5 = extern union {
     length: mm.Word,
 };
 pub const struct_t_mmdssample = extern struct {
-    loop_start: mm.Word = @import("std").mem.zeroes(mm.Word),
+    loop_start: mm.Word = 0,
     unnamed_0: union_unnamed_5 = @import("std").mem.zeroes(union_unnamed_5),
-    format: mm.Byte = @import("std").mem.zeroes(mm.Byte),
-    repeat_mode: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    format: mm.Byte = 0,
+    repeat_mode: mm.Byte = 0,
     base_rate: mm.Hword = @import("std").mem.zeroes(mm.Hword),
     data: mm.Addr = @import("std").mem.zeroes(mm.Addr),
 };
@@ -111,23 +110,23 @@ pub const struct_t_mmsoundeffect = extern struct {
     unnamed_0: union_unnamed_6 = @import("std").mem.zeroes(union_unnamed_6),
     rate: mm.Hword = @import("std").mem.zeroes(mm.Hword),
     handle: mm.Sfxhand = @import("std").mem.zeroes(mm.Sfxhand),
-    volume: mm.Byte = @import("std").mem.zeroes(mm.Byte),
-    panning: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    volume: mm.Byte = 0,
+    panning: mm.Byte = 0,
 };
 pub const mm_sound_effect = struct_t_mmsoundeffect;
 pub const struct_t_mmdssystem = extern struct {
-    mod_count: mm.Word = @import("std").mem.zeroes(mm.Word),
-    samp_count: mm.Word = @import("std").mem.zeroes(mm.Word),
+    mod_count: mm.Word = 0,
+    samp_count: mm.Word = 0,
     mem_bank: [*c]mm.Word = @import("std").mem.zeroes([*c]mm.Word),
-    fifo_channel: mm.Word = @import("std").mem.zeroes(mm.Word),
+    fifo_channel: mm.Word = 0,
 };
 pub const mm_ds_system = struct_t_mmdssystem;
 pub const struct_t_mmstream = extern struct {
-    sampling_rate: mm.Word = @import("std").mem.zeroes(mm.Word),
-    buffer_length: mm.Word = @import("std").mem.zeroes(mm.Word),
+    sampling_rate: mm.Word = 0,
+    buffer_length: mm.Word = 0,
     callback: mm_stream_func = @import("std").mem.zeroes(mm_stream_func),
-    format: mm.Word = @import("std").mem.zeroes(mm.Word),
-    timer: mm.Word = @import("std").mem.zeroes(mm.Word),
+    format: mm.Word = 0,
+    timer: mm.Word = 0,
     manual: mm_bool = @import("std").mem.zeroes(mm_bool),
 };
 pub const mm_stream = struct_t_mmstream;
@@ -135,7 +134,7 @@ pub const struct_t_mmstreamdata = extern struct {
     is_active: mm_bool = @import("std").mem.zeroes(mm_bool),
     format: mm_stream_formats = @import("std").mem.zeroes(mm_stream_formats),
     is_auto: mm_bool = @import("std").mem.zeroes(mm_bool),
-    hw_timer_num: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    hw_timer_num: mm.Byte = 0,
     clocks: mm.Hword = @import("std").mem.zeroes(mm.Hword),
     timer: mm.Hword = @import("std").mem.zeroes(mm.Hword),
     length_cut: mm.Hword = @import("std").mem.zeroes(mm.Hword),
@@ -146,21 +145,21 @@ pub const struct_t_mmstreamdata = extern struct {
     wave_memory: mm.Addr = @import("std").mem.zeroes(mm.Addr),
     work_memory: mm.Addr = @import("std").mem.zeroes(mm.Addr),
     callback: mm_stream_func = @import("std").mem.zeroes(mm_stream_func),
-    remainder: mm.Word = @import("std").mem.zeroes(mm.Word),
+    remainder: mm.Word = 0,
 };
 pub const mm_stream_data = struct_t_mmstreamdata;
 pub const struct_tmm_voice = extern struct {
     source: mm.Addr = @import("std").mem.zeroes(mm.Addr),
-    length: mm.Word = @import("std").mem.zeroes(mm.Word),
+    length: mm.Word = 0,
     loop_start: mm.Hword = @import("std").mem.zeroes(mm.Hword),
     timer: mm.Hword = @import("std").mem.zeroes(mm.Hword),
-    flags: mm.Byte = @import("std").mem.zeroes(mm.Byte),
-    format: mm.Byte = @import("std").mem.zeroes(mm.Byte),
-    repeat: mm.Byte = @import("std").mem.zeroes(mm.Byte),
-    volume: mm.Byte = @import("std").mem.zeroes(mm.Byte),
-    divider: mm.Byte = @import("std").mem.zeroes(mm.Byte),
-    panning: mm.Byte = @import("std").mem.zeroes(mm.Byte),
-    index: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    flags: mm.Byte = 0,
+    format: mm.Byte = 0,
+    repeat: mm.Byte = 0,
+    volume: mm.Byte = 0,
+    divider: mm.Byte = 0,
+    panning: mm.Byte = 0,
+    index: mm.Byte = 0,
     reserved: [1]mm.Byte = @import("std").mem.zeroes([1]mm.Byte),
 };
 pub const mm_voice = struct_tmm_voice;
@@ -179,7 +178,6 @@ pub const MM_MIXLEN_21KHZ: c_int = 1408;
 pub const MM_MIXLEN_27KHZ: c_int = 1792;
 pub const MM_MIXLEN_31KHZ: c_int = 2112;
 pub const mm_mixlen_enum = c_uint;
-pub extern fn mmSetVBlankHandler(function: mm_voidfunc) void;
 pub export fn mmSetEventHandler(arg_handler: mm_callback) void {
     var handler = arg_handler;
     _ = &handler;
@@ -431,22 +429,22 @@ pub fn mmSetJingleVolume(arg_volume: mm.Word) void {
 }
 
 pub const struct_tmm_mas_prefix = extern struct {
-    size: mm.Word = @import("std").mem.zeroes(mm.Word),
-    type: mm.Byte = @import("std").mem.zeroes(mm.Byte),
-    version: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    size: mm.Word = 0,
+    type: mm.Byte = 0,
+    version: mm.Byte = 0,
     reserved: [2]mm.Byte = @import("std").mem.zeroes([2]mm.Byte),
 };
 pub const mm_mas_prefix = struct_tmm_mas_prefix;
 // maxmod/include/mm_mas.h:82:17: warning: struct demoted to opaque type - has bitfield
 pub const struct_tmm_mas_instrument = extern struct {
-    global_volume: mm.Byte = @import("std").mem.zeroes(mm.Byte),
-    fadeout: mm.Byte = @import("std").mem.zeroes(mm.Byte),
-    random_volume: mm.Byte = @import("std").mem.zeroes(mm.Byte),
-    dct: mm.Byte = @import("std").mem.zeroes(mm.Byte),
-    nna: mm.Byte = @import("std").mem.zeroes(mm.Byte),
-    env_flags: mm.Byte = @import("std").mem.zeroes(mm.Byte),
-    panning: mm.Byte = @import("std").mem.zeroes(mm.Byte),
-    dca: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    global_volume: mm.Byte = 0,
+    fadeout: mm.Byte = 0,
+    random_volume: mm.Byte = 0,
+    dct: mm.Byte = 0,
+    nna: mm.Byte = 0,
+    env_flags: mm.Byte = 0,
+    panning: mm.Byte = 0,
+    dca: mm.Byte = 0,
     note_map_offset: mm.Hword = @import("std").mem.zeroes(mm.Hword),
     is_note_map_invalid: mm.Hword = @import("std").mem.zeroes(mm.Hword),
 };
@@ -468,14 +466,14 @@ inline fn env_node_range(n: mm_mas_envelope_node) mm.Hword {
     return @as(mm.Hword, n.bits >> 7);
 }
 pub const struct_tmm_mas_envelope = extern struct {
-    size: mm.Byte align(2) = @import("std").mem.zeroes(mm.Byte),
-    loop_start: mm.Byte = @import("std").mem.zeroes(mm.Byte),
-    loop_end: mm.Byte = @import("std").mem.zeroes(mm.Byte),
-    sus_start: mm.Byte = @import("std").mem.zeroes(mm.Byte),
-    sus_end: mm.Byte = @import("std").mem.zeroes(mm.Byte),
-    node_count: mm.Byte = @import("std").mem.zeroes(mm.Byte),
-    is_filter: mm.Byte = @import("std").mem.zeroes(mm.Byte),
-    wasted: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    size: mm.Byte align(2) = 0,
+    loop_start: mm.Byte = 0,
+    loop_end: mm.Byte = 0,
+    sus_start: mm.Byte = 0,
+    sus_end: mm.Byte = 0,
+    node_count: mm.Byte = 0,
+    is_filter: mm.Byte = 0,
+    wasted: mm.Byte = 0,
     pub fn env_nodes(self: anytype) @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), mm_mas_envelope_node) {
         const Intermediate = @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), u8);
         const ReturnType = @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), mm_mas_envelope_node);
@@ -485,13 +483,13 @@ pub const struct_tmm_mas_envelope = extern struct {
 pub const mm_mas_envelope = struct_tmm_mas_envelope;
 pub const struct_tmm_mas_sample_info = extern struct {
     // Exact 1-byte packing like C; no extra alignment on first field
-    default_volume: mm.Byte = @import("std").mem.zeroes(mm.Byte),
-    panning: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    default_volume: mm.Byte = 0,
+    panning: mm.Byte = 0,
     frequency: mm.Hword = @import("std").mem.zeroes(mm.Hword),
-    av_type: mm.Byte = @import("std").mem.zeroes(mm.Byte),
-    av_depth: mm.Byte = @import("std").mem.zeroes(mm.Byte),
-    av_speed: mm.Byte = @import("std").mem.zeroes(mm.Byte),
-    global_volume: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    av_type: mm.Byte = 0,
+    av_depth: mm.Byte = 0,
+    av_speed: mm.Byte = 0,
+    global_volume: mm.Byte = 0,
     av_rate: mm.Hword = @import("std").mem.zeroes(mm.Hword),
     msl_id: mm.Hword = @import("std").mem.zeroes(mm.Hword),
     pub fn data(self: anytype) @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), u8) {
@@ -502,7 +500,7 @@ pub const struct_tmm_mas_sample_info = extern struct {
 };
 pub const mm_mas_sample_info = struct_tmm_mas_sample_info;
 pub const struct_tmm_mas_pattern = extern struct {
-    row_count: mm.Byte align(1) = @import("std").mem.zeroes(mm.Byte),
+    row_count: mm.Byte align(1) = 0,
     pub fn pattern_data(self: anytype) @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), u8) {
         const Intermediate = @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), u8);
         const ReturnType = @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), u8);
@@ -511,10 +509,10 @@ pub const struct_tmm_mas_pattern = extern struct {
 };
 pub const mm_mas_pattern = struct_tmm_mas_pattern;
 pub const struct_tmm_mas_gba_sample = extern struct {
-    length: mm.Word align(4) = @import("std").mem.zeroes(mm.Word),
-    loop_length: mm.Word = @import("std").mem.zeroes(mm.Word),
-    format: mm.Byte = @import("std").mem.zeroes(mm.Byte),
-    reserved: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    length: mm.Word align(4) = 0,
+    loop_length: mm.Word = 0,
+    format: mm.Byte = 0,
+    reserved: mm.Byte = 0,
     default_frequency: mm.Hword = @import("std").mem.zeroes(mm.Hword),
     pub fn data(self: anytype) @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), u8) {
         const Intermediate = @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), u8);
@@ -528,12 +526,12 @@ const union_unnamed_8 = extern union {
     length: mm.Word,
 };
 pub const struct_tmm_mas_ds_sample = extern struct {
-    loop_start: mm.Word align(4) = @import("std").mem.zeroes(mm.Word),
+    loop_start: mm.Word align(4) = 0,
     unnamed_0: union_unnamed_8 = @import("std").mem.zeroes(union_unnamed_8),
-    format: mm.Byte = @import("std").mem.zeroes(mm.Byte),
-    repeat_mode: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    format: mm.Byte = 0,
+    repeat_mode: mm.Byte = 0,
     default_frequency: mm.Hword = @import("std").mem.zeroes(mm.Hword),
-    point: mm.Word = @import("std").mem.zeroes(mm.Word),
+    point: mm.Word = 0,
     pub fn data(self: anytype) @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), u8) {
         const Intermediate = @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), u8);
         const ReturnType = @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), u8);
@@ -548,7 +546,7 @@ pub const mm_mas_ds_sample = struct_tmm_mas_ds_sample;
 // - Global budget to cap total prints per session
 var umix_debug_budget: c_int = 2000;
 pub inline fn umix_channel_index_from_mix(mix_ch: [*c]const mm.MixerChannel) c_int {
-    const offset = @intFromPtr(mix_ch) - @intFromPtr(&mm_mix_channels[0]);
+    const offset = @intFromPtr(mix_ch) - @intFromPtr(&mixer.mm_mix_channels[0]);
     return @as(c_int, @intCast(offset / @sizeOf(mm.MixerChannel)));
 }
 pub inline fn umix_allow_log_ch(layer: [*c]const mm.LayerInfo, ch_idx: c_int) bool {
@@ -570,12 +568,12 @@ const union_unnamed_9 = extern union {
     tickfrac: mm.Hword,
 };
 pub const mpv_active_information = extern struct {
-    reserved: mm.Word = @import("std").mem.zeroes(mm.Word),
+    reserved: mm.Word = 0,
     pattread_p: [*c]mm.Byte = @import("std").mem.zeroes([*c]mm.Byte),
-    afvol: mm.Byte = @import("std").mem.zeroes(mm.Byte),
-    sampoff: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    afvol: mm.Byte = 0,
+    sampoff: mm.Byte = 0,
     volplus: mm.Sbyte = @import("std").mem.zeroes(mm.Sbyte),
-    notedelay: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    notedelay: mm.Byte = 0,
     panplus: mm.Hword = @import("std").mem.zeroes(mm.Hword),
     reserved2: mm.Hword = @import("std").mem.zeroes(mm.Hword),
 };
@@ -1108,7 +1106,7 @@ pub export fn mpp_Process_Effect(arg_layer: [*c]mm.LayerInfo, arg_act_ch: [*c]mm
         }
         break;
     }
-    return @import("std").mem.zeroes(mm.Word);
+    return 0;
 }
 // /Users/braheezy/personal/gba/maxmod-zig/maxmod/source/core/mas.c:3520:9: warning: TODO implement translation of stmt class GotoStmtClass
 
@@ -1219,8 +1217,6 @@ pub inline fn mpp_PatternPointer(arg_layer: [*c]mm.LayerInfo, arg_entry: mm.Word
     const offset: mm.Word = patttbl_words[idx];
     return @as([*c]mm_mas_pattern, @ptrCast(@alignCast(@as([*]u8, @ptrCast(base)) + @as(usize, @intCast(offset)))));
 }
-pub extern var mm_mix_channels: [*c]mm.MixerChannel;
-pub extern var mm_bpmdv: mm.Word;
 pub fn mppe_DoVibrato(arg_period: mm.Word, arg_channel: [*c]mm.ModuleChannel, arg_layer: [*c]mm.LayerInfo) callconv(.c) mm.Word {
     var period = arg_period;
     _ = &period;
@@ -1310,8 +1306,8 @@ pub fn mpp_Update_ACHN(arg_layer: [*c]mm.LayerInfo, arg_act_ch: [*c]mm.ActiveCha
     if ((@as(c_int, @bitCast(@as(c_uint, act_ch.*.flags))) & (@as(c_int, 1) << @intCast(3))) != 0) return;
     _ = mpp_Update_ACHN_notest(layer, act_ch, period, ch);
 }
-pub var mm_mastertempo: mm.Word = @import("std").mem.zeroes(mm.Word);
-pub export var mm_masterpitch: mm.Word = @import("std").mem.zeroes(mm.Word);
+pub var mm_mastertempo: mm.Word = 0;
+pub export var mm_masterpitch: mm.Word = 0;
 pub var mmCallback: mm_callback = @import("std").mem.zeroes(mm_callback);
 pub fn mpp_setbpm(arg_layer_info: [*c]mm.LayerInfo, arg_bpm: mm.Word) callconv(.c) void {
     var layer_info = arg_layer_info;
@@ -1322,7 +1318,7 @@ pub fn mpp_setbpm(arg_layer_info: [*c]mm.LayerInfo, arg_bpm: mm.Word) callconv(.
     if (shim.mpp_clayer == .main) {
         var tempo: mm.Word = (mm_mastertempo *% bpm) >> @intCast(10);
         _ = &tempo;
-        var rate: mm.Word = mm_bpmdv / tempo;
+        var rate: mm.Word = mixer.mm_bpmdv / tempo;
         _ = &rate;
         rate &= @as(mm.Word, @bitCast(~@as(c_int, 1)));
         layer_info.*.tickrate = @as(mm.Hword, @bitCast(@as(c_ushort, @truncate(rate))));
@@ -1335,7 +1331,7 @@ pub fn mpp_suspend(arg_layer: mm_layer_type) callconv(.c) void {
     _ = &layer;
     var act_ch: [*c]mm.ActiveChannel = &mm_gba.achannels[@as(c_uint, @intCast(@as(c_int, 0)))];
     _ = &act_ch;
-    var mix_ch: [*c]mm.MixerChannel = &mm_mix_channels[@as(c_uint, @intCast(@as(c_int, 0)))];
+    var mix_ch: [*c]mm.MixerChannel = &mixer.mm_mix_channels[@as(c_uint, @intCast(@as(c_int, 0)))];
     _ = &mix_ch;
     {
         var count: mm.Word = mm_gba.num_ach;
@@ -1388,7 +1384,7 @@ pub fn mpp_resetchannels(arg_channels: [*c]mm.ModuleChannel, arg_num_ch: mm.Word
     var num_ch = arg_num_ch;
     _ = &num_ch;
     // No extra reset-channels log in C reference
-    _ = memset(@as(?*anyopaque, @ptrCast(channels)), @as(c_int, 0), @sizeOf(mm.ModuleChannel) *% num_ch);
+    _ = shim.memset(@as([*]u8, @ptrCast(channels)), @as(c_int, 0), @sizeOf(mm.ModuleChannel) *% num_ch);
     {
         var i: mm.Word = 0;
         _ = &i;
@@ -1396,7 +1392,7 @@ pub fn mpp_resetchannels(arg_channels: [*c]mm.ModuleChannel, arg_num_ch: mm.Word
             channels[i].alloc = 255;
         }
     }
-    var mix_ch: [*c]mm.MixerChannel = &mm_mix_channels[@as(c_uint, @intCast(@as(c_int, 0)))];
+    var mix_ch: [*c]mm.MixerChannel = &mixer.mm_mix_channels[@as(c_uint, @intCast(@as(c_int, 0)))];
     _ = &mix_ch;
     var act_ch: [*c]mm.ActiveChannel = &mm_gba.achannels[@as(c_uint, @intCast(@as(c_int, 0)))];
     _ = &act_ch;
@@ -1421,7 +1417,7 @@ pub fn mpp_resetchannels(arg_channels: [*c]mm.ModuleChannel, arg_num_ch: mm.Word
             };
         }) {
             if (@as(c_uint, @bitCast((@as(c_int, @bitCast(@as(c_uint, act_ch.*.flags))) & ((@as(c_int, 1) << @intCast(6)) | (@as(c_int, 1) << @intCast(7)))) >> @intCast(6))) != @intFromEnum(shim.mpp_clayer)) continue;
-            _ = memset(@as(?*anyopaque, @ptrCast(act_ch)), @as(c_int, 0), @sizeOf(mm.ActiveChannel));
+            _ = shim.memset(@as([*]u8, @ptrCast(act_ch)), @as(c_int, 0), @sizeOf(mm.ActiveChannel));
             mix_ch.*.src = MIXCH_GBA_SRC_STOPPED;
         }
     }
@@ -2074,7 +2070,7 @@ pub fn mpph_PitchSlide_Up(arg_period: mm.Word, arg_slide_value: mm.Word, arg_lay
         if (delta > period) return 0;
         return period -% delta;
     }
-    return @import("std").mem.zeroes(mm.Word);
+    return 0;
 }
 pub fn mpph_LinearPitchSlide_Up(arg_period: mm.Word, arg_slide_value: mm.Word, arg_layer: [*c]mm.LayerInfo) callconv(.c) mm.Word {
     var period = arg_period;
@@ -2084,7 +2080,7 @@ pub fn mpph_LinearPitchSlide_Up(arg_period: mm.Word, arg_slide_value: mm.Word, a
     var layer = arg_layer;
     _ = &layer;
     if ((@as(c_int, @bitCast(@as(c_uint, layer.*.flags))) & (@as(c_int, 1) << @intCast(2))) != 0) return mpph_psu(period, slide_value) else return mpph_psd(period, slide_value);
-    return @import("std").mem.zeroes(mm.Word);
+    return 0;
 }
 pub fn mpph_FinePitchSlide_Up(arg_period: mm.Word, arg_slide_value: mm.Word, arg_layer: [*c]mm.LayerInfo) callconv(.c) mm.Word {
     var period = arg_period;
@@ -2106,7 +2102,7 @@ pub fn mpph_FinePitchSlide_Up(arg_period: mm.Word, arg_slide_value: mm.Word, arg
         if (delta > period) return 0;
         return period -% delta;
     }
-    return @import("std").mem.zeroes(mm.Word);
+    return 0;
 }
 pub fn mpph_PitchSlide_Down(arg_period: mm.Word, arg_slide_value: mm.Word, arg_layer: [*c]mm.LayerInfo) callconv(.c) mm.Word {
     var period = arg_period;
@@ -2124,7 +2120,7 @@ pub fn mpph_PitchSlide_Down(arg_period: mm.Word, arg_slide_value: mm.Word, arg_l
         if ((period >> @intCast(@as(c_int, 16) + @as(c_int, 5))) > @as(mm.Word, @bitCast(@as(c_int, 0)))) return @as(mm.Word, @bitCast(@as(c_int, 1) << @intCast(@as(c_int, 16) + @as(c_int, 5))));
         return period;
     }
-    return @import("std").mem.zeroes(mm.Word);
+    return 0;
 }
 pub fn mpph_LinearPitchSlide_Down(arg_period: mm.Word, arg_slide_value: mm.Word, arg_layer: [*c]mm.LayerInfo) callconv(.c) mm.Word {
     var period = arg_period;
@@ -2134,7 +2130,7 @@ pub fn mpph_LinearPitchSlide_Down(arg_period: mm.Word, arg_slide_value: mm.Word,
     var layer = arg_layer;
     _ = &layer;
     if ((@as(c_int, @bitCast(@as(c_uint, layer.*.flags))) & (@as(c_int, 1) << @intCast(2))) != 0) return mpph_psd(period, slide_value) else return mpph_psu(period, slide_value);
-    return @import("std").mem.zeroes(mm.Word);
+    return 0;
 }
 pub fn mpph_FinePitchSlide_Down(arg_period: mm.Word, arg_slide_value: mm.Word, arg_layer: [*c]mm.LayerInfo) callconv(.c) mm.Word {
     var period = arg_period;
@@ -2156,7 +2152,7 @@ pub fn mpph_FinePitchSlide_Down(arg_period: mm.Word, arg_slide_value: mm.Word, a
         if ((period >> @intCast(@as(c_int, 16) + @as(c_int, 5))) > @as(mm.Word, @bitCast(@as(c_int, 0)))) return @as(mm.Word, @bitCast(@as(c_int, 1) << @intCast(@as(c_int, 16) + @as(c_int, 5))));
         return period;
     }
-    return @import("std").mem.zeroes(mm.Word);
+    return 0;
 }
 pub fn mpph_FastForward(arg_layer: [*c]mm.LayerInfo, arg_rows_to_skip: mm.Word) callconv(.c) void {
     var layer = arg_layer;
@@ -2268,7 +2264,7 @@ pub fn mpp_Channel_ExchangeMemory(arg_effect: mm.Byte, arg_param: mm.Byte, arg_c
         channel.*.memory[@as(u8, @intCast(table_entry))] = param;
         return @as(mm.Word, @bitCast(@as(c_uint, param)));
     }
-    return @import("std").mem.zeroes(mm.Word);
+    return 0;
 }
 pub fn mpph_VolumeSlide(arg_volume: c_int, arg_param: mm.Word, arg_tick: mm.Word, arg_max_volume: c_int, arg_layer: [*c]mm.LayerInfo) callconv(.c) mm.Word {
     var volume = arg_volume;
@@ -2335,7 +2331,7 @@ pub fn mpph_VolumeSlide(arg_volume: c_int, arg_param: mm.Word, arg_tick: mm.Word
         }
         return @as(mm.Word, @bitCast(volume));
     }
-    return @import("std").mem.zeroes(mm.Word);
+    return 0;
 }
 pub fn mpph_VolumeSlide64(arg_volume: c_int, arg_param: mm.Word, arg_tick: mm.Word, arg_layer: [*c]mm.LayerInfo) callconv(.c) mm.Word {
     var volume = arg_volume;
@@ -2669,7 +2665,7 @@ pub fn mppe_Portamento(arg_param: mm.Word, arg_period: mm.Word, arg_channel: [*c
     if ((param >> @intCast(4)) == @as(mm.Word, @bitCast(@as(c_int, 14)))) {
         if (@as(c_int, @bitCast(@as(c_uint, layer.*.tick))) != @as(c_int, 0)) return period;
         param &= @as(mm.Word, @bitCast(@as(c_int, 15)));
-        is_fine = @as(c_int, 1) != 0;
+        is_fine = true;
     } else if ((param >> @intCast(4)) == @as(mm.Word, @bitCast(@as(c_int, 15)))) {
         if (@as(c_int, @bitCast(@as(c_uint, layer.*.tick))) != @as(c_int, 0)) return period;
         param &= @as(mm.Word, @bitCast(@as(c_int, 15)));
@@ -3496,7 +3492,7 @@ pub fn mpp_Update_ACHN_notest_update_mix(arg_layer: [*c]mm.LayerInfo, arg_act_ch
     const act_ch = arg_act_ch;
     const channel = arg_channel;
 
-    const mix_ch: [*c]mm.MixerChannel = &mm_mix_channels[@as(usize, @intCast(channel))];
+    const mix_ch: [*c]mm.MixerChannel = &mixer.mm_mix_channels[@as(usize, @intCast(channel))];
     // UMIX trace: snapshot before possible (re)bind
     if (umix_allow_log_ch(layer, @as(c_int, @intCast(channel)))) {
         debugPrint("[UMIX] ch={d} flags={x:0>2} sample={d} src0={x:0>8} read0={d}\n", .{
@@ -3658,7 +3654,7 @@ pub fn mpp_Update_ACHN_notest_set_pitch_volume(arg_layer: [*c]mm.LayerInfo, arg_
     {
         const tnow: u8 = mm_gba.layer_p.*.tick;
         // Mixer channel index
-        const mix_idx: c_int = @as(c_int, @intCast((@intFromPtr(mix_ch) - @intFromPtr(mm_mix_channels)) / @sizeOf(mm.MixerChannel)));
+        const mix_idx: c_int = @as(c_int, @intCast((@intFromPtr(mix_ch) - @intFromPtr(mixer.mm_mix_channels)) / @sizeOf(mm.MixerChannel)));
         // Gate like C: only tick==0 and first two mixer channels
         if (tnow == 0 and mix_idx >= 0 and mix_idx < 2) {
             debugPrint("[UMIX] set_pitch period={d} freq={d} fvol={d}\n", .{ @as(c_int, @intCast(period)), @as(c_int, @intCast(mix_ch.*.freq)), @as(c_int, @intCast(act_ch.*.fvol)) });
