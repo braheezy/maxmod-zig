@@ -600,9 +600,9 @@ pub export fn mmAllocChannel() linksection(".iwram") mm_word {
     debugPrint("[mmAllocChannel] return={d} bitmask={x}\n", .{ @as(c_int, @intCast(best_channel)), @as(c_int, @intCast(mm_ch_mask)) });
     return best_channel;
 }
-// /Users/michaelbraha/personal/gba/maxmod-zig/maxmod/source/core/mas_arm.c:359:9: warning: TODO implement translation of stmt class GotoStmtClass
+// /Users/braheezy/personal/gba/maxmod-zig/maxmod/source/core/mas_arm.c:359:9: warning: TODO implement translation of stmt class GotoStmtClass
 
-// /Users/michaelbraha/personal/gba/maxmod-zig/maxmod/source/core/mas_arm.c:352:1: warning: unable to translate function, demoted to extern
+// /Users/braheezy/personal/gba/maxmod-zig/maxmod/source/core/mas_arm.c:352:1: warning: unable to translate function, demoted to extern
 pub export fn mmUpdateChannel_T0(arg_module_channel: [*c]mm_module_channel, arg_mpp_layer: [*c]mpl_layer_information, arg_channel_counter: mm_byte) linksection(".iwram") callconv(.c) void {
     const module_channel = arg_module_channel;
     const mpp_layer = arg_mpp_layer;
@@ -1873,7 +1873,7 @@ pub const _WCHAR_T = "";
 pub const NULL = @import("std").zig.c_translation.cast(?*anyopaque, @as(c_int, 0));
 pub const __CLANG_MAX_ALIGN_T_DEFINED = "";
 pub const offsetof = @compileError("unable to translate C expr: unexpected token 'an identifier'");
-// /Users/michaelbraha/.local/share/zigup/0.14.1/files/lib/include/__stddef_offsetof.h:16:9
+// /Users/braheezy/.local/share/zigup/0.14.1/files/lib/include/__stddef_offsetof.h:16:9
 pub const MAXMOD_H__ = "";
 pub const MM_TYPES_H__ = "";
 pub const __STDBOOL_H = "";
@@ -1893,19 +1893,19 @@ pub const __uint_least8_t = u64;
 pub const __uint32_t_defined = "";
 pub const __int8_t_defined = "";
 pub const __stdint_join3 = @compileError("unable to translate C expr: unexpected token '##'");
-// /Users/michaelbraha/.local/share/zigup/0.14.1/files/lib/include/stdint.h:291:9
+// /Users/braheezy/.local/share/zigup/0.14.1/files/lib/include/stdint.h:291:9
 pub const __intptr_t_defined = "";
 pub const _INTPTR_T = "";
 pub const _UINTPTR_T = "";
 pub const __int_c_join = @compileError("unable to translate C expr: unexpected token '##'");
-// /Users/michaelbraha/.local/share/zigup/0.14.1/files/lib/include/stdint.h:328:9
+// /Users/braheezy/.local/share/zigup/0.14.1/files/lib/include/stdint.h:328:9
 pub inline fn __int_c(v: anytype, suffix: anytype) @TypeOf(__int_c_join(v, suffix)) {
     _ = &v;
     _ = &suffix;
     return __int_c_join(v, suffix);
 }
 pub const __uint_c = @compileError("unable to translate macro: undefined identifier `U`");
-// /Users/michaelbraha/.local/share/zigup/0.14.1/files/lib/include/stdint.h:330:9
+// /Users/braheezy/.local/share/zigup/0.14.1/files/lib/include/stdint.h:330:9
 pub const __int64_c_suffix = __INT64_C_SUFFIX__;
 pub const __int32_c_suffix = __INT64_C_SUFFIX__;
 pub const __int16_c_suffix = __INT64_C_SUFFIX__;
@@ -1991,15 +1991,15 @@ pub const INT_FAST8_MIN = __INT_LEAST8_MIN;
 pub const INT_FAST8_MAX = __INT_LEAST8_MAX;
 pub const UINT_FAST8_MAX = __UINT_LEAST8_MAX;
 pub const __INTN_MIN = @compileError("unable to translate macro: undefined identifier `INT`");
-// /Users/michaelbraha/.local/share/zigup/0.14.1/files/lib/include/stdint.h:875:10
+// /Users/braheezy/.local/share/zigup/0.14.1/files/lib/include/stdint.h:875:10
 pub const __INTN_MAX = @compileError("unable to translate macro: undefined identifier `INT`");
-// /Users/michaelbraha/.local/share/zigup/0.14.1/files/lib/include/stdint.h:876:10
+// /Users/braheezy/.local/share/zigup/0.14.1/files/lib/include/stdint.h:876:10
 pub const __UINTN_MAX = @compileError("unable to translate macro: undefined identifier `UINT`");
-// /Users/michaelbraha/.local/share/zigup/0.14.1/files/lib/include/stdint.h:877:9
+// /Users/braheezy/.local/share/zigup/0.14.1/files/lib/include/stdint.h:877:9
 pub const __INTN_C = @compileError("unable to translate macro: undefined identifier `INT`");
-// /Users/michaelbraha/.local/share/zigup/0.14.1/files/lib/include/stdint.h:878:10
+// /Users/braheezy/.local/share/zigup/0.14.1/files/lib/include/stdint.h:878:10
 pub const __UINTN_C = @compileError("unable to translate macro: undefined identifier `UINT`");
-// /Users/michaelbraha/.local/share/zigup/0.14.1/files/lib/include/stdint.h:879:9
+// /Users/braheezy/.local/share/zigup/0.14.1/files/lib/include/stdint.h:879:9
 pub const INTPTR_MIN = -__INTPTR_MAX__ - @as(c_int, 1);
 pub const INTPTR_MAX = __INTPTR_MAX__;
 pub const UINTPTR_MAX = __UINTPTR_MAX__;

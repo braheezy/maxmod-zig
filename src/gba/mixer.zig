@@ -1445,19 +1445,19 @@ pub const __uint_least8_t = u64;
 pub const __uint32_t_defined = "";
 pub const __int8_t_defined = "";
 pub const __stdint_join3 = @compileError("unable to translate C expr: unexpected token '##'");
-// /Users/michaelbraha/.local/share/zigup/0.14.1/files/lib/include/stdint.h:291:9
+// /Users/braheezy/.local/share/zigup/0.14.1/files/lib/include/stdint.h:291:9
 pub const __intptr_t_defined = "";
 pub const _INTPTR_T = "";
 pub const _UINTPTR_T = "";
 pub const __int_c_join = @compileError("unable to translate C expr: unexpected token '##'");
-// /Users/michaelbraha/.local/share/zigup/0.14.1/files/lib/include/stdint.h:328:9
+// /Users/braheezy/.local/share/zigup/0.14.1/files/lib/include/stdint.h:328:9
 pub inline fn __int_c(v: anytype, suffix: anytype) @TypeOf(__int_c_join(v, suffix)) {
     _ = &v;
     _ = &suffix;
     return __int_c_join(v, suffix);
 }
 pub const __uint_c = @compileError("unable to translate macro: undefined identifier `U`");
-// /Users/michaelbraha/.local/share/zigup/0.14.1/files/lib/include/stdint.h:330:9
+// /Users/braheezy/.local/share/zigup/0.14.1/files/lib/include/stdint.h:330:9
 pub const __int64_c_suffix = __INT64_C_SUFFIX__;
 pub const __int32_c_suffix = __INT64_C_SUFFIX__;
 pub const __int16_c_suffix = __INT64_C_SUFFIX__;
@@ -1543,15 +1543,15 @@ pub const INT_FAST8_MIN = __INT_LEAST8_MIN;
 pub const INT_FAST8_MAX = __INT_LEAST8_MAX;
 pub const UINT_FAST8_MAX = __UINT_LEAST8_MAX;
 pub const __INTN_MIN = @compileError("unable to translate macro: undefined identifier `INT`");
-// /Users/michaelbraha/.local/share/zigup/0.14.1/files/lib/include/stdint.h:875:10
+// /Users/braheezy/.local/share/zigup/0.14.1/files/lib/include/stdint.h:875:10
 pub const __INTN_MAX = @compileError("unable to translate macro: undefined identifier `INT`");
-// /Users/michaelbraha/.local/share/zigup/0.14.1/files/lib/include/stdint.h:876:10
+// /Users/braheezy/.local/share/zigup/0.14.1/files/lib/include/stdint.h:876:10
 pub const __UINTN_MAX = @compileError("unable to translate macro: undefined identifier `UINT`");
-// /Users/michaelbraha/.local/share/zigup/0.14.1/files/lib/include/stdint.h:877:9
+// /Users/braheezy/.local/share/zigup/0.14.1/files/lib/include/stdint.h:877:9
 pub const __INTN_C = @compileError("unable to translate macro: undefined identifier `INT`");
-// /Users/michaelbraha/.local/share/zigup/0.14.1/files/lib/include/stdint.h:878:10
+// /Users/braheezy/.local/share/zigup/0.14.1/files/lib/include/stdint.h:878:10
 pub const __UINTN_C = @compileError("unable to translate macro: undefined identifier `UINT`");
-// /Users/michaelbraha/.local/share/zigup/0.14.1/files/lib/include/stdint.h:879:9
+// /Users/braheezy/.local/share/zigup/0.14.1/files/lib/include/stdint.h:879:9
 pub const INTPTR_MIN = -__INTPTR_MAX__ - @as(c_int, 1);
 pub const INTPTR_MAX = __INTPTR_MAX__;
 pub const UINTPTR_MAX = __UINTPTR_MAX__;
@@ -1670,7 +1670,7 @@ pub const _WCHAR_T = "";
 pub const NULL = @import("std").zig.c_translation.cast(?*anyopaque, @as(c_int, 0));
 pub const __CLANG_MAX_ALIGN_T_DEFINED = "";
 pub const offsetof = @compileError("unable to translate C expr: unexpected token 'an identifier'");
-// /Users/michaelbraha/.local/share/zigup/0.14.1/files/lib/include/__stddef_offsetof.h:16:9
+// /Users/braheezy/.local/share/zigup/0.14.1/files/lib/include/__stddef_offsetof.h:16:9
 pub const _SYS_CDEFS_H_ = "";
 pub const _MACHINE__DEFAULT_TYPES_H = "";
 pub const __EXP = @compileError("unable to translate macro: undefined identifier `__`");
@@ -2318,7 +2318,7 @@ pub const REG_SGFIFOA = @compileError("unable to translate C expr: unexpected to
 pub const REG_SGFIFOB = @compileError("unable to translate C expr: unexpected token 'volatile'");
 // maxmod/source/gba/mixer.h:34:9
 pub const MMDBG = @compileError("unable to translate C expr: expected ')' instead got '...'");
-// /Users/michaelbraha/personal/gba/maxmod-zig/maxmod/source/gba/mixer.c:29:9
+// /Users/braheezy/personal/gba/maxmod-zig/maxmod/source/gba/mixer.c:29:9
 pub const __lock_t = struct___lock_t;
 pub const __sbuf = struct___sbuf;
 pub const __sFILE = struct___sFILE;
