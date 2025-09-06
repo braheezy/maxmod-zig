@@ -7,3 +7,4 @@ src/working_mod_player
 # src/maxmod_gba
 src/simple_mod_player
 *.log
+*ZigGBA*
