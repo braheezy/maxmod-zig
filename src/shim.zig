@@ -8,6 +8,7 @@ pub export var mm_mixlen: mm.Word = 0;
 pub extern fn mmMixerMix(samples_count: mm.Word) void;
 
 pub extern fn memset(dst: [*]u8, c: c_int, n: usize) [*]u8;
+pub const MIXCH_GBA_SRC_STOPPED = 1 << ((@sizeOf(usize) * 8) - 1);
 
 // Very simple bump allocator for tiny needs (calloc/free minimal)
 var heap: [4096]u8 = undefined;
@@ -67,7 +68,7 @@ pub export fn mpp_Update_ACHN_notest_disable_and_panning(volume: mm.Word, act_ch
         const env_end = (@as(c_int, @intCast(act_ch.*.flags)) & mas.MCAF_ENVEND) != 0;
         const key_on = (@as(c_int, @intCast(act_ch.*.flags)) & mas.MCAF_KEYON) != 0;
         if (env_end and !key_on) {
-            mix_ch.*.src = mas.MIXCH_GBA_SRC_STOPPED;
+            mix_ch.*.src = MIXCH_GBA_SRC_STOPPED;
             if (act_ch.*._type == mas.ACHN_FOREGROUND) {
                 // free parent channel
                 const parent_idx: usize = @intCast(act_ch.*.parent);
@@ -83,7 +84,7 @@ pub export fn mpp_Update_ACHN_notest_disable_and_panning(volume: mm.Word, act_ch
     const vol8: u8 = @intCast(if (volume > 255) 255 else volume);
     mix_ch.*.vol = vol8;
     // If channel had stopped, disable foreground
-    if ((mix_ch.*.src & mas.MIXCH_GBA_SRC_STOPPED) != 0) {
+    if ((mix_ch.*.src & MIXCH_GBA_SRC_STOPPED) != 0) {
         if (act_ch.*._type == mas.ACHN_FOREGROUND) {
             const parent_idx2: usize = @intCast(act_ch.*.parent);
             const parent2: [*c]mm.ModuleChannel = @ptrFromInt(@intFromPtr(mm_gba.mpp_channels) + parent_idx2 * @sizeOf(mm.ModuleChannel));

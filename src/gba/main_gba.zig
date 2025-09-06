@@ -103,10 +103,10 @@ pub fn init(setup: *GBASystem) bool {
     shim.mmShimSetChannelMask(shim.mm_ch_mask);
     mas.mmSetModuleVolume(1024);
     mas.mmSetJingleVolume(1024);
-    sfx.mmSetEffectsVolume(1024);
+    sfx.setEffectsVolume(1024);
     mas.mmSetModuleTempo(1024);
     mas.mmSetModulePitch(1024);
-    sfx.mmResetEffects();
+    sfx.resetEffects();
     initialized = true;
     return true;
 }
@@ -122,7 +122,7 @@ pub fn end() bool {
 pub fn frame() void {
     if (!initialized) return;
     // Update effects and sublayer first to mirror C reference ordering
-    sfx.mmUpdateEffects();
+    sfx.updateEffects();
     mas.mppUpdateSub();
 
     mpp_channels = pchannels;

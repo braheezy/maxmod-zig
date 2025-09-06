@@ -20,7 +20,6 @@ pub export var mm_ratescale: mm.Word = 0;
 pub export var mp_writepos: mm.Addr = @import("std").mem.zeroes(mm.Addr);
 
 pub var vblank_handler_enabled: bool = false;
-pub const MIXCH_GBA_SRC_STOPPED = @as(c_uint, 1) << ((@import("std").zig.c_translation.sizeof(usize) * @as(c_int, 8)) - @as(c_int, 1));
 pub var mp_mix_seg: mm.Byte = 0;
 pub var mm_bpmdv: mm.Word = 38144; // default divisor similar to mode 3;
 
@@ -90,7 +89,7 @@ pub fn init(setup: *mm_gba.GBASystem) void {
     {
         var i: mm.Word = 0;
         while (i < mixch_count) : (i +%= 1) {
-            mix_ch[i].src = MIXCH_GBA_SRC_STOPPED;
+            mix_ch[i].src = shim.MIXCH_GBA_SRC_STOPPED;
         }
     }
     vblank_handler_enabled = true;
@@ -133,7 +132,7 @@ pub fn mmMixerEnd() void {
     @as([*c]volatile u32, @ptrFromInt(67109072)).* = 0;
     @as([*c]volatile u32, @ptrFromInt(67109120)).* = 0;
 }
-pub fn mmMixerSetVolume(channel: c_int, volume: mm.Word) void {
+pub fn setVolume(channel: c_int, volume: mm.Word) void {
     (blk: {
         const tmp = channel;
         if (tmp >= 0) break :blk mm_mix_channels + @as(usize, @intCast(tmp)) else break :blk mm_mix_channels - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
@@ -143,7 +142,7 @@ pub fn mmMixerSetVolume(channel: c_int, volume: mm.Word) void {
         set_debug_budget -= 1;
     }
 }
-pub fn mmMixerSetPan(channel: c_int, panning: mm.Byte) void {
+pub fn setPan(channel: c_int, panning: mm.Byte) void {
     (blk: {
         const tmp = channel;
         if (tmp >= 0) break :blk mm_mix_channels + @as(usize, @intCast(tmp)) else break :blk mm_mix_channels - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
@@ -153,7 +152,7 @@ pub fn mmMixerSetPan(channel: c_int, panning: mm.Byte) void {
         set_debug_budget -= 1;
     }
 }
-pub fn mmMixerMulFreq(channel: c_int, factor: mm.Word) void {
+pub fn mulFreq(channel: c_int, factor: mm.Word) void {
     var freq: mm.Word = (blk: {
         const tmp = channel;
         if (tmp >= 0) break :blk mm_mix_channels + @as(usize, @intCast(tmp)) else break :blk mm_mix_channels - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
@@ -168,13 +167,13 @@ pub fn mmMixerMulFreq(channel: c_int, factor: mm.Word) void {
         set_debug_budget -= 1;
     }
 }
-pub fn mmMixerStopChannel(channel: c_int) void {
+pub fn stopChannel(channel: c_int) void {
     (blk: {
         const tmp = channel;
         if (tmp >= 0) break :blk mm_mix_channels + @as(usize, @intCast(tmp)) else break :blk mm_mix_channels - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-    }).*.src = MIXCH_GBA_SRC_STOPPED;
+    }).*.src = shim.MIXCH_GBA_SRC_STOPPED;
 }
-pub fn mmMixerSetFreq(channel: c_int, rate: mm.Word) void {
+pub fn setFreq(channel: c_int, rate: mm.Word) void {
     (blk: {
         const tmp = channel;
         if (tmp >= 0) break :blk mm_mix_channels + @as(usize, @intCast(tmp)) else break :blk mm_mix_channels - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));

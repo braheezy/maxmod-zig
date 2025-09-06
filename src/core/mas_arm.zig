@@ -135,9 +135,9 @@ pub const mm_reverbch = c_uint;
 pub const struct_mmreverbcfg = extern struct {
     flags: mm.Word = 0,
     memory: mm.Addr = @import("std").mem.zeroes(mm.Addr),
-    delay: mm.Hword = @import("std").mem.zeroes(mm.Hword),
-    rate: mm.Hword = @import("std").mem.zeroes(mm.Hword),
-    feedback: mm.Hword = @import("std").mem.zeroes(mm.Hword),
+    delay: mm.Hword = 0,
+    rate: mm.Hword = 0,
+    feedback: mm.Hword = 0,
     panning: mm.Byte = 0,
 };
 pub const mm_reverb_cfg = struct_mmreverbcfg;
@@ -166,7 +166,7 @@ pub const struct_t_mmdssample = extern struct {
     unnamed_0: union_unnamed_1 = @import("std").mem.zeroes(union_unnamed_1),
     format: mm.Byte = 0,
     repeat_mode: mm.Byte = 0,
-    base_rate: mm.Hword = @import("std").mem.zeroes(mm.Hword),
+    base_rate: mm.Hword = 0,
     data: mm.Addr = @import("std").mem.zeroes(mm.Addr),
 };
 pub const mm_ds_sample = struct_t_mmdssample;
@@ -176,8 +176,8 @@ const union_unnamed_2 = extern union {
 };
 pub const struct_t_mmsoundeffect = extern struct {
     unnamed_0: union_unnamed_2 = @import("std").mem.zeroes(union_unnamed_2),
-    rate: mm.Hword = @import("std").mem.zeroes(mm.Hword),
-    handle: mm.Sfxhand = @import("std").mem.zeroes(mm.Sfxhand),
+    rate: mm.Hword = 0,
+    handle: mm.Sfxhand = 0,
     volume: mm.Byte = 0,
     panning: mm.Byte = 0,
 };
@@ -203,12 +203,12 @@ pub const struct_t_mmstreamdata = extern struct {
     format: mm_stream_formats = @import("std").mem.zeroes(mm_stream_formats),
     is_auto: mm_bool = @import("std").mem.zeroes(mm_bool),
     hw_timer_num: mm.Byte = 0,
-    clocks: mm.Hword = @import("std").mem.zeroes(mm.Hword),
-    timer: mm.Hword = @import("std").mem.zeroes(mm.Hword),
-    length_cut: mm.Hword = @import("std").mem.zeroes(mm.Hword),
-    length_words: mm.Hword = @import("std").mem.zeroes(mm.Hword),
-    position: mm.Hword = @import("std").mem.zeroes(mm.Hword),
-    reserved2: mm.Hword = @import("std").mem.zeroes(mm.Hword),
+    clocks: mm.Hword = 0,
+    timer: mm.Hword = 0,
+    length_cut: mm.Hword = 0,
+    length_words: mm.Hword = 0,
+    position: mm.Hword = 0,
+    reserved2: mm.Hword = 0,
     hw_timer: [*c]volatile mm.Hword = @import("std").mem.zeroes([*c]volatile mm.Hword),
     wave_memory: mm.Addr = @import("std").mem.zeroes(mm.Addr),
     work_memory: mm.Addr = @import("std").mem.zeroes(mm.Addr),
@@ -219,8 +219,8 @@ pub const mm_stream_data = struct_t_mmstreamdata;
 pub const struct_tmm_voice = extern struct {
     source: mm.Addr = @import("std").mem.zeroes(mm.Addr),
     length: mm.Word = 0,
-    loop_start: mm.Hword = @import("std").mem.zeroes(mm.Hword),
-    timer: mm.Hword = @import("std").mem.zeroes(mm.Hword),
+    loop_start: mm.Hword = 0,
+    timer: mm.Hword = 0,
     flags: mm.Byte = 0,
     format: mm.Byte = 0,
     repeat: mm.Byte = 0,
@@ -262,16 +262,6 @@ pub extern fn mmJinglePause() void;
 pub extern fn mmJingleResume() void;
 pub extern fn mmJingleStop() void;
 pub extern fn mmJingleActive() mm_bool;
-pub fn mmActiveSub() callconv(.c) mm_bool {
-    return mmJingleActive();
-}
-pub extern fn mmEffectVolume(handle: mm.Sfxhand, volume: mm.Word) void;
-pub extern fn mmEffectPanning(handle: mm.Sfxhand, panning: mm.Byte) void;
-pub extern fn mmEffectRate(handle: mm.Sfxhand, rate: mm.Word) void;
-pub extern fn mmEffectScaleRate(handle: mm.Sfxhand, factor: mm.Word) void;
-pub extern fn mmEffectActive(handle: mm.Sfxhand) mm_bool;
-pub extern fn mmEffectCancel(handle: mm.Sfxhand) mm.Word;
-pub extern fn mmEffectRelease(handle: mm.Sfxhand) void;
 pub extern fn mmEffectCancelAll() void;
 pub const struct_tmm_mas_prefix = extern struct {
     size: mm.Word = 0,
@@ -311,8 +301,8 @@ pub const struct_tmm_mas_instrument = extern struct {
     env_flags: mm.Byte = 0,
     panning: mm.Byte = 0,
     dca: mm.Byte = 0,
-    note_map_offset: mm.Hword = @import("std").mem.zeroes(mm.Hword), // 15-bit in C bitfield
-    is_note_map_invalid: mm.Hword = @import("std").mem.zeroes(mm.Hword), // 1-bit in C bitfield
+    note_map_offset: mm.Hword = 0, // 15-bit in C bitfield
+    is_note_map_invalid: mm.Hword = 0, // 1-bit in C bitfield
 };
 pub const mm_mas_instrument = struct_tmm_mas_instrument;
 // maxmod/include/mm_mas.h:112:17: warning: struct demoted to opaque type - has bitfield
@@ -336,13 +326,13 @@ pub const mm_mas_envelope = struct_tmm_mas_envelope;
 pub const struct_tmm_mas_sample_info = extern struct {
     default_volume: mm.Byte align(2) = 0,
     panning: mm.Byte = 0,
-    frequency: mm.Hword = @import("std").mem.zeroes(mm.Hword),
+    frequency: mm.Hword = 0,
     av_type: mm.Byte = 0,
     av_depth: mm.Byte = 0,
     av_speed: mm.Byte = 0,
     global_volume: mm.Byte = 0,
-    av_rate: mm.Hword = @import("std").mem.zeroes(mm.Hword),
-    msl_id: mm.Hword = @import("std").mem.zeroes(mm.Hword),
+    av_rate: mm.Hword = 0,
+    msl_id: mm.Hword = 0,
     pub fn data(self: anytype) @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), u8) {
         const Intermediate = @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), u8);
         const ReturnType = @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), u8);
@@ -364,7 +354,7 @@ pub const struct_tmm_mas_gba_sample = extern struct {
     loop_length: mm.Word = 0,
     format: mm.Byte = 0,
     reserved: mm.Byte = 0,
-    default_frequency: mm.Hword = @import("std").mem.zeroes(mm.Hword),
+    default_frequency: mm.Hword = 0,
     pub fn data(self: anytype) @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), u8) {
         const Intermediate = @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), u8);
         const ReturnType = @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), u8);
@@ -381,7 +371,7 @@ pub const struct_tmm_mas_ds_sample = extern struct {
     unnamed_0: union_unnamed_4 = @import("std").mem.zeroes(union_unnamed_4),
     format: mm.Byte = 0,
     repeat_mode: mm.Byte = 0,
-    default_frequency: mm.Hword = @import("std").mem.zeroes(mm.Hword),
+    default_frequency: mm.Hword = 0,
     point: mm.Word = 0,
     pub fn data(self: anytype) @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), u8) {
         const Intermediate = @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), u8);
@@ -421,13 +411,13 @@ pub const mpl_layer_information = extern struct {
     pattread: [*c]mm.Byte = @import("std").mem.zeroes([*c]mm.Byte),
     ploop_jump: mm.Byte = 0,
     valid: mm.Byte = 0,
-    tickrate: mm.Hword = @import("std").mem.zeroes(mm.Hword),
+    tickrate: mm.Hword = 0,
     unnamed_0: union_unnamed_5 = @import("std").mem.zeroes(union_unnamed_5),
     mode: mm.Byte = 0,
     reserved2: mm.Byte = 0,
     mch_update: mm.Word = 0,
-    volume: mm.Hword = @import("std").mem.zeroes(mm.Hword),
-    reserved3: mm.Hword = @import("std").mem.zeroes(mm.Hword),
+    volume: mm.Hword = 0,
+    reserved3: mm.Hword = 0,
 };
 pub const mpv_active_information = extern struct {
     reserved: mm.Word = 0,
@@ -436,8 +426,8 @@ pub const mpv_active_information = extern struct {
     sampoff: mm.Byte = 0,
     volplus: mm.Sbyte = @import("std").mem.zeroes(mm.Sbyte),
     notedelay: mm.Byte = 0,
-    panplus: mm.Hword = @import("std").mem.zeroes(mm.Hword),
-    reserved2: mm.Hword = @import("std").mem.zeroes(mm.Hword),
+    panplus: mm.Hword = 0,
+    reserved2: mm.Hword = 0,
 };
 pub extern var mm_ch_mask: mm.Word;
 pub extern var mpp_vars: mpv_active_information;
@@ -2045,7 +2035,6 @@ pub const ACHN_RESERVED = @as(c_int, 1);
 pub const ACHN_BACKGROUND = @as(c_int, 2);
 pub const ACHN_FOREGROUND = @as(c_int, 3);
 pub const ACHN_CUSTOM = @as(c_int, 4);
-pub const MIXCH_GBA_SRC_STOPPED = @as(c_uint, 1) << ((@import("std").zig.c_translation.sizeof(usize) * @as(c_int, 8)) - @as(c_int, 1));
 pub const MM_CORE_MAS_H__ = "";
 pub const MM_CORE_PLAYER_TYPES_H__ = "";
 pub const MP_SCHANNELS = @as(c_int, 4);
