@@ -1,3 +1,7 @@
+const mm = @import("../maxmod.zig");
+const shim = @import("../shim.zig");
+const mm_gba = @import("../gba/main_gba.zig");
+
 pub const __builtin_bswap16 = @import("std").zig.c_builtins.__builtin_bswap16;
 pub const __builtin_bswap32 = @import("std").zig.c_builtins.__builtin_bswap32;
 pub const __builtin_bswap64 = @import("std").zig.c_builtins.__builtin_bswap64;
@@ -87,15 +91,9 @@ pub const int_fast8_t = i8;
 pub const uint_fast8_t = u8;
 pub const intmax_t = c_longlong;
 pub const uintmax_t = c_ulonglong;
-pub const mm_word = c_uint;
 pub const mm_sword = c_int;
-pub const mm_hword = c_ushort;
 pub const mm_shword = c_short;
-pub const mm_byte = u8;
-pub const mm_sbyte = i8;
-pub const mm_sfxhand = c_ushort;
 pub const mm_bool = u8;
-pub const mm_addr = ?*anyopaque;
 pub const mm_reg = ?*anyopaque;
 pub const MM_MODE_A: c_int = 0;
 pub const MM_MODE_B: c_int = 1;
@@ -109,9 +107,9 @@ pub const MM_STREAM_8BIT_STEREO: c_int = 1;
 pub const MM_STREAM_16BIT_MONO: c_int = 2;
 pub const MM_STREAM_16BIT_STEREO: c_int = 3;
 pub const mm_stream_formats = c_uint;
-pub const mm_callback = ?*const fn (mm_word, mm_word) callconv(.c) mm_word;
+pub const mm_callback = ?*const fn (mm.Word, mm.Word) callconv(.c) mm.Word;
 pub const mm_voidfunc = ?*const fn () callconv(.c) void;
-pub const mm_stream_func = ?*const fn (mm_word, mm_addr, mm_stream_formats) callconv(.c) mm_word;
+pub const mm_stream_func = ?*const fn (mm.Word, mm.Addr, mm_stream_formats) callconv(.c) mm.Word;
 pub const MMRF_MEMORY: c_int = 1;
 pub const MMRF_DELAY: c_int = 2;
 pub const MMRF_RATE: c_int = 4;
@@ -135,17 +133,16 @@ pub const MMRC_RIGHT: c_int = 2;
 pub const MMRC_BOTH: c_int = 3;
 pub const mm_reverbch = c_uint;
 pub const struct_mmreverbcfg = extern struct {
-    flags: mm_word = @import("std").mem.zeroes(mm_word),
-    memory: mm_addr = @import("std").mem.zeroes(mm_addr),
-    delay: mm_hword = @import("std").mem.zeroes(mm_hword),
-    rate: mm_hword = @import("std").mem.zeroes(mm_hword),
-    feedback: mm_hword = @import("std").mem.zeroes(mm_hword),
-    panning: mm_byte = @import("std").mem.zeroes(mm_byte),
+    flags: mm.Word = @import("std").mem.zeroes(mm.Word),
+    memory: mm.Addr = @import("std").mem.zeroes(mm.Addr),
+    delay: mm.Hword = @import("std").mem.zeroes(mm.Hword),
+    rate: mm.Hword = @import("std").mem.zeroes(mm.Hword),
+    feedback: mm.Hword = @import("std").mem.zeroes(mm.Hword),
+    panning: mm.Byte = @import("std").mem.zeroes(mm.Byte),
 };
 pub const mm_reverb_cfg = struct_mmreverbcfg;
 pub const MM_PLAY_LOOP: c_int = 0;
 pub const MM_PLAY_ONCE: c_int = 1;
-pub const mm_pmode = c_uint;
 pub const MM_MIX_8KHZ: c_int = 0;
 pub const MM_MIX_10KHZ: c_int = 1;
 pub const MM_MIX_13KHZ: c_int = 2;
@@ -161,55 +158,43 @@ pub const MM_TIMER2: c_int = 2;
 pub const MM_TIMER3: c_int = 3;
 pub const mm_stream_timer = c_uint;
 const union_unnamed_1 = extern union {
-    loop_length: mm_word,
-    length: mm_word,
+    loop_length: mm.Word,
+    length: mm.Word,
 };
 pub const struct_t_mmdssample = extern struct {
-    loop_start: mm_word = @import("std").mem.zeroes(mm_word),
+    loop_start: mm.Word = @import("std").mem.zeroes(mm.Word),
     unnamed_0: union_unnamed_1 = @import("std").mem.zeroes(union_unnamed_1),
-    format: mm_byte = @import("std").mem.zeroes(mm_byte),
-    repeat_mode: mm_byte = @import("std").mem.zeroes(mm_byte),
-    base_rate: mm_hword = @import("std").mem.zeroes(mm_hword),
-    data: mm_addr = @import("std").mem.zeroes(mm_addr),
+    format: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    repeat_mode: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    base_rate: mm.Hword = @import("std").mem.zeroes(mm.Hword),
+    data: mm.Addr = @import("std").mem.zeroes(mm.Addr),
 };
 pub const mm_ds_sample = struct_t_mmdssample;
 const union_unnamed_2 = extern union {
-    id: mm_word,
+    id: mm.Word,
     sample: [*c]mm_ds_sample,
 };
 pub const struct_t_mmsoundeffect = extern struct {
     unnamed_0: union_unnamed_2 = @import("std").mem.zeroes(union_unnamed_2),
-    rate: mm_hword = @import("std").mem.zeroes(mm_hword),
-    handle: mm_sfxhand = @import("std").mem.zeroes(mm_sfxhand),
-    volume: mm_byte = @import("std").mem.zeroes(mm_byte),
-    panning: mm_byte = @import("std").mem.zeroes(mm_byte),
+    rate: mm.Hword = @import("std").mem.zeroes(mm.Hword),
+    handle: mm.Sfxhand = @import("std").mem.zeroes(mm.Sfxhand),
+    volume: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    panning: mm.Byte = @import("std").mem.zeroes(mm.Byte),
 };
 pub const mm_sound_effect = struct_t_mmsoundeffect;
-pub const struct_t_mmgbasystem = extern struct {
-    mixing_mode: mm_mixmode = @import("std").mem.zeroes(mm_mixmode),
-    mod_channel_count: mm_word = @import("std").mem.zeroes(mm_word),
-    mix_channel_count: mm_word = @import("std").mem.zeroes(mm_word),
-    module_channels: mm_addr = @import("std").mem.zeroes(mm_addr),
-    active_channels: mm_addr = @import("std").mem.zeroes(mm_addr),
-    mixing_channels: mm_addr = @import("std").mem.zeroes(mm_addr),
-    mixing_memory: mm_addr = @import("std").mem.zeroes(mm_addr),
-    wave_memory: mm_addr = @import("std").mem.zeroes(mm_addr),
-    soundbank: mm_addr = @import("std").mem.zeroes(mm_addr),
-};
-pub const mm_gba_system = struct_t_mmgbasystem;
 pub const struct_t_mmdssystem = extern struct {
-    mod_count: mm_word = @import("std").mem.zeroes(mm_word),
-    samp_count: mm_word = @import("std").mem.zeroes(mm_word),
-    mem_bank: [*c]mm_word = @import("std").mem.zeroes([*c]mm_word),
-    fifo_channel: mm_word = @import("std").mem.zeroes(mm_word),
+    mod_count: mm.Word = @import("std").mem.zeroes(mm.Word),
+    samp_count: mm.Word = @import("std").mem.zeroes(mm.Word),
+    mem_bank: [*c]mm.Word = @import("std").mem.zeroes([*c]mm.Word),
+    fifo_channel: mm.Word = @import("std").mem.zeroes(mm.Word),
 };
 pub const mm_ds_system = struct_t_mmdssystem;
 pub const struct_t_mmstream = extern struct {
-    sampling_rate: mm_word = @import("std").mem.zeroes(mm_word),
-    buffer_length: mm_word = @import("std").mem.zeroes(mm_word),
+    sampling_rate: mm.Word = @import("std").mem.zeroes(mm.Word),
+    buffer_length: mm.Word = @import("std").mem.zeroes(mm.Word),
     callback: mm_stream_func = @import("std").mem.zeroes(mm_stream_func),
-    format: mm_word = @import("std").mem.zeroes(mm_word),
-    timer: mm_word = @import("std").mem.zeroes(mm_word),
+    format: mm.Word = @import("std").mem.zeroes(mm.Word),
+    timer: mm.Word = @import("std").mem.zeroes(mm.Word),
     manual: mm_bool = @import("std").mem.zeroes(mm_bool),
 };
 pub const mm_stream = struct_t_mmstream;
@@ -217,33 +202,33 @@ pub const struct_t_mmstreamdata = extern struct {
     is_active: mm_bool = @import("std").mem.zeroes(mm_bool),
     format: mm_stream_formats = @import("std").mem.zeroes(mm_stream_formats),
     is_auto: mm_bool = @import("std").mem.zeroes(mm_bool),
-    hw_timer_num: mm_byte = @import("std").mem.zeroes(mm_byte),
-    clocks: mm_hword = @import("std").mem.zeroes(mm_hword),
-    timer: mm_hword = @import("std").mem.zeroes(mm_hword),
-    length_cut: mm_hword = @import("std").mem.zeroes(mm_hword),
-    length_words: mm_hword = @import("std").mem.zeroes(mm_hword),
-    position: mm_hword = @import("std").mem.zeroes(mm_hword),
-    reserved2: mm_hword = @import("std").mem.zeroes(mm_hword),
-    hw_timer: [*c]volatile mm_hword = @import("std").mem.zeroes([*c]volatile mm_hword),
-    wave_memory: mm_addr = @import("std").mem.zeroes(mm_addr),
-    work_memory: mm_addr = @import("std").mem.zeroes(mm_addr),
+    hw_timer_num: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    clocks: mm.Hword = @import("std").mem.zeroes(mm.Hword),
+    timer: mm.Hword = @import("std").mem.zeroes(mm.Hword),
+    length_cut: mm.Hword = @import("std").mem.zeroes(mm.Hword),
+    length_words: mm.Hword = @import("std").mem.zeroes(mm.Hword),
+    position: mm.Hword = @import("std").mem.zeroes(mm.Hword),
+    reserved2: mm.Hword = @import("std").mem.zeroes(mm.Hword),
+    hw_timer: [*c]volatile mm.Hword = @import("std").mem.zeroes([*c]volatile mm.Hword),
+    wave_memory: mm.Addr = @import("std").mem.zeroes(mm.Addr),
+    work_memory: mm.Addr = @import("std").mem.zeroes(mm.Addr),
     callback: mm_stream_func = @import("std").mem.zeroes(mm_stream_func),
-    remainder: mm_word = @import("std").mem.zeroes(mm_word),
+    remainder: mm.Word = @import("std").mem.zeroes(mm.Word),
 };
 pub const mm_stream_data = struct_t_mmstreamdata;
 pub const struct_tmm_voice = extern struct {
-    source: mm_addr = @import("std").mem.zeroes(mm_addr),
-    length: mm_word = @import("std").mem.zeroes(mm_word),
-    loop_start: mm_hword = @import("std").mem.zeroes(mm_hword),
-    timer: mm_hword = @import("std").mem.zeroes(mm_hword),
-    flags: mm_byte = @import("std").mem.zeroes(mm_byte),
-    format: mm_byte = @import("std").mem.zeroes(mm_byte),
-    repeat: mm_byte = @import("std").mem.zeroes(mm_byte),
-    volume: mm_byte = @import("std").mem.zeroes(mm_byte),
-    divider: mm_byte = @import("std").mem.zeroes(mm_byte),
-    panning: mm_byte = @import("std").mem.zeroes(mm_byte),
-    index: mm_byte = @import("std").mem.zeroes(mm_byte),
-    reserved: [1]mm_byte = @import("std").mem.zeroes([1]mm_byte),
+    source: mm.Addr = @import("std").mem.zeroes(mm.Addr),
+    length: mm.Word = @import("std").mem.zeroes(mm.Word),
+    loop_start: mm.Hword = @import("std").mem.zeroes(mm.Hword),
+    timer: mm.Hword = @import("std").mem.zeroes(mm.Hword),
+    flags: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    format: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    repeat: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    volume: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    divider: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    panning: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    index: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    reserved: [1]mm.Byte = @import("std").mem.zeroes([1]mm.Byte),
 };
 pub const mm_voice = struct_tmm_voice;
 pub const MMVF_FREQ: c_int = 2;
@@ -261,44 +246,18 @@ pub const MM_MIXLEN_21KHZ: c_int = 1408;
 pub const MM_MIXLEN_27KHZ: c_int = 1792;
 pub const MM_MIXLEN_31KHZ: c_int = 2112;
 pub const mm_mixlen_enum = c_uint;
-pub extern fn mmInitDefault(soundbank: mm_addr, number_of_channels: mm_word) bool;
-pub extern fn mmInit(setup: [*c]mm_gba_system) bool;
-pub extern fn mmEnd() bool;
-pub extern fn mmVBlank() void;
-pub extern fn mmSetVBlankHandler(function: mm_voidfunc) void;
-pub extern fn mmSetEventHandler(handler: mm_callback) void;
-pub extern fn mmFrame() void;
-pub extern fn mmGetModuleCount() mm_word;
-pub extern fn mmGetSampleCount() mm_word;
-pub extern fn mmStart(module_ID: mm_word, mode: mm_pmode) void;
-pub extern fn mmPause() void;
-pub extern fn mmResume() void;
-pub extern fn mmStop() void;
-pub extern fn mmGetPositionTick() mm_word;
-pub extern fn mmGetPositionRow() mm_word;
-pub extern fn mmGetPosition() mm_word;
-pub extern fn mmSetPositionEx(position: mm_word, row: mm_word) void;
-pub fn mmSetPosition(arg_position: mm_word) callconv(.c) void {
+pub extern fn mmSetPositionEx(position: mm.Word, row: mm.Word) void;
+pub fn mmSetPosition(arg_position: mm.Word) callconv(.c) void {
     var position = arg_position;
     _ = &position;
-    mmSetPositionEx(position, @as(mm_word, @bitCast(@as(c_int, 0))));
+    mmSetPositionEx(position, @as(mm.Word, @bitCast(@as(c_int, 0))));
 }
-pub fn mmPosition(arg_position: mm_word) callconv(.c) void {
+pub fn mmPosition(arg_position: mm.Word) callconv(.c) void {
     var position = arg_position;
     _ = &position;
-    mmSetPositionEx(position, @as(mm_word, @bitCast(@as(c_int, 0))));
+    mmSetPositionEx(position, @as(mm.Word, @bitCast(@as(c_int, 0))));
 }
-pub extern fn mmActive() mm_bool;
-pub extern fn mmSetModuleVolume(volume: mm_word) void;
-pub extern fn mmSetModuleTempo(tempo: mm_word) void;
-pub extern fn mmSetModulePitch(pitch: mm_word) void;
-pub extern fn mmPlayModule(address: usize, mode: mm_word, layer: mm_word) void;
-pub extern fn mmJingleStart(module_ID: mm_word, mode: mm_pmode) void;
-pub fn mmJingle(arg_module_ID: mm_word) callconv(.c) void {
-    var module_ID = arg_module_ID;
-    _ = &module_ID;
-    mmJingleStart(module_ID, @as(c_uint, @bitCast(MM_PLAY_ONCE)));
-}
+
 pub extern fn mmJinglePause() void;
 pub extern fn mmJingleResume() void;
 pub extern fn mmJingleStop() void;
@@ -306,38 +265,35 @@ pub extern fn mmJingleActive() mm_bool;
 pub fn mmActiveSub() callconv(.c) mm_bool {
     return mmJingleActive();
 }
-pub extern fn mmSetJingleVolume(volume: mm_word) void;
-pub extern fn mmEffect(sample_ID: mm_word) mm_sfxhand;
-pub extern fn mmEffectEx(sound: [*c]mm_sound_effect) mm_sfxhand;
-pub extern fn mmEffectVolume(handle: mm_sfxhand, volume: mm_word) void;
-pub extern fn mmEffectPanning(handle: mm_sfxhand, panning: mm_byte) void;
-pub extern fn mmEffectRate(handle: mm_sfxhand, rate: mm_word) void;
-pub extern fn mmEffectScaleRate(handle: mm_sfxhand, factor: mm_word) void;
-pub extern fn mmEffectActive(handle: mm_sfxhand) mm_bool;
-pub extern fn mmEffectCancel(handle: mm_sfxhand) mm_word;
-pub extern fn mmEffectRelease(handle: mm_sfxhand) void;
+pub extern fn mmEffectVolume(handle: mm.Sfxhand, volume: mm.Word) void;
+pub extern fn mmEffectPanning(handle: mm.Sfxhand, panning: mm.Byte) void;
+pub extern fn mmEffectRate(handle: mm.Sfxhand, rate: mm.Word) void;
+pub extern fn mmEffectScaleRate(handle: mm.Sfxhand, factor: mm.Word) void;
+pub extern fn mmEffectActive(handle: mm.Sfxhand) mm_bool;
+pub extern fn mmEffectCancel(handle: mm.Sfxhand) mm.Word;
+pub extern fn mmEffectRelease(handle: mm.Sfxhand) void;
 pub extern fn mmEffectCancelAll() void;
 pub const struct_tmm_mas_prefix = extern struct {
-    size: mm_word = @import("std").mem.zeroes(mm_word),
-    type: mm_byte = @import("std").mem.zeroes(mm_byte),
-    version: mm_byte = @import("std").mem.zeroes(mm_byte),
-    reserved: [2]mm_byte = @import("std").mem.zeroes([2]mm_byte),
+    size: mm.Word = @import("std").mem.zeroes(mm.Word),
+    type: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    version: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    reserved: [2]mm.Byte = @import("std").mem.zeroes([2]mm.Byte),
 };
 pub const mm_mas_prefix = struct_tmm_mas_prefix;
 pub const struct_tmm_mas_head = extern struct {
-    order_count: mm_byte = @import("std").mem.zeroes(mm_byte),
-    instr_count: mm_byte = @import("std").mem.zeroes(mm_byte),
-    sampl_count: mm_byte = @import("std").mem.zeroes(mm_byte),
-    pattn_count: mm_byte = @import("std").mem.zeroes(mm_byte),
-    flags: mm_byte = @import("std").mem.zeroes(mm_byte),
-    global_volume: mm_byte = @import("std").mem.zeroes(mm_byte),
-    initial_speed: mm_byte = @import("std").mem.zeroes(mm_byte),
-    initial_tempo: mm_byte = @import("std").mem.zeroes(mm_byte),
-    repeat_position: mm_byte = @import("std").mem.zeroes(mm_byte),
-    reserved: [3]mm_byte = @import("std").mem.zeroes([3]mm_byte),
-    channel_volume: [32]mm_byte = @import("std").mem.zeroes([32]mm_byte),
-    channel_panning: [32]mm_byte = @import("std").mem.zeroes([32]mm_byte),
-    sequence: [200]mm_byte = @import("std").mem.zeroes([200]mm_byte),
+    order_count: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    instr_count: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    sampl_count: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    pattn_count: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    flags: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    global_volume: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    initial_speed: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    initial_tempo: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    repeat_position: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    reserved: [3]mm.Byte = @import("std").mem.zeroes([3]mm.Byte),
+    channel_volume: [32]mm.Byte = @import("std").mem.zeroes([32]mm.Byte),
+    channel_panning: [32]mm.Byte = @import("std").mem.zeroes([32]mm.Byte),
+    sequence: [200]mm.Byte = @import("std").mem.zeroes([200]mm.Byte),
     pub fn tables(self: anytype) @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), ?*anyopaque) {
         const Intermediate = @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), u8);
         const ReturnType = @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), ?*anyopaque);
@@ -347,29 +303,29 @@ pub const struct_tmm_mas_head = extern struct {
 pub const mm_mas_head = struct_tmm_mas_head;
 // maxmod/include/mm_mas.h:82:17: warning: struct demoted to opaque type - has bitfield
 pub const struct_tmm_mas_instrument = extern struct {
-    global_volume: mm_byte = @import("std").mem.zeroes(mm_byte),
-    fadeout: mm_byte = @import("std").mem.zeroes(mm_byte),
-    random_volume: mm_byte = @import("std").mem.zeroes(mm_byte),
-    dct: mm_byte = @import("std").mem.zeroes(mm_byte),
-    nna: mm_byte = @import("std").mem.zeroes(mm_byte),
-    env_flags: mm_byte = @import("std").mem.zeroes(mm_byte),
-    panning: mm_byte = @import("std").mem.zeroes(mm_byte),
-    dca: mm_byte = @import("std").mem.zeroes(mm_byte),
-    note_map_offset: mm_hword = @import("std").mem.zeroes(mm_hword), // 15-bit in C bitfield
-    is_note_map_invalid: mm_hword = @import("std").mem.zeroes(mm_hword), // 1-bit in C bitfield
+    global_volume: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    fadeout: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    random_volume: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    dct: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    nna: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    env_flags: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    panning: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    dca: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    note_map_offset: mm.Hword = @import("std").mem.zeroes(mm.Hword), // 15-bit in C bitfield
+    is_note_map_invalid: mm.Hword = @import("std").mem.zeroes(mm.Hword), // 1-bit in C bitfield
 };
 pub const mm_mas_instrument = struct_tmm_mas_instrument;
 // maxmod/include/mm_mas.h:112:17: warning: struct demoted to opaque type - has bitfield
 pub const mm_mas_envelope_node = opaque {};
 pub const struct_tmm_mas_envelope = extern struct {
-    size: mm_byte align(2) = @import("std").mem.zeroes(mm_byte),
-    loop_start: mm_byte = @import("std").mem.zeroes(mm_byte),
-    loop_end: mm_byte = @import("std").mem.zeroes(mm_byte),
-    sus_start: mm_byte = @import("std").mem.zeroes(mm_byte),
-    sus_end: mm_byte = @import("std").mem.zeroes(mm_byte),
-    node_count: mm_byte = @import("std").mem.zeroes(mm_byte),
-    is_filter: mm_byte = @import("std").mem.zeroes(mm_byte),
-    wasted: mm_byte = @import("std").mem.zeroes(mm_byte),
+    size: mm.Byte align(2) = @import("std").mem.zeroes(mm.Byte),
+    loop_start: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    loop_end: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    sus_start: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    sus_end: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    node_count: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    is_filter: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    wasted: mm.Byte = @import("std").mem.zeroes(mm.Byte),
     pub fn env_nodes(self: anytype) @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), mm_mas_envelope_node) {
         const Intermediate = @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), u8);
         const ReturnType = @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), mm_mas_envelope_node);
@@ -378,15 +334,15 @@ pub const struct_tmm_mas_envelope = extern struct {
 };
 pub const mm_mas_envelope = struct_tmm_mas_envelope;
 pub const struct_tmm_mas_sample_info = extern struct {
-    default_volume: mm_byte align(2) = @import("std").mem.zeroes(mm_byte),
-    panning: mm_byte = @import("std").mem.zeroes(mm_byte),
-    frequency: mm_hword = @import("std").mem.zeroes(mm_hword),
-    av_type: mm_byte = @import("std").mem.zeroes(mm_byte),
-    av_depth: mm_byte = @import("std").mem.zeroes(mm_byte),
-    av_speed: mm_byte = @import("std").mem.zeroes(mm_byte),
-    global_volume: mm_byte = @import("std").mem.zeroes(mm_byte),
-    av_rate: mm_hword = @import("std").mem.zeroes(mm_hword),
-    msl_id: mm_hword = @import("std").mem.zeroes(mm_hword),
+    default_volume: mm.Byte align(2) = @import("std").mem.zeroes(mm.Byte),
+    panning: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    frequency: mm.Hword = @import("std").mem.zeroes(mm.Hword),
+    av_type: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    av_depth: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    av_speed: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    global_volume: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    av_rate: mm.Hword = @import("std").mem.zeroes(mm.Hword),
+    msl_id: mm.Hword = @import("std").mem.zeroes(mm.Hword),
     pub fn data(self: anytype) @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), u8) {
         const Intermediate = @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), u8);
         const ReturnType = @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), u8);
@@ -395,7 +351,7 @@ pub const struct_tmm_mas_sample_info = extern struct {
 };
 pub const mm_mas_sample_info = struct_tmm_mas_sample_info;
 pub const struct_tmm_mas_pattern = extern struct {
-    row_count: mm_byte align(1) = @import("std").mem.zeroes(mm_byte),
+    row_count: mm.Byte align(1) = @import("std").mem.zeroes(mm.Byte),
     pub fn pattern_data(self: anytype) @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), u8) {
         const Intermediate = @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), u8);
         const ReturnType = @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), u8);
@@ -404,11 +360,11 @@ pub const struct_tmm_mas_pattern = extern struct {
 };
 pub const mm_mas_pattern = struct_tmm_mas_pattern;
 pub const struct_tmm_mas_gba_sample = extern struct {
-    length: mm_word align(4) = @import("std").mem.zeroes(mm_word),
-    loop_length: mm_word = @import("std").mem.zeroes(mm_word),
-    format: mm_byte = @import("std").mem.zeroes(mm_byte),
-    reserved: mm_byte = @import("std").mem.zeroes(mm_byte),
-    default_frequency: mm_hword = @import("std").mem.zeroes(mm_hword),
+    length: mm.Word align(4) = @import("std").mem.zeroes(mm.Word),
+    loop_length: mm.Word = @import("std").mem.zeroes(mm.Word),
+    format: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    reserved: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    default_frequency: mm.Hword = @import("std").mem.zeroes(mm.Hword),
     pub fn data(self: anytype) @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), u8) {
         const Intermediate = @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), u8);
         const ReturnType = @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), u8);
@@ -417,16 +373,16 @@ pub const struct_tmm_mas_gba_sample = extern struct {
 };
 pub const mm_mas_gba_sample = struct_tmm_mas_gba_sample;
 const union_unnamed_4 = extern union {
-    loop_length: mm_word,
-    length: mm_word,
+    loop_length: mm.Word,
+    length: mm.Word,
 };
 pub const struct_tmm_mas_ds_sample = extern struct {
-    loop_start: mm_word align(4) = @import("std").mem.zeroes(mm_word),
+    loop_start: mm.Word align(4) = @import("std").mem.zeroes(mm.Word),
     unnamed_0: union_unnamed_4 = @import("std").mem.zeroes(union_unnamed_4),
-    format: mm_byte = @import("std").mem.zeroes(mm_byte),
-    repeat_mode: mm_byte = @import("std").mem.zeroes(mm_byte),
-    default_frequency: mm_hword = @import("std").mem.zeroes(mm_hword),
-    point: mm_word = @import("std").mem.zeroes(mm_word),
+    format: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    repeat_mode: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    default_frequency: mm.Hword = @import("std").mem.zeroes(mm.Hword),
+    point: mm.Word = @import("std").mem.zeroes(mm.Word),
     pub fn data(self: anytype) @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), u8) {
         const Intermediate = @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), u8);
         const ReturnType = @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), u8);
@@ -434,143 +390,71 @@ pub const struct_tmm_mas_ds_sample = extern struct {
     }
 };
 pub const mm_mas_ds_sample = struct_tmm_mas_ds_sample;
-pub extern fn __assert([*c]const u8, c_int, [*c]const u8) noreturn;
-pub extern fn __assert_func([*c]const u8, c_int, [*c]const u8, [*c]const u8) noreturn;
-pub const mm_module_channel = extern struct {
-    alloc: mm_byte = @import("std").mem.zeroes(mm_byte),
-    cflags: mm_byte = @import("std").mem.zeroes(mm_byte),
-    panning: mm_byte = @import("std").mem.zeroes(mm_byte),
-    volcmd: mm_byte = @import("std").mem.zeroes(mm_byte),
-    effect: mm_byte = @import("std").mem.zeroes(mm_byte),
-    param: mm_byte = @import("std").mem.zeroes(mm_byte),
-    fxmem: mm_byte = @import("std").mem.zeroes(mm_byte),
-    note: mm_byte = @import("std").mem.zeroes(mm_byte),
-    flags: mm_byte = @import("std").mem.zeroes(mm_byte),
-    inst: mm_byte = @import("std").mem.zeroes(mm_byte),
-    pflags: mm_byte = @import("std").mem.zeroes(mm_byte),
-    vibdep: mm_byte = @import("std").mem.zeroes(mm_byte),
-    vibspd: mm_byte = @import("std").mem.zeroes(mm_byte),
-    vibpos: mm_byte = @import("std").mem.zeroes(mm_byte),
-    volume: mm_byte = @import("std").mem.zeroes(mm_byte),
-    cvolume: mm_byte = @import("std").mem.zeroes(mm_byte),
-    period: mm_word = @import("std").mem.zeroes(mm_word),
-    bflags: mm_hword = @import("std").mem.zeroes(mm_hword),
-    pnoter: mm_byte = @import("std").mem.zeroes(mm_byte),
-    memory: [15]mm_byte = @import("std").mem.zeroes([15]mm_byte),
-    padding: [2]mm_byte = @import("std").mem.zeroes([2]mm_byte),
-};
-// /opt/devkitpro/devkitARM/arm-none-eabi/include/assert.h:45:24: warning: ignoring StaticAssert declaration
-pub const mm_active_channel = extern struct {
-    period: mm_word = @import("std").mem.zeroes(mm_word),
-    fade: mm_hword = @import("std").mem.zeroes(mm_hword),
-    envc_vol: mm_hword = @import("std").mem.zeroes(mm_hword),
-    envc_pan: mm_hword = @import("std").mem.zeroes(mm_hword),
-    envc_pic: mm_hword = @import("std").mem.zeroes(mm_hword),
-    avib_dep: mm_hword = @import("std").mem.zeroes(mm_hword),
-    avib_pos: mm_hword = @import("std").mem.zeroes(mm_hword),
-    fvol: mm_byte = @import("std").mem.zeroes(mm_byte),
-    type: mm_byte = @import("std").mem.zeroes(mm_byte),
-    inst: mm_byte = @import("std").mem.zeroes(mm_byte),
-    panning: mm_byte = @import("std").mem.zeroes(mm_byte),
-    volume: mm_byte = @import("std").mem.zeroes(mm_byte),
-    sample: mm_byte = @import("std").mem.zeroes(mm_byte),
-    parent: mm_byte = @import("std").mem.zeroes(mm_byte),
-    flags: mm_byte = @import("std").mem.zeroes(mm_byte),
-    envn_vol: mm_byte = @import("std").mem.zeroes(mm_byte),
-    envn_pan: mm_byte = @import("std").mem.zeroes(mm_byte),
-    envn_pic: mm_byte = @import("std").mem.zeroes(mm_byte),
-    sfx: mm_byte = @import("std").mem.zeroes(mm_byte),
-};
-// /opt/devkitpro/devkitARM/arm-none-eabi/include/assert.h:45:24: warning: ignoring StaticAssert declaration
-pub const mm_mixer_channel = extern struct {
-    src: usize = @import("std").mem.zeroes(usize),
-    read: mm_word = @import("std").mem.zeroes(mm_word),
-    vol: mm_byte = @import("std").mem.zeroes(mm_byte),
-    pan: mm_byte = @import("std").mem.zeroes(mm_byte),
-    unused_0: mm_byte = @import("std").mem.zeroes(mm_byte),
-    unused_1: mm_byte = @import("std").mem.zeroes(mm_byte),
-    freq: mm_word = @import("std").mem.zeroes(mm_word),
-};
-// /opt/devkitpro/devkitARM/arm-none-eabi/include/assert.h:45:24: warning: ignoring StaticAssert declaration
 
 // /opt/devkitpro/devkitARM/arm-none-eabi/include/assert.h:45:24: warning: ignoring StaticAssert declaration
 const union_unnamed_5 = extern union {
-    sampcount: mm_hword,
-    tickfrac: mm_hword,
+    sampcount: mm.Hword,
+    tickfrac: mm.Hword,
 };
 pub const mpl_layer_information = extern struct {
-    tick: mm_byte = @import("std").mem.zeroes(mm_byte),
-    row: mm_byte = @import("std").mem.zeroes(mm_byte),
-    position: mm_byte = @import("std").mem.zeroes(mm_byte),
-    nrows: mm_byte = @import("std").mem.zeroes(mm_byte),
-    global_volume: mm_byte = @import("std").mem.zeroes(mm_byte),
-    speed: mm_byte = @import("std").mem.zeroes(mm_byte),
-    isplaying: mm_byte = @import("std").mem.zeroes(mm_byte),
-    bpm: mm_byte = @import("std").mem.zeroes(mm_byte),
-    insttable: [*c]mm_word = @import("std").mem.zeroes([*c]mm_word),
-    samptable: [*c]mm_word = @import("std").mem.zeroes([*c]mm_word),
-    patttable: [*c]mm_word = @import("std").mem.zeroes([*c]mm_word),
+    tick: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    row: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    position: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    nrows: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    global_volume: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    speed: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    isplaying: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    bpm: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    insttable: [*c]mm.Word = @import("std").mem.zeroes([*c]mm.Word),
+    samptable: [*c]mm.Word = @import("std").mem.zeroes([*c]mm.Word),
+    patttable: [*c]mm.Word = @import("std").mem.zeroes([*c]mm.Word),
     songadr: [*c]mm_mas_head = @import("std").mem.zeroes([*c]mm_mas_head),
-    flags: mm_byte = @import("std").mem.zeroes(mm_byte),
-    oldeffects: mm_byte = @import("std").mem.zeroes(mm_byte),
-    pattjump: mm_byte = @import("std").mem.zeroes(mm_byte),
-    pattjump_row: mm_byte = @import("std").mem.zeroes(mm_byte),
-    fpattdelay: mm_byte = @import("std").mem.zeroes(mm_byte),
-    pattdelay: mm_byte = @import("std").mem.zeroes(mm_byte),
-    ploop_row: mm_byte = @import("std").mem.zeroes(mm_byte),
-    ploop_times: mm_byte = @import("std").mem.zeroes(mm_byte),
-    ploop_adr: [*c]mm_byte = @import("std").mem.zeroes([*c]mm_byte),
-    pattread: [*c]mm_byte = @import("std").mem.zeroes([*c]mm_byte),
-    ploop_jump: mm_byte = @import("std").mem.zeroes(mm_byte),
-    valid: mm_byte = @import("std").mem.zeroes(mm_byte),
-    tickrate: mm_hword = @import("std").mem.zeroes(mm_hword),
+    flags: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    oldeffects: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    pattjump: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    pattjump_row: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    fpattdelay: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    pattdelay: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    ploop_row: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    ploop_times: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    ploop_adr: [*c]mm.Byte = @import("std").mem.zeroes([*c]mm.Byte),
+    pattread: [*c]mm.Byte = @import("std").mem.zeroes([*c]mm.Byte),
+    ploop_jump: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    valid: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    tickrate: mm.Hword = @import("std").mem.zeroes(mm.Hword),
     unnamed_0: union_unnamed_5 = @import("std").mem.zeroes(union_unnamed_5),
-    mode: mm_byte = @import("std").mem.zeroes(mm_byte),
-    reserved2: mm_byte = @import("std").mem.zeroes(mm_byte),
-    mch_update: mm_word = @import("std").mem.zeroes(mm_word),
-    volume: mm_hword = @import("std").mem.zeroes(mm_hword),
-    reserved3: mm_hword = @import("std").mem.zeroes(mm_hword),
+    mode: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    reserved2: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    mch_update: mm.Word = @import("std").mem.zeroes(mm.Word),
+    volume: mm.Hword = @import("std").mem.zeroes(mm.Hword),
+    reserved3: mm.Hword = @import("std").mem.zeroes(mm.Hword),
 };
 pub const mpv_active_information = extern struct {
-    reserved: mm_word = @import("std").mem.zeroes(mm_word),
-    pattread_p: [*c]mm_byte = @import("std").mem.zeroes([*c]mm_byte),
-    afvol: mm_byte = @import("std").mem.zeroes(mm_byte),
-    sampoff: mm_byte = @import("std").mem.zeroes(mm_byte),
-    volplus: mm_sbyte = @import("std").mem.zeroes(mm_sbyte),
-    notedelay: mm_byte = @import("std").mem.zeroes(mm_byte),
-    panplus: mm_hword = @import("std").mem.zeroes(mm_hword),
-    reserved2: mm_hword = @import("std").mem.zeroes(mm_hword),
+    reserved: mm.Word = @import("std").mem.zeroes(mm.Word),
+    pattread_p: [*c]mm.Byte = @import("std").mem.zeroes([*c]mm.Byte),
+    afvol: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    sampoff: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    volplus: mm.Sbyte = @import("std").mem.zeroes(mm.Sbyte),
+    notedelay: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    panplus: mm.Hword = @import("std").mem.zeroes(mm.Hword),
+    reserved2: mm.Hword = @import("std").mem.zeroes(mm.Hword),
 };
-pub extern var mm_ch_mask: mm_word;
-pub extern var mmLayerSub: mpl_layer_information;
-pub extern var mpp_layerp: [*c]mpl_layer_information;
+pub extern var mm_ch_mask: mm.Word;
 pub extern var mpp_vars: mpv_active_information;
-pub extern var mpp_channels: [*c]mm_module_channel;
-pub extern var mpp_nchannels: mm_byte;
-pub extern var mpp_clayer: mm_layer_type;
-pub extern var mm_achannels: [*c]mm_active_channel;
-pub extern var mm_pchannels: [*c]mm_module_channel;
-pub extern var mm_num_mch: mm_word;
-pub extern var mm_num_ach: mm_word;
-pub extern var mm_schannels: [4]mm_module_channel;
-pub extern fn mmSetResolution(mm_word) void;
-pub extern fn mmPulse() void;
-pub extern fn mppUpdateSub() void;
-pub extern fn mppProcessTick() void;
-pub export fn mmAllocChannel() linksection(".iwram") mm_word {
+pub export fn mmAllocChannel() linksection(".iwram") mm.Word {
     // No extra mmAllocChannel mask print in C reference
-    var act_ch: [*c]mm_active_channel = &mm_achannels[@as(c_uint, @intCast(@as(c_int, 0)))];
+    var act_ch: [*c]mm.ActiveChannel = &mm_gba.achannels[@as(c_uint, @intCast(@as(c_int, 0)))];
     _ = &act_ch;
-    var bitmask: mm_word = mm_ch_mask;
+    var bitmask: mm.Word = mm_ch_mask;
     _ = &bitmask;
-    var best_channel: mm_word = 255;
+    var best_channel: mm.Word = 255;
     _ = &best_channel;
-    var best_volume: mm_word = 2147483648;
+    var best_volume: mm.Word = 2147483648;
     _ = &best_volume;
     {
-        var i: mm_word = 0;
+        var i: mm.Word = 0;
         _ = &i;
-        while (bitmask != @as(mm_word, @bitCast(@as(c_int, 0)))) : (_ = blk: {
+        while (bitmask != @as(mm.Word, @bitCast(@as(c_int, 0)))) : (_ = blk: {
             _ = blk_1: {
                 i +%= 1;
                 break :blk_1 blk_2: {
@@ -586,12 +470,12 @@ pub export fn mmAllocChannel() linksection(".iwram") mm_word {
                 break :blk_1 tmp;
             };
         }) {
-            if ((bitmask & @as(mm_word, @bitCast(@as(c_int, 1)))) == @as(mm_word, @bitCast(@as(c_int, 0)))) continue;
-            var fvol: mm_word = @as(mm_word, @bitCast(@as(c_uint, act_ch.*.fvol)));
+            if ((bitmask & @as(mm.Word, @bitCast(@as(c_int, 1)))) == @as(mm.Word, @bitCast(@as(c_int, 0)))) continue;
+            var fvol: mm.Word = @as(mm.Word, @bitCast(@as(c_uint, act_ch.*.fvol)));
             _ = &fvol;
-            var @"type": mm_word = @as(mm_word, @bitCast(@as(c_uint, act_ch.*.type)));
+            var @"type": mm.Word = @as(mm.Word, @bitCast(@as(c_uint, act_ch.*._type)));
             _ = &@"type";
-            if (@as(mm_word, @bitCast(@as(c_int, 2))) < @"type") continue else if (@as(mm_word, @bitCast(@as(c_int, 2))) > @"type") return i;
+            if (@as(mm.Word, @bitCast(@as(c_int, 2))) < @"type") continue else if (@as(mm.Word, @bitCast(@as(c_int, 2))) > @"type") return i;
             if (best_volume <= (fvol << @intCast(23))) continue;
             best_channel = i;
             best_volume = fvol << @intCast(23);
@@ -603,7 +487,7 @@ pub export fn mmAllocChannel() linksection(".iwram") mm_word {
 // /Users/braheezy/personal/gba/maxmod-zig/maxmod/source/core/mas_arm.c:359:9: warning: TODO implement translation of stmt class GotoStmtClass
 
 // /Users/braheezy/personal/gba/maxmod-zig/maxmod/source/core/mas_arm.c:352:1: warning: unable to translate function, demoted to extern
-pub export fn mmUpdateChannel_T0(arg_module_channel: [*c]mm_module_channel, arg_mpp_layer: [*c]mpl_layer_information, arg_channel_counter: mm_byte) linksection(".iwram") callconv(.c) void {
+pub export fn mmUpdateChannel_T0(arg_module_channel: [*c]mm.ModuleChannel, arg_mpp_layer: [*c]mpl_layer_information, arg_channel_counter: mm.Byte) linksection(".iwram") callconv(.c) void {
     const module_channel = arg_module_channel;
     const mpp_layer = arg_mpp_layer;
     const channel_counter = arg_channel_counter;
@@ -612,8 +496,8 @@ pub export fn mmUpdateChannel_T0(arg_module_channel: [*c]mm_module_channel, arg_
 
     // Fast path: if no start flag, ensure TN continues or exits
     if ((@as(c_int, @intCast(module_channel.*.flags)) & MF_START) == 0) {
-        const act0: [*c]mm_active_channel = get_active_channel(module_channel);
-        if (act0 == @as([*c]mm_active_channel, @ptrFromInt(0))) {
+        const act0: [*c]mm.ActiveChannel = get_active_channel(module_channel);
+        if (act0 == @as([*c]mm.ActiveChannel, @ptrFromInt(0))) {
             mmUpdateChannel_TN(module_channel, mpp_layer);
             return;
         }
@@ -625,29 +509,29 @@ pub export fn mmUpdateChannel_T0(arg_module_channel: [*c]mm_module_channel, arg_
     // Start new note
     // No extra UCT0 debug in C reference
     mpp_Channel_NewNote(module_channel, mpp_layer);
-    const act_ch: [*c]mm_active_channel = get_active_channel(module_channel);
+    const act_ch: [*c]mm.ActiveChannel = get_active_channel(module_channel);
     // No extra UCT0 debug in C reference
-    var act_ch_mut: [*c]mm_active_channel = act_ch;
-    if (act_ch_mut == @as([*c]mm_active_channel, @ptrFromInt(0))) {
+    var act_ch_mut: [*c]mm.ActiveChannel = act_ch;
+    if (act_ch_mut == @as([*c]mm.ActiveChannel, @ptrFromInt(0))) {
         // Fallback: allocate an active channel now if NewNote didn't
-        const alloc_idx: mm_word = mmAllocChannel();
-        module_channel.*.alloc = @as(mm_byte, @intCast(alloc_idx));
+        const alloc_idx: mm.Word = mmAllocChannel();
+        module_channel.*.alloc = @as(mm.Byte, @intCast(alloc_idx));
         act_ch_mut = get_active_channel(module_channel);
         // No extra UCT0 debug in C reference
-        if (act_ch_mut == @as([*c]mm_active_channel, @ptrFromInt(0))) {
+        if (act_ch_mut == @as([*c]mm.ActiveChannel, @ptrFromInt(0))) {
             mmUpdateChannel_TN(module_channel, mpp_layer);
             return;
         }
     }
 
-    var note: mm_word = mmChannelStartACHN(module_channel, act_ch_mut, mpp_layer, channel_counter);
+    var note: mm.Word = mmChannelStartACHN(module_channel, act_ch_mut, mpp_layer, channel_counter);
     if (note == 0 and module_channel.*.pnoter != 0) {
         note = module_channel.*.pnoter;
-        module_channel.*.note = @as(mm_byte, @intCast(note));
+        module_channel.*.note = @as(mm.Byte, @intCast(note));
     }
     // No fallback: rely on mmChannelStartACHN to set sample/note like C
     if (act_ch_mut.*.sample != 0) {
-        const sample: [*c]mm_mas_sample_info = mpp_SamplePointer(mpp_layer, @as(mm_word, @intCast(act_ch_mut.*.sample)));
+        const sample: [*c]mm_mas_sample_info = mpp_SamplePointer(mpp_layer, @as(mm.Word, @intCast(act_ch_mut.*.sample)));
 
         // One-time channel start log (first two channels, tick==0 only)
         if (mpp_layer.*.tick == 0 and channel_counter < 2) {
@@ -657,9 +541,9 @@ pub export fn mmUpdateChannel_T0(arg_module_channel: [*c]mm_module_channel, arg_
         // On new note, seed module channel volume from sample default volume (XM semantics)
         module_channel.*.volume = sample.*.default_volume;
         // tuning: sample->frequency << 2 (C5Speed * 4)
-        const tuning: mm_word = @as(mm_word, @intCast(@as(u32, sample.*.frequency) << 2));
+        const tuning: mm.Word = @as(mm.Word, @intCast(@as(u32, sample.*.frequency) << 2));
         // Compute initial period like C at T0
-        module_channel.*.period = mmGetPeriod(mpp_layer, tuning, @as(mm_byte, @intCast(note)));
+        module_channel.*.period = mmGetPeriod(mpp_layer, tuning, @as(mm.Byte, @intCast(note)));
         // Seed active-channel state so downstream pitch/volume uses correct sample/inst
         act_ch_mut.*.period = module_channel.*.period;
         act_ch_mut.*.inst = module_channel.*.inst;
@@ -667,15 +551,15 @@ pub export fn mmUpdateChannel_T0(arg_module_channel: [*c]mm_module_channel, arg_
         const instrument: [*c]mm_mas_instrument = mpp_InstrumentPointer(mpp_layer, module_channel.*.inst);
         if (@intFromPtr(instrument) != 0) {
             if ((@as(c_int, @intCast(instrument.*.env_flags)) & MAS_INSTR_FLAG_VOL_ENV_ENABLED) != 0) {
-                act_ch_mut.*.flags |= @as(mm_byte, @intCast(MCAF_VOLENV));
+                act_ch_mut.*.flags |= @as(mm.Byte, @intCast(MCAF_VOLENV));
             } else {
-                act_ch_mut.*.flags = @as(mm_byte, @intCast(@as(c_int, act_ch_mut.*.flags) & ~MCAF_VOLENV));
+                act_ch_mut.*.flags = @as(mm.Byte, @intCast(@as(c_int, act_ch_mut.*.flags) & ~MCAF_VOLENV));
             }
         }
         // On new note: set KEYON and reset envelope/fade state to active, like C
-        act_ch_mut.*.flags |= @as(mm_byte, @intCast(MCAF_KEYON));
+        act_ch_mut.*.flags |= @as(mm.Byte, @intCast(MCAF_KEYON));
         // Clear ENVEND/FADE bits
-        act_ch_mut.*.flags = @as(mm_byte, @intCast(@as(c_int, act_ch_mut.*.flags) & ~(@as(c_int, MCAF_ENVEND) | @as(c_int, MCAF_FADE))));
+        act_ch_mut.*.flags = @as(mm.Byte, @intCast(@as(c_int, act_ch_mut.*.flags) & ~(@as(c_int, MCAF_ENVEND) | @as(c_int, MCAF_FADE))));
         // Reset envelope counters and nodes at note start
         act_ch_mut.*.envc_vol = 0;
         act_ch_mut.*.envn_vol = 0;
@@ -695,29 +579,29 @@ pub export fn mmUpdateChannel_T0(arg_module_channel: [*c]mm_module_channel, arg_
         var volume: c_int = (@as(c_int, @intCast(module_channel.*.volume)) * @as(c_int, @intCast(module_channel.*.cvolume))) >> 5;
         if (volume < 0) volume = 0;
         if (volume > 128) volume = 128;
-        mpp_vars.afvol = @as(mm_byte, @intCast(volume));
+        mpp_vars.afvol = @as(mm.Byte, @intCast(volume));
         // Match C: mark UPDATED here so mpp_Update_ACHN() won't re-enter this tick
-        act_ch_mut.*.flags |= @as(mm_byte, @intCast(MCAF_UPDATED));
-        act_ch_mut.*.flags |= @as(mm_byte, @intCast(MCAF_START));
+        act_ch_mut.*.flags |= @as(mm.Byte, @intCast(MCAF_UPDATED));
+        act_ch_mut.*.flags |= @as(mm.Byte, @intCast(MCAF_START));
         // No extra UCT0 debug in C reference
     }
 
     // Clear start flag and continue normal processing
-    module_channel.*.flags = @as(mm_byte, @intCast(@as(c_int, @intCast(module_channel.*.flags)) & ~MF_START));
+    module_channel.*.flags = @as(mm.Byte, @intCast(@as(c_int, @intCast(module_channel.*.flags)) & ~MF_START));
     // No extra UCT0 debug in C reference
     mmUpdateChannel_TN(module_channel, mpp_layer);
 }
-pub export fn mmUpdateChannel_TN(arg_module_channel: [*c]mm_module_channel, arg_mpp_layer: [*c]mpl_layer_information) linksection(".iwram") void {
+pub export fn mmUpdateChannel_TN(arg_module_channel: [*c]mm.ModuleChannel, arg_mpp_layer: [*c]mpl_layer_information) linksection(".iwram") void {
     var module_channel = arg_module_channel;
     _ = &module_channel;
     var mpp_layer = arg_mpp_layer;
     _ = &mpp_layer;
-    var act_ch: [*c]mm_active_channel = get_active_channel(module_channel);
+    var act_ch: [*c]mm.ActiveChannel = get_active_channel(module_channel);
     _ = &act_ch;
-    var period: mm_word = module_channel.*.period;
+    var period: mm.Word = module_channel.*.period;
     _ = &period;
     // Guard: if fade is unset, initialize to full (1024) before volume pipeline
-    if (act_ch != @as([*c]mm_active_channel, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0)))))) and act_ch.*.fade == 0) {
+    if (act_ch != @as([*c]mm.ActiveChannel, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0)))))) and act_ch.*.fade == 0) {
         act_ch.*.fade = 1024;
     }
     mpp_vars.sampoff = 0;
@@ -730,10 +614,10 @@ pub export fn mmUpdateChannel_TN(arg_module_channel: [*c]mm_module_channel, arg_
     if ((@as(c_int, @bitCast(@as(c_uint, module_channel.*.flags))) & @as(c_int, 8)) != 0) {
         period = mpp_Process_Effect(mpp_layer, act_ch, module_channel, period);
     }
-    if (act_ch == @as([*c]mm_active_channel, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) return;
+    if (act_ch == @as([*c]mm.ActiveChannel, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) return;
     var volume: c_int = (@as(c_int, @bitCast(@as(c_uint, module_channel.*.volume))) * @as(c_int, @bitCast(@as(c_uint, module_channel.*.cvolume)))) >> @intCast(5);
     _ = &volume;
-    act_ch.*.volume = @as(mm_byte, @bitCast(@as(i8, @truncate(volume))));
+    act_ch.*.volume = @as(mm.Byte, @bitCast(@as(i8, @truncate(volume))));
     var vol_addition: mm_sword = @as(mm_sword, @bitCast(@as(c_int, mpp_vars.volplus)));
     _ = &vol_addition;
     volume += @as(c_int, @bitCast(vol_addition << @intCast(3)));
@@ -743,19 +627,19 @@ pub export fn mmUpdateChannel_TN(arg_module_channel: [*c]mm_module_channel, arg_
     if (volume > @as(c_int, 128)) {
         volume = 128;
     }
-    mpp_vars.afvol = @as(mm_byte, @bitCast(@as(i8, @truncate(volume))));
+    mpp_vars.afvol = @as(mm.Byte, @bitCast(@as(i8, @truncate(volume))));
     if (mpp_vars.notedelay != 0) {
-        act_ch.*.flags |= @as(mm_byte, @bitCast(@as(i8, @truncate(@as(c_int, 1) << @intCast(3)))));
+        act_ch.*.flags |= @as(mm.Byte, @bitCast(@as(i8, @truncate(@as(c_int, 1) << @intCast(3)))));
         return;
     }
     act_ch.*.panning = module_channel.*.panning;
     act_ch.*.period = module_channel.*.period;
     mpp_vars.panplus = 0;
-    act_ch.*.flags |= @as(mm_byte, @bitCast(@as(i8, @truncate(@as(c_int, 1) << @intCast(3)))));
+    act_ch.*.flags |= @as(mm.Byte, @bitCast(@as(i8, @truncate(@as(c_int, 1) << @intCast(3)))));
     // Omit UTN debug for parity with C
-    period = mpp_Update_ACHN_notest(mpp_layer, act_ch, period, @as(mm_word, @bitCast(@as(c_uint, module_channel.*.alloc))));
+    period = mpp_Update_ACHN_notest(mpp_layer, act_ch, period, @as(mm.Word, @bitCast(@as(c_uint, module_channel.*.alloc))));
 }
-pub export fn mmGetPeriod(arg_mpp_layer: [*c]mpl_layer_information, arg_tuning: mm_word, arg_note: mm_byte) linksection(".iwram") mm_word {
+pub export fn mmGetPeriod(arg_mpp_layer: [*c]mpl_layer_information, arg_tuning: mm.Word, arg_note: mm.Byte) linksection(".iwram") mm.Word {
     var mpp_layer = arg_mpp_layer;
     _ = &mpp_layer;
     var tuning = arg_tuning;
@@ -764,46 +648,46 @@ pub export fn mmGetPeriod(arg_mpp_layer: [*c]mpl_layer_information, arg_tuning: 
     _ = &note;
     if ((@as(c_int, @bitCast(@as(c_uint, mpp_layer.*.flags))) & (@as(c_int, 1) << @intCast(2))) != 0) {
         // XM linear period mode: original C reads as 32-bit words from the 16-bit table
-        // return ((mm_word*)IT_PitchTable)[note];
-        const table_words: [*]const mm_word = @ptrCast(@alignCast(&IT_PitchTable));
+        // return ((mm.Word*)IT_PitchTable)[note];
+        const table_words: [*]const mm.Word = @ptrCast(@alignCast(&IT_PitchTable));
         return table_words[@as(usize, @intCast(note))];
     }
-    var r0: mm_word = @as(mm_word, @bitCast(@as(c_uint, note_table_mod[note])));
+    var r0: mm.Word = @as(mm.Word, @bitCast(@as(c_uint, note_table_mod[note])));
     _ = &r0;
-    var r2: mm_word = @as(mm_word, @bitCast(@as(c_uint, note_table_oct[@as(c_uint, @intCast(@as(c_int, @bitCast(@as(c_uint, note))) >> @intCast(2)))])));
+    var r2: mm.Word = @as(mm.Word, @bitCast(@as(c_uint, note_table_oct[@as(c_uint, @intCast(@as(c_int, @bitCast(@as(c_uint, note))) >> @intCast(2)))])));
     _ = &r2;
-    var ret_val: mm_word = @as(mm_word, @bitCast((@as(c_int, @bitCast(@as(c_uint, ST3_FREQTABLE[r0]))) * @as(c_int, 133808)) >> @intCast(r2)));
+    var ret_val: mm.Word = @as(mm.Word, @bitCast((@as(c_int, @bitCast(@as(c_uint, ST3_FREQTABLE[r0]))) * @as(c_int, 133808)) >> @intCast(r2)));
     _ = &ret_val;
     if (tuning != 0) {
         ret_val /= tuning;
     }
     return ret_val;
 }
-pub export fn mmReadPattern(arg_mpp_layer: [*c]mpl_layer_information) linksection(".iwram") mm_bool {
+pub export fn mmReadPattern(arg_mpp_layer: [*c]mm.LayerInfo) linksection(".iwram") mm_bool {
     var mpp_layer = arg_mpp_layer;
     _ = &mpp_layer;
-    var instr_count: mm_word = @as(mm_word, @bitCast(@as(c_uint, mpp_layer.*.songadr.*.instr_count)));
+    var instr_count: mm.Word = @as(mm.Word, @bitCast(@as(c_uint, mpp_layer.*.songadr.*.instr_count)));
     _ = &instr_count;
-    var flags: mm_word = @as(mm_word, @bitCast(@as(c_uint, mpp_layer.*.flags)));
+    var flags: mm.Word = @as(mm.Word, @bitCast(@as(c_uint, mpp_layer.*.flags)));
     _ = &flags;
-    var module_channels: [*c]mm_module_channel = mpp_channels;
+    var module_channels: [*c]mm.ModuleChannel = mm_gba.mpp_channels;
     _ = &module_channels;
     mpp_vars.pattread_p = mpp_layer.*.pattread;
-    var pattern: [*c]mm_byte = mpp_vars.pattread_p;
+    var pattern: [*c]mm.Byte = mpp_vars.pattread_p;
     _ = &pattern;
-    var update_bits: mm_word = 0;
+    var update_bits: mm.Word = 0;
     _ = &update_bits;
     debugPrint("[Z mmReadPattern] start pattread=0x{x} pattread_p=0x{x} nch={d} row={d}\n", .{
         @intFromPtr(mpp_layer.*.pattread),
         @intFromPtr(mpp_vars.pattread_p),
-        @as(c_int, @intCast(mpp_nchannels)),
+        @as(c_int, @intCast(mm_gba.mpp_nchannels)),
         @as(c_int, @intCast(mpp_layer.*.row)),
     });
     var debug_detail: bool = false;
     // Show detailed per-field reads for debugging - enable for more rows to see the issue
     if (mpp_layer.*.row < 10) debug_detail = true;
     while (true) {
-        var read_byte: mm_byte = (blk: {
+        var read_byte: mm.Byte = (blk: {
             const ref = &pattern;
             const tmp = ref.*;
             ref.* += 1;
@@ -816,18 +700,18 @@ pub export fn mmReadPattern(arg_mpp_layer: [*c]mpl_layer_information) linksectio
             // No extra mmReadPattern break log in C reference
             break;
         }
-        var pattern_flags: mm_word = 0;
+        var pattern_flags: mm.Word = 0;
         _ = &pattern_flags;
         const chan_calculation = (@as(c_int, @bitCast(@as(c_uint, read_byte))) & @as(c_int, 127)) - @as(c_int, 1);
         if (debug_detail) debugPrint("[Z mmReadPattern] chan_calc=(({x} & 127 0x7F 0x7F)-1)={d}\n", .{ @as(c_int, @intCast(read_byte)), chan_calculation });
-        var chan_num: mm_byte = @as(mm_byte, @bitCast(@as(i8, @truncate(chan_calculation))));
+        var chan_num: mm.Byte = @as(mm.Byte, @bitCast(@as(i8, @truncate(chan_calculation))));
         _ = &chan_num;
-        if (@as(c_int, @bitCast(@as(c_uint, chan_num))) >= @as(c_int, @bitCast(@as(c_uint, mpp_nchannels)))) {
+        if (@as(c_int, @bitCast(@as(c_uint, chan_num))) >= @as(c_int, @bitCast(@as(c_uint, mm_gba.mpp_nchannels)))) {
             debugPrint(
                 "[mmReadPattern] error: chan {d} >= nch {d} (flags={x} row={d})\n",
                 .{
                     @as(c_int, @intCast(chan_num)),
-                    @as(c_int, @intCast(mpp_nchannels)),
+                    @as(c_int, @intCast(mm_gba.mpp_nchannels)),
                     @as(c_int, @intCast(read_byte)),
                     @as(c_int, @intCast(mpp_layer.*.row)),
                 },
@@ -835,8 +719,8 @@ pub export fn mmReadPattern(arg_mpp_layer: [*c]mpl_layer_information) linksectio
             // Non-XM mode: return error for invalid channels
             return 0;
         }
-        update_bits |= @as(mm_word, @bitCast(@as(c_int, 1) << @intCast(@as(c_int, @bitCast(@as(c_uint, chan_num))))));
-        var module_channel: [*c]mm_module_channel = &module_channels[chan_num];
+        update_bits |= @as(mm.Word, @bitCast(@as(c_int, 1) << @intCast(@as(c_int, @bitCast(@as(c_uint, chan_num))))));
+        var module_channel: [*c]mm.ModuleChannel = &module_channels[chan_num];
         _ = &module_channel;
         if ((@as(c_int, @bitCast(@as(c_uint, read_byte))) & (@as(c_int, 1) << @intCast(7))) != 0) {
             module_channel.*.cflags = (blk: {
@@ -847,10 +731,10 @@ pub export fn mmReadPattern(arg_mpp_layer: [*c]mpl_layer_information) linksectio
             }).*;
             if (debug_detail) debugPrint("[Z mmReadPattern] cflags={x} at pos=0x{x}\n", .{ @as(c_int, @intCast(module_channel.*.cflags)), @intFromPtr(pattern - 1) });
         }
-        var compr_flags: mm_word = @as(mm_word, @bitCast(@as(c_uint, module_channel.*.cflags)));
+        var compr_flags: mm.Word = @as(mm.Word, @bitCast(@as(c_uint, module_channel.*.cflags)));
         _ = &compr_flags;
-        if ((compr_flags & @as(mm_word, @bitCast(@as(c_int, 1) << @intCast(0)))) != 0) {
-            var note: mm_byte = (blk: {
+        if ((compr_flags & @as(mm.Word, @bitCast(@as(c_int, 1) << @intCast(0)))) != 0) {
+            var note: mm.Byte = (blk: {
                 const ref = &pattern;
                 const tmp = ref.*;
                 ref.* += 1;
@@ -859,39 +743,39 @@ pub export fn mmReadPattern(arg_mpp_layer: [*c]mpl_layer_information) linksectio
             _ = &note;
             if (debug_detail) debugPrint("[Z mmReadPattern] note={x} at pos=0x{x}\n", .{ @as(c_int, @intCast(note)), @intFromPtr(pattern - 1) });
             if (@as(c_int, @bitCast(@as(c_uint, note))) == @as(c_int, 254)) {
-                pattern_flags |= @as(mm_word, @bitCast(@as(c_int, 128)));
+                pattern_flags |= @as(mm.Word, @bitCast(@as(c_int, 128)));
             } else if (@as(c_int, @bitCast(@as(c_uint, note))) == @as(c_int, 255)) {
-                pattern_flags |= @as(mm_word, @bitCast(@as(c_int, 64)));
+                pattern_flags |= @as(mm.Word, @bitCast(@as(c_int, 64)));
             } else {
                 module_channel.*.pnoter = note;
                 // Seed note used by T0. This mirrors C's decode state having note ready before T0.
                 module_channel.*.note = note;
                 // A valid note triggers a new start at T0
-                pattern_flags |= @as(mm_word, @bitCast(@as(c_int, 1)));
+                pattern_flags |= @as(mm.Word, @bitCast(@as(c_int, 1)));
             }
         }
-        if ((compr_flags & @as(mm_word, @bitCast(@as(c_int, 1) << @intCast(1)))) != 0) {
-            var instr: mm_byte = (blk: {
+        if ((compr_flags & @as(mm.Word, @bitCast(@as(c_int, 1) << @intCast(1)))) != 0) {
+            var instr: mm.Byte = (blk: {
                 const ref = &pattern;
                 const tmp = ref.*;
                 ref.* += 1;
                 break :blk tmp;
             }).*;
             _ = &instr;
-            if ((pattern_flags & @as(mm_word, @bitCast(@as(c_int, 128) | @as(c_int, 64)))) == @as(mm_word, @bitCast(@as(c_int, 0)))) {
-                if (@as(mm_word, @bitCast(@as(c_uint, instr))) > instr_count) {
+            if ((pattern_flags & @as(mm.Word, @bitCast(@as(c_int, 128) | @as(c_int, 64)))) == @as(mm.Word, @bitCast(@as(c_int, 0)))) {
+                if (@as(mm.Word, @bitCast(@as(c_uint, instr))) > instr_count) {
                     instr = 0;
                 }
                 if (@as(c_int, @bitCast(@as(c_uint, module_channel.*.inst))) != @as(c_int, @bitCast(@as(c_uint, instr)))) {
-                    if ((flags & @as(mm_word, @bitCast(@as(c_int, 1) << @intCast(5)))) != 0) {
-                        pattern_flags |= @as(mm_word, @bitCast(@as(c_int, 1)));
+                    if ((flags & @as(mm.Word, @bitCast(@as(c_int, 1) << @intCast(5)))) != 0) {
+                        pattern_flags |= @as(mm.Word, @bitCast(@as(c_int, 1)));
                     }
-                    pattern_flags |= @as(mm_word, @bitCast(@as(c_int, 16)));
+                    pattern_flags |= @as(mm.Word, @bitCast(@as(c_int, 16)));
                 }
                 module_channel.*.inst = instr;
             }
         }
-        if ((compr_flags & @as(mm_word, @bitCast(@as(c_int, 1) << @intCast(2)))) != 0) {
+        if ((compr_flags & @as(mm.Word, @bitCast(@as(c_int, 1) << @intCast(2)))) != 0) {
             module_channel.*.volcmd = (blk: {
                 const ref = &pattern;
                 const tmp = ref.*;
@@ -899,7 +783,7 @@ pub export fn mmReadPattern(arg_mpp_layer: [*c]mpl_layer_information) linksectio
                 break :blk tmp;
             }).*;
         }
-        if ((compr_flags & @as(mm_word, @bitCast(@as(c_int, 1) << @intCast(3)))) != 0) {
+        if ((compr_flags & @as(mm.Word, @bitCast(@as(c_int, 1) << @intCast(3)))) != 0) {
             module_channel.*.effect = (blk: {
                 const ref = &pattern;
                 const tmp = ref.*;
@@ -917,7 +801,7 @@ pub export fn mmReadPattern(arg_mpp_layer: [*c]mpl_layer_information) linksectio
         // Map compressed field-presence bits into module_channel.flags upper nibble.
         // Bit layout from C: note=1<<0, inst=1<<1, vol=1<<2, eff=1<<3;
         // runtime flags expect these at bits 4..7. Use right shift by 4 (like C code).
-        module_channel.*.flags = @as(mm_byte, @bitCast(@as(u8, @truncate(pattern_flags | (compr_flags >> @intCast(4))))));
+        module_channel.*.flags = @as(mm.Byte, @bitCast(@as(u8, @truncate(pattern_flags | (compr_flags >> @intCast(4))))));
         if (debug_detail) debugPrint("[Z mmReadPattern] end chan {d}, pattern now 0x{x}\n", .{ @as(c_int, @intCast(chan_num)), @intFromPtr(pattern) });
     }
     mpp_layer.*.pattread = pattern;
@@ -925,52 +809,39 @@ pub export fn mmReadPattern(arg_mpp_layer: [*c]mpl_layer_information) linksectio
     debugPrint("[Z mmReadPattern] row end, pattread=0x{x} update_bits={x}\n", .{ @intFromPtr(mpp_layer.*.pattread), @as(c_int, @intCast(update_bits)) });
     return 1;
 }
-pub extern fn mpp_Process_VolumeCommand([*c]mpl_layer_information, [*c]mm_active_channel, [*c]mm_module_channel, mm_word) mm_word;
-pub extern fn mpp_Process_Effect([*c]mpl_layer_information, [*c]mm_active_channel, [*c]mm_module_channel, mm_word) mm_word;
-pub extern fn mpp_Update_ACHN_notest(layer: [*c]mpl_layer_information, act_ch: [*c]mm_active_channel, period: mm_word, ch: mm_word) mm_word;
-pub extern fn mpp_Channel_NewNote([*c]mm_module_channel, [*c]mpl_layer_information) void;
-pub inline fn mpp_SamplePointer(arg_layer: [*c]mpl_layer_information, arg_sampleN: mm_word) [*c]mm_mas_sample_info {
+pub extern fn mpp_Process_VolumeCommand([*c]mpl_layer_information, [*c]mm.ActiveChannel, [*c]mm.ModuleChannel, mm.Word) mm.Word;
+pub extern fn mpp_Process_Effect([*c]mpl_layer_information, [*c]mm.ActiveChannel, [*c]mm.ModuleChannel, mm.Word) mm.Word;
+pub extern fn mpp_Update_ACHN_notest(layer: [*c]mpl_layer_information, act_ch: [*c]mm.ActiveChannel, period: mm.Word, ch: mm.Word) mm.Word;
+pub extern fn mpp_Channel_NewNote([*c]mm.ModuleChannel, [*c]mpl_layer_information) void;
+pub inline fn mpp_SamplePointer(arg_layer: [*c]mpl_layer_information, arg_sampleN: mm.Word) [*c]mm_mas_sample_info {
     var layer = arg_layer;
     _ = &layer;
     var sampleN = arg_sampleN;
     _ = &sampleN;
-    var base: [*c]mm_byte = @as([*c]mm_byte, @ptrCast(@alignCast(layer.*.songadr)));
+    var base: [*c]mm.Byte = @as([*c]mm.Byte, @ptrCast(@alignCast(layer.*.songadr)));
     _ = &base;
-    const idx: usize = @as(usize, @intCast(sampleN -% @as(mm_word, @bitCast(@as(c_int, 1)))));
+    const idx: usize = @as(usize, @intCast(sampleN -% @as(mm.Word, @bitCast(@as(c_int, 1)))));
     const off_ptr: [*]u8 = @constCast(@ptrCast(@alignCast(&base[@as(usize, 0)])));
     const samptbl_bytes: [*]const u8 = @ptrCast(@alignCast(layer.*.samptable));
     const p: [*]const u8 = samptbl_bytes + (idx * 4);
     const off: usize = @as(usize, @intCast(@as(u32, p[0]) | (@as(u32, p[1]) << 8) | (@as(u32, p[2]) << 16) | (@as(u32, p[3]) << 24)));
     return @as([*c]mm_mas_sample_info, @ptrCast(@alignCast(off_ptr + off)));
 }
-pub inline fn mpp_InstrumentPointer(arg_layer: [*c]mpl_layer_information, arg_instN: mm_word) ?*mm_mas_instrument {
+pub inline fn mpp_InstrumentPointer(arg_layer: [*c]mpl_layer_information, arg_instN: mm.Word) ?*mm_mas_instrument {
     var layer = arg_layer;
     _ = &layer;
     var instN = arg_instN;
     _ = &instN;
-    var base: [*c]mm_byte = @as([*c]mm_byte, @ptrCast(@alignCast(layer.*.songadr)));
+    var base: [*c]mm.Byte = @as([*c]mm.Byte, @ptrCast(@alignCast(layer.*.songadr)));
     _ = &base;
-    const idx: usize = @as(usize, @intCast(instN -% @as(mm_word, @bitCast(@as(c_int, 1)))));
+    const idx: usize = @as(usize, @intCast(instN -% @as(mm.Word, @bitCast(@as(c_int, 1)))));
     const insttbl_bytes: [*]const u8 = @ptrCast(@alignCast(layer.*.insttable));
     const p: [*]const u8 = insttbl_bytes + (idx * 4);
     const off: usize = @as(usize, @intCast(@as(u32, p[0]) | (@as(u32, p[1]) << 8) | (@as(u32, p[2]) << 16) | (@as(u32, p[3]) << 24)));
     const ptr: [*]u8 = @ptrCast(@alignCast(base + off));
     return @ptrCast(@alignCast(ptr));
 }
-pub inline fn mpp_PatternPointer(arg_layer: [*c]mpl_layer_information, arg_entry: mm_word) [*c]mm_mas_pattern {
-    var layer = arg_layer;
-    _ = &layer;
-    var entry = arg_entry;
-    _ = &entry;
-    var base: [*c]mm_byte = @as([*c]mm_byte, @ptrCast(@alignCast(layer.*.songadr)));
-    _ = &base;
-    const idx: usize = @as(usize, @intCast(arg_entry));
-    const patttbl_bytes: [*]const u8 = @ptrCast(@alignCast(layer.*.patttable));
-    const p: [*]const u8 = patttbl_bytes + (idx * 4);
-    const off: usize = @as(usize, @intCast(@as(u32, p[0]) | (@as(u32, p[1]) << 8) | (@as(u32, p[2]) << 16) | (@as(u32, p[3]) << 24)));
-    return @as([*c]mm_mas_pattern, @ptrCast(@alignCast(@as([*]u8, @ptrCast(base)) + off)));
-}
-pub const note_table_oct: [30]mm_byte = [30]mm_byte{
+pub const note_table_oct: [30]mm.Byte = [30]mm.Byte{
     0,
     0,
     0,
@@ -1002,7 +873,7 @@ pub const note_table_oct: [30]mm_byte = [30]mm_byte{
     9,
     9,
 };
-pub const note_table_mod: [109]mm_byte = [109]mm_byte{
+pub const note_table_mod: [109]mm.Byte = [109]mm.Byte{
     0,
     1,
     2,
@@ -1113,263 +984,263 @@ pub const note_table_mod: [109]mm_byte = [109]mm_byte{
     11,
     0,
 };
-pub const ST3_FREQTABLE: [12]mm_hword = [12]mm_hword{
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 1712) * @as(c_int, 8))))),
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 1616) * @as(c_int, 8))))),
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 1524) * @as(c_int, 8))))),
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 1440) * @as(c_int, 8))))),
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 1356) * @as(c_int, 8))))),
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 1280) * @as(c_int, 8))))),
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 1208) * @as(c_int, 8))))),
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 1140) * @as(c_int, 8))))),
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 1076) * @as(c_int, 8))))),
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 1016) * @as(c_int, 8))))),
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 960) * @as(c_int, 8))))),
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 907) * @as(c_int, 8))))),
+pub const ST3_FREQTABLE: [12]mm.Hword = [12]mm.Hword{
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 1712) * @as(c_int, 8))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 1616) * @as(c_int, 8))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 1524) * @as(c_int, 8))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 1440) * @as(c_int, 8))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 1356) * @as(c_int, 8))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 1280) * @as(c_int, 8))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 1208) * @as(c_int, 8))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 1140) * @as(c_int, 8))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 1076) * @as(c_int, 8))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 1016) * @as(c_int, 8))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 960) * @as(c_int, 8))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 907) * @as(c_int, 8))))),
 };
-pub const IT_PitchTable: [240]mm_hword align(4) = [240]mm_hword{
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 2048))))),
+pub const IT_PitchTable: [240]mm.Hword align(4) = [240]mm.Hword{
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 2048))))),
     0,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 2170))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 2170))))),
     0,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 2299))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 2299))))),
     0,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 2435))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 2435))))),
     0,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 2580))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 2580))))),
     0,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 2734))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 2734))))),
     0,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 2896))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 2896))))),
     0,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 3069))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 3069))))),
     0,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 3251))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 3251))))),
     0,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 3444))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 3444))))),
     0,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 3649))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 3649))))),
     0,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 3866))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 3866))))),
     0,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 4096))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 4096))))),
     0,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 4340))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 4340))))),
     0,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 4598))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 4598))))),
     0,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 4871))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 4871))))),
     0,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 5161))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 5161))))),
     0,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 5468))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 5468))))),
     0,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 5793))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 5793))))),
     0,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 6137))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 6137))))),
     0,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 6502))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 6502))))),
     0,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 6889))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 6889))))),
     0,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 7298))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 7298))))),
     0,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 7732))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 7732))))),
     0,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 8192))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 8192))))),
     0,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 8679))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 8679))))),
     0,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 9195))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 9195))))),
     0,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 9742))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 9742))))),
     0,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 10321))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 10321))))),
     0,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 10935))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 10935))))),
     0,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 11585))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 11585))))),
     0,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 12274))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 12274))))),
     0,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 13004))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 13004))))),
     0,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 13777))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 13777))))),
     0,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 14596))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 14596))))),
     0,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 15464))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 15464))))),
     0,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 16384))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 16384))))),
     0,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 17358))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 17358))))),
     0,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 18390))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 18390))))),
     0,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 19484))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 19484))))),
     0,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 20643))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 20643))))),
     0,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 21870))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 21870))))),
     0,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 23170))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 23170))))),
     0,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 24548))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 24548))))),
     0,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 26008))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 26008))))),
     0,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 27554))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 27554))))),
     0,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 29193))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 29193))))),
     0,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 30929))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 30929))))),
     0,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 32768))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 32768))))),
     0,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 34716))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 34716))))),
     0,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 36781))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 36781))))),
     0,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 38968))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 38968))))),
     0,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 41285))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 41285))))),
     0,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 43740))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 43740))))),
     0,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 46341))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 46341))))),
     0,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 49097))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 49097))))),
     0,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 52016))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 52016))))),
     0,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 55109))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 55109))))),
     0,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 58386))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 58386))))),
     0,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 61858))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 61858))))),
     0,
     0,
     1,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 3897))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 3897))))),
     1,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 8026))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 8026))))),
     1,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 12400))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 12400))))),
     1,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 17034))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 17034))))),
     1,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 21944))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 21944))))),
     1,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 27146))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 27146))))),
     1,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 32657))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 32657))))),
     1,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 38496))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 38496))))),
     1,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 44682))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 44682))))),
     1,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 51236))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 51236))))),
     1,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 58179))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 58179))))),
     1,
     0,
     2,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 7794))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 7794))))),
     2,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 16051))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 16051))))),
     2,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 24800))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 24800))))),
     2,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 34068))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 34068))))),
     2,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 43888))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 43888))))),
     2,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 54292))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 54292))))),
     2,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 65314))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 65314))))),
     2,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 11456))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 11456))))),
     3,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 23828))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 23828))))),
     3,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 36936))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 36936))))),
     3,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 50823))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 50823))))),
     3,
     0,
     4,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 15588))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 15588))))),
     4,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 32103))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 32103))))),
     4,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 49600))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 49600))))),
     4,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 2601))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 2601))))),
     5,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 22240))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 22240))))),
     5,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 43048))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 43048))))),
     5,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 65092))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 65092))))),
     5,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 22912))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 22912))))),
     6,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 47656))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 47656))))),
     6,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 8336))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 8336))))),
     7,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 36110))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 36110))))),
     7,
     0,
     8,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 31176))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 31176))))),
     8,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 64205))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 64205))))),
     8,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 33663))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 33663))))),
     9,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 5201))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 5201))))),
     10,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 44481))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 44481))))),
     10,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 20559))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 20559))))),
     11,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 64648))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 64648))))),
     11,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 45823))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 45823))))),
     12,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 29776))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 29776))))),
     13,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 16671))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 16671))))),
     14,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 6684))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 6684))))),
     15,
     0,
     16,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 62352))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 62352))))),
     16,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 62875))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 62875))))),
     17,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 1790))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 1790))))),
     19,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 10403))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 10403))))),
     20,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 23425))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 23425))))),
     21,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 41118))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 41118))))),
     22,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 63761))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 63761))))),
     23,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 26111))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 26111))))),
     25,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 59552))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 59552))))),
     26,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 33342))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 33342))))),
     28,
-    @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 13368))))),
+    @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 13368))))),
     30,
 };
-pub fn mmChannelStartACHN(arg_module_channel: [*c]mm_module_channel, arg_active_channel: [*c]mm_active_channel, arg_mpp_layer: [*c]mpl_layer_information, arg_channel_counter: mm_byte) linksection(".iwram") callconv(.c) mm_byte {
+pub fn mmChannelStartACHN(arg_module_channel: [*c]mm.ModuleChannel, arg_active_channel: [*c]mm.ActiveChannel, arg_mpp_layer: [*c]mpl_layer_information, arg_channel_counter: mm.Byte) linksection(".iwram") callconv(.c) mm.Byte {
     var module_channel = arg_module_channel;
     _ = &module_channel;
     var active_channel = arg_active_channel;
@@ -1378,22 +1249,22 @@ pub fn mmChannelStartACHN(arg_module_channel: [*c]mm_module_channel, arg_active_
     _ = &mpp_layer;
     var channel_counter = arg_channel_counter;
     _ = &channel_counter;
-    module_channel.*.bflags &= @as(mm_hword, @bitCast(@as(c_short, @truncate(~((@as(c_int, 1) << @intCast(10)) | (@as(c_int, 1) << @intCast(9)))))));
+    module_channel.*.bflags &= @as(mm.Hword, @bitCast(@as(c_short, @truncate(~((@as(c_int, 1) << @intCast(10)) | (@as(c_int, 1) << @intCast(9)))))));
     if (active_channel != null) {
-        active_channel.*.type = 3;
-        active_channel.*.flags &= @as(mm_byte, @bitCast(@as(i8, @truncate(~((@as(c_int, 1) << @intCast(6)) | (@as(c_int, 1) << @intCast(7)))))));
-        if (mpp_clayer == @as(c_uint, @bitCast(MM_JINGLE))) {
-            active_channel.*.flags |= @as(mm_byte, @bitCast(@as(i8, @truncate(@as(c_int, 1) << @intCast(6)))));
+        active_channel.*._type = 3;
+        active_channel.*.flags &= @as(mm.Byte, @bitCast(@as(i8, @truncate(~((@as(c_int, 1) << @intCast(6)) | (@as(c_int, 1) << @intCast(7)))))));
+        if (shim.mpp_clayer == .jingle) {
+            active_channel.*.flags |= @as(mm.Byte, @bitCast(@as(i8, @truncate(@as(c_int, 1) << @intCast(6)))));
         }
         active_channel.*.parent = channel_counter;
         active_channel.*.inst = module_channel.*.inst;
     }
-    if (@as(c_int, @bitCast(@as(c_uint, module_channel.*.inst))) == @as(c_int, 0)) return @as(mm_byte, @bitCast(@as(u8, @truncate(module_channel.*.bflags))));
-    var instrument: *mm_mas_instrument = mpp_InstrumentPointer(mpp_layer, @as(mm_word, @bitCast(@as(c_uint, module_channel.*.inst)))) orelse unreachable;
+    if (@as(c_int, @bitCast(@as(c_uint, module_channel.*.inst))) == @as(c_int, 0)) return @as(mm.Byte, @bitCast(@as(u8, @truncate(module_channel.*.bflags))));
+    var instrument: *mm_mas_instrument = mpp_InstrumentPointer(mpp_layer, @as(mm.Word, @bitCast(@as(c_uint, module_channel.*.inst)))) orelse unreachable;
     _ = &instrument;
-    // CRITICAL FIX: Translate-c expanded C bitfields as separate mm_hword fields, breaking layout.
-    // C bitfields: note_map_offset:15, is_note_map_invalid:1 packed in one mm_hword.
-    // Read raw bytes at offset 8 (after 8 mm_byte fields) and decode manually.
+    // CRITICAL FIX: Translate-c expanded C bitfields as separate mm.Hword fields, breaking layout.
+    // C bitfields: note_map_offset:15, is_note_map_invalid:1 packed in one mm.Hword.
+    // Read raw bytes at offset 8 (after 8 mm.Byte fields) and decode manually.
     const inst_bytes: [*]const u8 = @ptrCast(instrument);
     const bitfield_raw: u16 = @as(u16, inst_bytes[8]) | (@as(u16, inst_bytes[9]) << 8);
     const nm_off: usize = @as(usize, @intCast(bitfield_raw & 0x7FFF)); // bits 0-14
@@ -1403,8 +1274,8 @@ pub fn mmChannelStartACHN(arg_module_channel: [*c]mm_module_channel, arg_active_
         const inst_base_dbg: usize = @intFromPtr(instrument);
         const nm_ptr_dbg: usize = inst_base_dbg + nm_off;
         const idx_dbg: usize = @as(usize, @intCast(module_channel.*.pnoter));
-        const map_ptr_dbg: [*]const mm_hword = @ptrFromInt(nm_ptr_dbg);
-        const raw_entry_dbg: mm_hword = map_ptr_dbg[idx_dbg];
+        const map_ptr_dbg: [*]const mm.Hword = @ptrFromInt(nm_ptr_dbg);
+        const raw_entry_dbg: mm.Hword = map_ptr_dbg[idx_dbg];
         // Dump first 16 bytes of instrument to verify bitfield packing
         const inst_bytes_dbg: [*]const u8 = @ptrFromInt(inst_base_dbg);
         const b0: u8 = inst_bytes_dbg[0];
@@ -1431,7 +1302,7 @@ pub fn mmChannelStartACHN(arg_module_channel: [*c]mm_module_channel, arg_active_
     if (invalid_map) {
         // No valid note map: use instrument default mapping
         if (active_channel != null) {
-            active_channel.*.sample = @as(mm_byte, @intCast(nm_off & 0xFF));
+            active_channel.*.sample = @as(mm.Byte, @intCast(nm_off & 0xFF));
         }
         module_channel.*.note = module_channel.*.pnoter;
     } else {
@@ -1443,9 +1314,9 @@ pub fn mmChannelStartACHN(arg_module_channel: [*c]mm_module_channel, arg_active_
         const lo: u16 = map_bytes[idx * 2];
         const hi: u16 = map_bytes[idx * 2 + 1];
         const entry: u16 = lo | (hi << 8);
-        module_channel.*.note = @as(mm_byte, @intCast(entry & 0xFF));
+        module_channel.*.note = @as(mm.Byte, @intCast(entry & 0xFF));
         if (active_channel != null) {
-            active_channel.*.sample = @as(mm_byte, @intCast((entry >> 8) & 0xFF));
+            active_channel.*.sample = @as(mm.Byte, @intCast((entry >> 8) & 0xFF));
         }
     }
     // Minimal mapping debug on first channels/tick 0 (guarded)
@@ -1457,13 +1328,13 @@ pub fn mmChannelStartACHN(arg_module_channel: [*c]mm_module_channel, arg_active_
     }
     return module_channel.*.note;
 }
-pub fn get_active_channel(arg_module_channel: [*c]mm_module_channel) linksection(".iwram") callconv(.c) [*c]mm_active_channel {
+pub fn get_active_channel(arg_module_channel: [*c]mm.ModuleChannel) linksection(".iwram") callconv(.c) [*c]mm.ActiveChannel {
     var module_channel = arg_module_channel;
     _ = &module_channel;
-    var act_ch: [*c]mm_active_channel = null;
+    var act_ch: [*c]mm.ActiveChannel = null;
     _ = &act_ch;
     if (@as(c_int, @bitCast(@as(c_uint, module_channel.*.alloc))) != @as(c_int, 255)) {
-        act_ch = &mm_achannels[module_channel.*.alloc];
+        act_ch = &mm_gba.achannels[module_channel.*.alloc];
     }
     return act_ch;
 }
@@ -2194,7 +2065,6 @@ pub const MULT_PERIOD = @import("std").zig.c_translation.promoteIntLiteral(c_int
 pub const mmreverbcfg = struct_mmreverbcfg;
 pub const t_mmdssample = struct_t_mmdssample;
 pub const t_mmsoundeffect = struct_t_mmsoundeffect;
-pub const t_mmgbasystem = struct_t_mmgbasystem;
 pub const t_mmdssystem = struct_t_mmdssystem;
 pub const t_mmstream = struct_t_mmstream;
 pub const t_mmstreamdata = struct_t_mmstreamdata;

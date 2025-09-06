@@ -1,3 +1,6 @@
+const mm = @import("../maxmod.zig");
+const mm_gba = @import("../gba/main_gba.zig");
+
 pub const __builtin_bswap16 = @import("std").zig.c_builtins.__builtin_bswap16;
 pub const __builtin_bswap32 = @import("std").zig.c_builtins.__builtin_bswap32;
 pub const __builtin_bswap64 = @import("std").zig.c_builtins.__builtin_bswap64;
@@ -375,21 +378,7 @@ pub extern fn _strerror_r([*c]struct__reent, c_int, c_int, [*c]c_int) [*c]u8;
 pub extern fn strlcat([*c]u8, [*c]const u8, usize) usize;
 pub extern fn strlcpy([*c]u8, [*c]const u8, usize) usize;
 pub extern fn strnlen([*c]const u8, usize) usize;
-pub extern fn strsep([*c][*c]u8, [*c]const u8) [*c]u8;
-pub extern fn strnstr([*c]const u8, [*c]const u8, usize) [*c]u8;
-pub extern fn strlwr([*c]u8) [*c]u8;
-pub extern fn strupr([*c]u8) [*c]u8;
-pub extern fn strsignal(__signo: c_int) [*c]u8;
-pub const mm_word = c_uint;
-pub const mm_sword = c_int;
-pub const mm_hword = c_ushort;
-pub const mm_shword = c_short;
-pub const mm_byte = u8;
-pub const mm_sbyte = i8;
-pub const mm_sfxhand = c_ushort;
 pub const mm_bool = u8;
-pub const mm_addr = ?*anyopaque;
-pub const mm_reg = ?*anyopaque;
 pub const MM_MODE_A: c_int = 0;
 pub const MM_MODE_B: c_int = 1;
 pub const MM_MODE_C: c_int = 2;
@@ -402,9 +391,9 @@ pub const MM_STREAM_8BIT_STEREO: c_int = 1;
 pub const MM_STREAM_16BIT_MONO: c_int = 2;
 pub const MM_STREAM_16BIT_STEREO: c_int = 3;
 pub const mm_stream_formats = c_uint;
-pub const mm_callback = ?*const fn (mm_word, mm_word) callconv(.c) mm_word;
+pub const mm_callback = ?*const fn (mm.Word, mm.Word) callconv(.c) mm.Word;
 pub const mm_voidfunc = ?*const fn () callconv(.c) void;
-pub const mm_stream_func = ?*const fn (mm_word, mm_addr, mm_stream_formats) callconv(.c) mm_word;
+pub const mm_stream_func = ?*const fn (mm.Word, mm.Addr, mm_stream_formats) callconv(.c) mm.Word;
 pub const MMRF_MEMORY: c_int = 1;
 pub const MMRF_DELAY: c_int = 2;
 pub const MMRF_RATE: c_int = 4;
@@ -428,17 +417,16 @@ pub const MMRC_RIGHT: c_int = 2;
 pub const MMRC_BOTH: c_int = 3;
 pub const mm_reverbch = c_uint;
 pub const struct_mmreverbcfg = extern struct {
-    flags: mm_word = @import("std").mem.zeroes(mm_word),
-    memory: mm_addr = @import("std").mem.zeroes(mm_addr),
-    delay: mm_hword = @import("std").mem.zeroes(mm_hword),
-    rate: mm_hword = @import("std").mem.zeroes(mm_hword),
-    feedback: mm_hword = @import("std").mem.zeroes(mm_hword),
-    panning: mm_byte = @import("std").mem.zeroes(mm_byte),
+    flags: mm.Word = @import("std").mem.zeroes(mm.Word),
+    memory: mm.Addr = @import("std").mem.zeroes(mm.Addr),
+    delay: mm.Hword = @import("std").mem.zeroes(mm.Hword),
+    rate: mm.Hword = @import("std").mem.zeroes(mm.Hword),
+    feedback: mm.Hword = @import("std").mem.zeroes(mm.Hword),
+    panning: mm.Byte = @import("std").mem.zeroes(mm.Byte),
 };
 pub const mm_reverb_cfg = struct_mmreverbcfg;
 pub const MM_PLAY_LOOP: c_int = 0;
 pub const MM_PLAY_ONCE: c_int = 1;
-pub const mm_pmode = c_uint;
 pub const MM_MIX_8KHZ: c_int = 0;
 pub const MM_MIX_10KHZ: c_int = 1;
 pub const MM_MIX_13KHZ: c_int = 2;
@@ -454,55 +442,55 @@ pub const MM_TIMER2: c_int = 2;
 pub const MM_TIMER3: c_int = 3;
 pub const mm_stream_timer = c_uint;
 const union_unnamed_5 = extern union {
-    loop_length: mm_word,
-    length: mm_word,
+    loop_length: mm.Word,
+    length: mm.Word,
 };
 pub const struct_t_mmdssample = extern struct {
-    loop_start: mm_word = @import("std").mem.zeroes(mm_word),
+    loop_start: mm.Word = @import("std").mem.zeroes(mm.Word),
     unnamed_0: union_unnamed_5 = @import("std").mem.zeroes(union_unnamed_5),
-    format: mm_byte = @import("std").mem.zeroes(mm_byte),
-    repeat_mode: mm_byte = @import("std").mem.zeroes(mm_byte),
-    base_rate: mm_hword = @import("std").mem.zeroes(mm_hword),
-    data: mm_addr = @import("std").mem.zeroes(mm_addr),
+    format: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    repeat_mode: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    base_rate: mm.Hword = @import("std").mem.zeroes(mm.Hword),
+    data: mm.Addr = @import("std").mem.zeroes(mm.Addr),
 };
 pub const mm_ds_sample = struct_t_mmdssample;
 const union_unnamed_6 = extern union {
-    id: mm_word,
+    id: mm.Word,
     sample: [*c]mm_ds_sample,
 };
 pub const struct_t_mmsoundeffect = extern struct {
     unnamed_0: union_unnamed_6 = @import("std").mem.zeroes(union_unnamed_6),
-    rate: mm_hword = @import("std").mem.zeroes(mm_hword),
-    handle: mm_sfxhand = @import("std").mem.zeroes(mm_sfxhand),
-    volume: mm_byte = @import("std").mem.zeroes(mm_byte),
-    panning: mm_byte = @import("std").mem.zeroes(mm_byte),
+    rate: mm.Hword = @import("std").mem.zeroes(mm.Hword),
+    handle: mm.Sfxhand = @import("std").mem.zeroes(mm.Sfxhand),
+    volume: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    panning: mm.Byte = @import("std").mem.zeroes(mm.Byte),
 };
 pub const mm_sound_effect = struct_t_mmsoundeffect;
 pub const struct_t_mmgbasystem = extern struct {
     mixing_mode: mm_mixmode = @import("std").mem.zeroes(mm_mixmode),
-    mod_channel_count: mm_word = @import("std").mem.zeroes(mm_word),
-    mix_channel_count: mm_word = @import("std").mem.zeroes(mm_word),
-    module_channels: mm_addr = @import("std").mem.zeroes(mm_addr),
-    active_channels: mm_addr = @import("std").mem.zeroes(mm_addr),
-    mixing_channels: mm_addr = @import("std").mem.zeroes(mm_addr),
-    mixing_memory: mm_addr = @import("std").mem.zeroes(mm_addr),
-    wave_memory: mm_addr = @import("std").mem.zeroes(mm_addr),
-    soundbank: mm_addr = @import("std").mem.zeroes(mm_addr),
+    mod_channel_count: mm.Word = @import("std").mem.zeroes(mm.Word),
+    mix_channel_count: mm.Word = @import("std").mem.zeroes(mm.Word),
+    module_channels: mm.Addr = @import("std").mem.zeroes(mm.Addr),
+    active_channels: mm.Addr = @import("std").mem.zeroes(mm.Addr),
+    mixing_channels: mm.Addr = @import("std").mem.zeroes(mm.Addr),
+    mixing_memory: mm.Addr = @import("std").mem.zeroes(mm.Addr),
+    wave_memory: mm.Addr = @import("std").mem.zeroes(mm.Addr),
+    soundbank: mm.Addr = @import("std").mem.zeroes(mm.Addr),
 };
 pub const mm_gba_system = struct_t_mmgbasystem;
 pub const struct_t_mmdssystem = extern struct {
-    mod_count: mm_word = @import("std").mem.zeroes(mm_word),
-    samp_count: mm_word = @import("std").mem.zeroes(mm_word),
-    mem_bank: [*c]mm_word = @import("std").mem.zeroes([*c]mm_word),
-    fifo_channel: mm_word = @import("std").mem.zeroes(mm_word),
+    mod_count: mm.Word = @import("std").mem.zeroes(mm.Word),
+    samp_count: mm.Word = @import("std").mem.zeroes(mm.Word),
+    mem_bank: [*c]mm.Word = @import("std").mem.zeroes([*c]mm.Word),
+    fifo_channel: mm.Word = @import("std").mem.zeroes(mm.Word),
 };
 pub const mm_ds_system = struct_t_mmdssystem;
 pub const struct_t_mmstream = extern struct {
-    sampling_rate: mm_word = @import("std").mem.zeroes(mm_word),
-    buffer_length: mm_word = @import("std").mem.zeroes(mm_word),
+    sampling_rate: mm.Word = @import("std").mem.zeroes(mm.Word),
+    buffer_length: mm.Word = @import("std").mem.zeroes(mm.Word),
     callback: mm_stream_func = @import("std").mem.zeroes(mm_stream_func),
-    format: mm_word = @import("std").mem.zeroes(mm_word),
-    timer: mm_word = @import("std").mem.zeroes(mm_word),
+    format: mm.Word = @import("std").mem.zeroes(mm.Word),
+    timer: mm.Word = @import("std").mem.zeroes(mm.Word),
     manual: mm_bool = @import("std").mem.zeroes(mm_bool),
 };
 pub const mm_stream = struct_t_mmstream;
@@ -510,33 +498,33 @@ pub const struct_t_mmstreamdata = extern struct {
     is_active: mm_bool = @import("std").mem.zeroes(mm_bool),
     format: mm_stream_formats = @import("std").mem.zeroes(mm_stream_formats),
     is_auto: mm_bool = @import("std").mem.zeroes(mm_bool),
-    hw_timer_num: mm_byte = @import("std").mem.zeroes(mm_byte),
-    clocks: mm_hword = @import("std").mem.zeroes(mm_hword),
-    timer: mm_hword = @import("std").mem.zeroes(mm_hword),
-    length_cut: mm_hword = @import("std").mem.zeroes(mm_hword),
-    length_words: mm_hword = @import("std").mem.zeroes(mm_hword),
-    position: mm_hword = @import("std").mem.zeroes(mm_hword),
-    reserved2: mm_hword = @import("std").mem.zeroes(mm_hword),
-    hw_timer: [*c]volatile mm_hword = @import("std").mem.zeroes([*c]volatile mm_hword),
-    wave_memory: mm_addr = @import("std").mem.zeroes(mm_addr),
-    work_memory: mm_addr = @import("std").mem.zeroes(mm_addr),
+    hw_timer_num: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    clocks: mm.Hword = @import("std").mem.zeroes(mm.Hword),
+    timer: mm.Hword = @import("std").mem.zeroes(mm.Hword),
+    length_cut: mm.Hword = @import("std").mem.zeroes(mm.Hword),
+    length_words: mm.Hword = @import("std").mem.zeroes(mm.Hword),
+    position: mm.Hword = @import("std").mem.zeroes(mm.Hword),
+    reserved2: mm.Hword = @import("std").mem.zeroes(mm.Hword),
+    hw_timer: [*c]volatile mm.Hword = @import("std").mem.zeroes([*c]volatile mm.Hword),
+    wave_memory: mm.Addr = @import("std").mem.zeroes(mm.Addr),
+    work_memory: mm.Addr = @import("std").mem.zeroes(mm.Addr),
     callback: mm_stream_func = @import("std").mem.zeroes(mm_stream_func),
-    remainder: mm_word = @import("std").mem.zeroes(mm_word),
+    remainder: mm.Word = @import("std").mem.zeroes(mm.Word),
 };
 pub const mm_stream_data = struct_t_mmstreamdata;
 pub const struct_tmm_voice = extern struct {
-    source: mm_addr = @import("std").mem.zeroes(mm_addr),
-    length: mm_word = @import("std").mem.zeroes(mm_word),
-    loop_start: mm_hword = @import("std").mem.zeroes(mm_hword),
-    timer: mm_hword = @import("std").mem.zeroes(mm_hword),
-    flags: mm_byte = @import("std").mem.zeroes(mm_byte),
-    format: mm_byte = @import("std").mem.zeroes(mm_byte),
-    repeat: mm_byte = @import("std").mem.zeroes(mm_byte),
-    volume: mm_byte = @import("std").mem.zeroes(mm_byte),
-    divider: mm_byte = @import("std").mem.zeroes(mm_byte),
-    panning: mm_byte = @import("std").mem.zeroes(mm_byte),
-    index: mm_byte = @import("std").mem.zeroes(mm_byte),
-    reserved: [1]mm_byte = @import("std").mem.zeroes([1]mm_byte),
+    source: mm.Addr = @import("std").mem.zeroes(mm.Addr),
+    length: mm.Word = @import("std").mem.zeroes(mm.Word),
+    loop_start: mm.Hword = @import("std").mem.zeroes(mm.Hword),
+    timer: mm.Hword = @import("std").mem.zeroes(mm.Hword),
+    flags: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    format: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    repeat: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    volume: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    divider: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    panning: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    index: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    reserved: [1]mm.Byte = @import("std").mem.zeroes([1]mm.Byte),
 };
 pub const mm_voice = struct_tmm_voice;
 pub const MMVF_FREQ: c_int = 2;
@@ -554,14 +542,11 @@ pub const MM_MIXLEN_21KHZ: c_int = 1408;
 pub const MM_MIXLEN_27KHZ: c_int = 1792;
 pub const MM_MIXLEN_31KHZ: c_int = 2112;
 pub const mm_mixlen_enum = c_uint;
-pub extern fn mmInitDefault(soundbank: mm_addr, number_of_channels: mm_word) bool;
-pub extern fn mmInit(setup: [*c]mm_gba_system) bool;
-pub extern fn mmEnd() bool;
 pub export fn mmVBlank() linksection(".iwram") void {
     const dbg_vblank = false;
     if (dbg_vblank) @import("gba").debug.print("[mmVBlank] enter: {any}\n", .{vblank_handler_enabled}) catch unreachable;
     if (vblank_handler_enabled) {
-        mp_mix_seg = @as(mm_byte, @bitCast(@as(i8, @truncate(~@as(c_int, @bitCast(@as(c_uint, mp_mix_seg)))))));
+        mp_mix_seg = @as(mm.Byte, @bitCast(@as(i8, @truncate(~@as(c_int, @bitCast(@as(c_uint, mp_mix_seg)))))));
         if (@as(c_int, @bitCast(@as(c_uint, mp_mix_seg))) != @as(c_int, 0)) {
             @as([*c]volatile u16, @ptrFromInt(@as(c_int, 67109062))).* = @as(u16, @bitCast(@as(c_short, @truncate(@as(c_int, 1088)))));
             @as([*c]volatile u16, @ptrFromInt(@as(c_int, 67109074))).* = @as(u16, @bitCast(@as(c_short, @truncate(@as(c_int, 1088)))));
@@ -581,39 +566,18 @@ pub export fn mmSetVBlankHandler(arg_function: mm_voidfunc) void {
     _ = &function;
     mm_vblank_function = function;
 }
-pub extern fn mmSetEventHandler(handler: mm_callback) void;
-pub extern fn mmFrame() void;
-pub extern fn mmGetModuleCount() mm_word;
-pub extern fn mmGetSampleCount() mm_word;
-pub extern fn mmStart(module_ID: mm_word, mode: mm_pmode) void;
-pub extern fn mmPause() void;
-pub extern fn mmResume() void;
-pub extern fn mmStop() void;
-pub extern fn mmGetPositionTick() mm_word;
-pub extern fn mmGetPositionRow() mm_word;
-pub extern fn mmGetPosition() mm_word;
-pub extern fn mmSetPositionEx(position: mm_word, row: mm_word) void;
-pub fn mmSetPosition(arg_position: mm_word) callconv(.c) void {
+pub extern fn mmSetPositionEx(position: mm.Word, row: mm.Word) void;
+pub fn mmSetPosition(arg_position: mm.Word) callconv(.c) void {
     var position = arg_position;
     _ = &position;
-    mmSetPositionEx(position, @as(mm_word, @bitCast(@as(c_int, 0))));
+    mmSetPositionEx(position, @as(mm.Word, @bitCast(@as(c_int, 0))));
 }
-pub fn mmPosition(arg_position: mm_word) callconv(.c) void {
+pub fn mmPosition(arg_position: mm.Word) callconv(.c) void {
     var position = arg_position;
     _ = &position;
-    mmSetPositionEx(position, @as(mm_word, @bitCast(@as(c_int, 0))));
+    mmSetPositionEx(position, @as(mm.Word, @bitCast(@as(c_int, 0))));
 }
-pub extern fn mmActive() mm_bool;
-pub extern fn mmSetModuleVolume(volume: mm_word) void;
-pub extern fn mmSetModuleTempo(tempo: mm_word) void;
-pub extern fn mmSetModulePitch(pitch: mm_word) void;
-pub extern fn mmPlayModule(address: usize, mode: mm_word, layer: mm_word) void;
-pub extern fn mmJingleStart(module_ID: mm_word, mode: mm_pmode) void;
-pub fn mmJingle(arg_module_ID: mm_word) callconv(.c) void {
-    var module_ID = arg_module_ID;
-    _ = &module_ID;
-    mmJingleStart(module_ID, @as(c_uint, @bitCast(MM_PLAY_ONCE)));
-}
+
 pub extern fn mmJinglePause() void;
 pub extern fn mmJingleResume() void;
 pub extern fn mmJingleStop() void;
@@ -621,38 +585,33 @@ pub extern fn mmJingleActive() mm_bool;
 pub fn mmActiveSub() callconv(.c) mm_bool {
     return mmJingleActive();
 }
-pub extern fn mmSetJingleVolume(volume: mm_word) void;
-pub extern fn mmEffect(sample_ID: mm_word) mm_sfxhand;
-pub extern fn mmEffectEx(sound: [*c]mm_sound_effect) mm_sfxhand;
-pub extern fn mmEffectVolume(handle: mm_sfxhand, volume: mm_word) void;
-pub extern fn mmEffectPanning(handle: mm_sfxhand, panning: mm_byte) void;
-pub extern fn mmEffectRate(handle: mm_sfxhand, rate: mm_word) void;
-pub extern fn mmEffectScaleRate(handle: mm_sfxhand, factor: mm_word) void;
-pub extern fn mmEffectActive(handle: mm_sfxhand) mm_bool;
-pub extern fn mmEffectCancel(handle: mm_sfxhand) mm_word;
-pub extern fn mmEffectRelease(handle: mm_sfxhand) void;
+pub extern fn mmEffectRate(handle: mm.Sfxhand, rate: mm.Word) void;
+pub extern fn mmEffectScaleRate(handle: mm.Sfxhand, factor: mm.Word) void;
+pub extern fn mmEffectActive(handle: mm.Sfxhand) mm_bool;
+pub extern fn mmEffectCancel(handle: mm.Sfxhand) mm.Word;
+pub extern fn mmEffectRelease(handle: mm.Sfxhand) void;
 pub extern fn mmEffectCancelAll() void;
 pub const struct_tmm_mas_prefix = extern struct {
-    size: mm_word = @import("std").mem.zeroes(mm_word),
-    type: mm_byte = @import("std").mem.zeroes(mm_byte),
-    version: mm_byte = @import("std").mem.zeroes(mm_byte),
-    reserved: [2]mm_byte = @import("std").mem.zeroes([2]mm_byte),
+    size: mm.Word = @import("std").mem.zeroes(mm.Word),
+    type: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    version: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    reserved: [2]mm.Byte = @import("std").mem.zeroes([2]mm.Byte),
 };
 pub const mm_mas_prefix = struct_tmm_mas_prefix;
 pub const struct_tmm_mas_head = extern struct {
-    order_count: mm_byte = @import("std").mem.zeroes(mm_byte),
-    instr_count: mm_byte = @import("std").mem.zeroes(mm_byte),
-    sampl_count: mm_byte = @import("std").mem.zeroes(mm_byte),
-    pattn_count: mm_byte = @import("std").mem.zeroes(mm_byte),
-    flags: mm_byte = @import("std").mem.zeroes(mm_byte),
-    global_volume: mm_byte = @import("std").mem.zeroes(mm_byte),
-    initial_speed: mm_byte = @import("std").mem.zeroes(mm_byte),
-    initial_tempo: mm_byte = @import("std").mem.zeroes(mm_byte),
-    repeat_position: mm_byte = @import("std").mem.zeroes(mm_byte),
-    reserved: [3]mm_byte = @import("std").mem.zeroes([3]mm_byte),
-    channel_volume: [32]mm_byte = @import("std").mem.zeroes([32]mm_byte),
-    channel_panning: [32]mm_byte = @import("std").mem.zeroes([32]mm_byte),
-    sequence: [200]mm_byte = @import("std").mem.zeroes([200]mm_byte),
+    order_count: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    instr_count: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    sampl_count: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    pattn_count: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    flags: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    global_volume: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    initial_speed: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    initial_tempo: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    repeat_position: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    reserved: [3]mm.Byte = @import("std").mem.zeroes([3]mm.Byte),
+    channel_volume: [32]mm.Byte = @import("std").mem.zeroes([32]mm.Byte),
+    channel_panning: [32]mm.Byte = @import("std").mem.zeroes([32]mm.Byte),
+    sequence: [200]mm.Byte = @import("std").mem.zeroes([200]mm.Byte),
     pub fn tables(self: anytype) @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), ?*anyopaque) {
         const Intermediate = @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), u8);
         const ReturnType = @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), ?*anyopaque);
@@ -662,30 +621,30 @@ pub const struct_tmm_mas_head = extern struct {
 pub const mm_mas_head = struct_tmm_mas_head;
 // maxmod/include/mm_mas.h:82:17: warning: struct demoted to opaque type - has bitfield
 pub const struct_tmm_mas_instrument = extern struct {
-    global_volume: mm_byte = @import("std").mem.zeroes(mm_byte),
-    fadeout: mm_byte = @import("std").mem.zeroes(mm_byte),
-    random_volume: mm_byte = @import("std").mem.zeroes(mm_byte),
-    dct: mm_byte = @import("std").mem.zeroes(mm_byte),
-    nna: mm_byte = @import("std").mem.zeroes(mm_byte),
-    env_flags: mm_byte = @import("std").mem.zeroes(mm_byte),
-    panning: mm_byte = @import("std").mem.zeroes(mm_byte),
-    dca: mm_byte = @import("std").mem.zeroes(mm_byte),
-    note_map_offset: mm_hword = @import("std").mem.zeroes(mm_hword),
-    is_note_map_invalid: mm_hword = @import("std").mem.zeroes(mm_hword),
-    reserved: mm_hword = @import("std").mem.zeroes(mm_hword),
+    global_volume: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    fadeout: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    random_volume: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    dct: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    nna: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    env_flags: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    panning: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    dca: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    note_map_offset: mm.Hword = @import("std").mem.zeroes(mm.Hword),
+    is_note_map_invalid: mm.Hword = @import("std").mem.zeroes(mm.Hword),
+    reserved: mm.Hword = @import("std").mem.zeroes(mm.Hword),
 };
 pub const mm_mas_instrument = struct_tmm_mas_instrument;
 // maxmod/include/mm_mas.h:112:17: warning: struct demoted to opaque type - has bitfield
 pub const mm_mas_envelope_node = opaque {};
 pub const struct_tmm_mas_envelope = extern struct {
-    size: mm_byte align(2) = @import("std").mem.zeroes(mm_byte),
-    loop_start: mm_byte = @import("std").mem.zeroes(mm_byte),
-    loop_end: mm_byte = @import("std").mem.zeroes(mm_byte),
-    sus_start: mm_byte = @import("std").mem.zeroes(mm_byte),
-    sus_end: mm_byte = @import("std").mem.zeroes(mm_byte),
-    node_count: mm_byte = @import("std").mem.zeroes(mm_byte),
-    is_filter: mm_byte = @import("std").mem.zeroes(mm_byte),
-    wasted: mm_byte = @import("std").mem.zeroes(mm_byte),
+    size: mm.Byte align(2) = @import("std").mem.zeroes(mm.Byte),
+    loop_start: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    loop_end: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    sus_start: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    sus_end: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    node_count: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    is_filter: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    wasted: mm.Byte = @import("std").mem.zeroes(mm.Byte),
     pub fn env_nodes(self: anytype) @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), mm_mas_envelope_node) {
         const Intermediate = @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), u8);
         const ReturnType = @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), mm_mas_envelope_node);
@@ -694,15 +653,15 @@ pub const struct_tmm_mas_envelope = extern struct {
 };
 pub const mm_mas_envelope = struct_tmm_mas_envelope;
 pub const struct_tmm_mas_sample_info = extern struct {
-    default_volume: mm_byte align(2) = @import("std").mem.zeroes(mm_byte),
-    panning: mm_byte = @import("std").mem.zeroes(mm_byte),
-    frequency: mm_hword = @import("std").mem.zeroes(mm_hword),
-    av_type: mm_byte = @import("std").mem.zeroes(mm_byte),
-    av_depth: mm_byte = @import("std").mem.zeroes(mm_byte),
-    av_speed: mm_byte = @import("std").mem.zeroes(mm_byte),
-    global_volume: mm_byte = @import("std").mem.zeroes(mm_byte),
-    av_rate: mm_hword = @import("std").mem.zeroes(mm_hword),
-    msl_id: mm_hword = @import("std").mem.zeroes(mm_hword),
+    default_volume: mm.Byte align(2) = @import("std").mem.zeroes(mm.Byte),
+    panning: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    frequency: mm.Hword = @import("std").mem.zeroes(mm.Hword),
+    av_type: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    av_depth: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    av_speed: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    global_volume: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    av_rate: mm.Hword = @import("std").mem.zeroes(mm.Hword),
+    msl_id: mm.Hword = @import("std").mem.zeroes(mm.Hword),
     pub fn data(self: anytype) @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), u8) {
         const Intermediate = @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), u8);
         const ReturnType = @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), u8);
@@ -711,7 +670,7 @@ pub const struct_tmm_mas_sample_info = extern struct {
 };
 pub const mm_mas_sample_info = struct_tmm_mas_sample_info;
 pub const struct_tmm_mas_pattern = extern struct {
-    row_count: mm_byte align(1) = @import("std").mem.zeroes(mm_byte),
+    row_count: mm.Byte align(1) = @import("std").mem.zeroes(mm.Byte),
     pub fn pattern_data(self: anytype) @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), u8) {
         const Intermediate = @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), u8);
         const ReturnType = @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), u8);
@@ -720,11 +679,11 @@ pub const struct_tmm_mas_pattern = extern struct {
 };
 pub const mm_mas_pattern = struct_tmm_mas_pattern;
 pub const struct_tmm_mas_gba_sample = extern struct {
-    length: mm_word align(4) = @import("std").mem.zeroes(mm_word),
-    loop_length: mm_word = @import("std").mem.zeroes(mm_word),
-    format: mm_byte = @import("std").mem.zeroes(mm_byte),
-    reserved: mm_byte = @import("std").mem.zeroes(mm_byte),
-    default_frequency: mm_hword = @import("std").mem.zeroes(mm_hword),
+    length: mm.Word align(4) = @import("std").mem.zeroes(mm.Word),
+    loop_length: mm.Word = @import("std").mem.zeroes(mm.Word),
+    format: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    reserved: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    default_frequency: mm.Hword = @import("std").mem.zeroes(mm.Hword),
     pub fn data(self: anytype) @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), u8) {
         const Intermediate = @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), u8);
         const ReturnType = @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), u8);
@@ -733,175 +692,144 @@ pub const struct_tmm_mas_gba_sample = extern struct {
 };
 pub const mm_mas_gba_sample = struct_tmm_mas_gba_sample;
 const union_unnamed_8 = extern union {
-    loop_length: mm_word,
-    length: mm_word,
+    loop_length: mm.Word,
+    length: mm.Word,
 };
 pub const struct_tmm_mas_ds_sample = extern struct {
-    loop_start: mm_word align(4) = @import("std").mem.zeroes(mm_word),
+    loop_start: mm.Word align(4) = @import("std").mem.zeroes(mm.Word),
     unnamed_0: union_unnamed_8 = @import("std").mem.zeroes(union_unnamed_8),
-    format: mm_byte = @import("std").mem.zeroes(mm_byte),
-    repeat_mode: mm_byte = @import("std").mem.zeroes(mm_byte),
-    default_frequency: mm_hword = @import("std").mem.zeroes(mm_hword),
-    point: mm_word = @import("std").mem.zeroes(mm_word),
+    format: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    repeat_mode: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    default_frequency: mm.Hword = @import("std").mem.zeroes(mm.Hword),
+    point: mm.Word = @import("std").mem.zeroes(mm.Word),
     pub fn data(self: anytype) @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), u8) {
         const Intermediate = @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), u8);
         const ReturnType = @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), u8);
         return @as(ReturnType, @ptrCast(@alignCast(@as(Intermediate, @ptrCast(self)) + 16)));
     }
 };
-pub const mm_mas_ds_sample = struct_tmm_mas_ds_sample;
-pub const struct_tmslheaddata = extern struct {
-    sampleCount: mm_hword = @import("std").mem.zeroes(mm_hword),
-    moduleCount: mm_hword = @import("std").mem.zeroes(mm_hword),
-    reserved: [2]mm_word = @import("std").mem.zeroes([2]mm_word),
-};
-pub const msl_head_data = struct_tmslheaddata;
-pub const struct_tmslhead = extern struct {
-    head_data: msl_head_data align(4) = @import("std").mem.zeroes(msl_head_data),
-    pub fn sampleTable(self: anytype) @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), ?*anyopaque) {
-        const Intermediate = @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), u8);
-        const ReturnType = @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), ?*anyopaque);
-        return @as(ReturnType, @ptrCast(@alignCast(@as(Intermediate, @ptrCast(self)) + 12)));
-    }
-};
-pub const msl_head = struct_tmslhead;
-pub extern var mp_solution: [*c]msl_head;
-pub extern fn __assert([*c]const u8, c_int, [*c]const u8) noreturn;
-pub extern fn __assert_func([*c]const u8, c_int, [*c]const u8, [*c]const u8) noreturn;
+
 pub const mm_module_channel = extern struct {
-    alloc: mm_byte = @import("std").mem.zeroes(mm_byte),
-    cflags: mm_byte = @import("std").mem.zeroes(mm_byte),
-    panning: mm_byte = @import("std").mem.zeroes(mm_byte),
-    volcmd: mm_byte = @import("std").mem.zeroes(mm_byte),
-    effect: mm_byte = @import("std").mem.zeroes(mm_byte),
-    param: mm_byte = @import("std").mem.zeroes(mm_byte),
-    fxmem: mm_byte = @import("std").mem.zeroes(mm_byte),
-    note: mm_byte = @import("std").mem.zeroes(mm_byte),
-    flags: mm_byte = @import("std").mem.zeroes(mm_byte),
-    inst: mm_byte = @import("std").mem.zeroes(mm_byte),
-    pflags: mm_byte = @import("std").mem.zeroes(mm_byte),
-    vibdep: mm_byte = @import("std").mem.zeroes(mm_byte),
-    vibspd: mm_byte = @import("std").mem.zeroes(mm_byte),
-    vibpos: mm_byte = @import("std").mem.zeroes(mm_byte),
-    volume: mm_byte = @import("std").mem.zeroes(mm_byte),
-    cvolume: mm_byte = @import("std").mem.zeroes(mm_byte),
-    period: mm_word = @import("std").mem.zeroes(mm_word),
-    bflags: mm_hword = @import("std").mem.zeroes(mm_hword),
-    pnoter: mm_byte = @import("std").mem.zeroes(mm_byte),
-    memory: [15]mm_byte = @import("std").mem.zeroes([15]mm_byte),
-    padding: [2]mm_byte = @import("std").mem.zeroes([2]mm_byte),
+    alloc: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    cflags: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    panning: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    volcmd: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    effect: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    param: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    fxmem: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    note: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    flags: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    inst: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    pflags: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    vibdep: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    vibspd: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    vibpos: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    volume: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    cvolume: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    period: mm.Word = @import("std").mem.zeroes(mm.Word),
+    bflags: mm.Hword = @import("std").mem.zeroes(mm.Hword),
+    pnoter: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    memory: [15]mm.Byte = @import("std").mem.zeroes([15]mm.Byte),
+    padding: [2]mm.Byte = @import("std").mem.zeroes([2]mm.Byte),
 };
 // /opt/devkitpro/devkitARM/arm-none-eabi/include/assert.h:45:24: warning: ignoring StaticAssert declaration
 pub const mm_active_channel = extern struct {
-    period: mm_word = @import("std").mem.zeroes(mm_word),
-    fade: mm_hword = @import("std").mem.zeroes(mm_hword),
-    envc_vol: mm_hword = @import("std").mem.zeroes(mm_hword),
-    envc_pan: mm_hword = @import("std").mem.zeroes(mm_hword),
-    envc_pic: mm_hword = @import("std").mem.zeroes(mm_hword),
-    avib_dep: mm_hword = @import("std").mem.zeroes(mm_hword),
-    avib_pos: mm_hword = @import("std").mem.zeroes(mm_hword),
-    fvol: mm_byte = @import("std").mem.zeroes(mm_byte),
-    type: mm_byte = @import("std").mem.zeroes(mm_byte),
-    inst: mm_byte = @import("std").mem.zeroes(mm_byte),
-    panning: mm_byte = @import("std").mem.zeroes(mm_byte),
-    volume: mm_byte = @import("std").mem.zeroes(mm_byte),
-    sample: mm_byte = @import("std").mem.zeroes(mm_byte),
-    parent: mm_byte = @import("std").mem.zeroes(mm_byte),
-    flags: mm_byte = @import("std").mem.zeroes(mm_byte),
-    envn_vol: mm_byte = @import("std").mem.zeroes(mm_byte),
-    envn_pan: mm_byte = @import("std").mem.zeroes(mm_byte),
-    envn_pic: mm_byte = @import("std").mem.zeroes(mm_byte),
-    sfx: mm_byte = @import("std").mem.zeroes(mm_byte),
+    period: mm.Word = @import("std").mem.zeroes(mm.Word),
+    fade: mm.Hword = @import("std").mem.zeroes(mm.Hword),
+    envc_vol: mm.Hword = @import("std").mem.zeroes(mm.Hword),
+    envc_pan: mm.Hword = @import("std").mem.zeroes(mm.Hword),
+    envc_pic: mm.Hword = @import("std").mem.zeroes(mm.Hword),
+    avib_dep: mm.Hword = @import("std").mem.zeroes(mm.Hword),
+    avib_pos: mm.Hword = @import("std").mem.zeroes(mm.Hword),
+    fvol: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    type: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    inst: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    panning: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    volume: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    sample: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    parent: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    flags: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    envn_vol: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    envn_pan: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    envn_pic: mm.Byte = @import("std").mem.zeroes(mm.Byte),
+    sfx: mm.Byte = @import("std").mem.zeroes(mm.Byte),
 };
-// /opt/devkitpro/devkitARM/arm-none-eabi/include/assert.h:45:24: warning: ignoring StaticAssert declaration
-pub const mm_mixer_channel = extern struct {
-    src: usize = @import("std").mem.zeroes(usize),
-    read: mm_word = @import("std").mem.zeroes(mm_word),
-    vol: mm_byte = @import("std").mem.zeroes(mm_byte),
-    pan: mm_byte = @import("std").mem.zeroes(mm_byte),
-    unused_0: mm_byte = @import("std").mem.zeroes(mm_byte),
-    unused_1: mm_byte = @import("std").mem.zeroes(mm_byte),
-    freq: mm_word = @import("std").mem.zeroes(mm_word),
-};
-// /opt/devkitpro/devkitARM/arm-none-eabi/include/assert.h:45:24: warning: ignoring StaticAssert declaration
 
 // /opt/devkitpro/devkitARM/arm-none-eabi/include/assert.h:45:24: warning: ignoring StaticAssert declaration
-pub extern var mm_mix_channels: [*c]mm_mixer_channel;
-pub extern var mm_mixlen: mm_word;
-pub extern var mm_bpmdv: mm_word;
-pub export fn mmMixerInit(arg_setup: [*c]mm_gba_system) void {
-    var setup = arg_setup;
-    _ = &setup;
+pub extern var mm_mix_channels: [*c]mm.MixerChannel;
+pub extern var mm_bpmdv: mm.Word;
+pub fn mmMixerInit(arg_setup: *mm_gba.GBASystem) void {
+    const setup = arg_setup;
     mm_mixch_count = setup.*.mix_channel_count;
-    mm_mix_channels = @as([*c]mm_mixer_channel, @ptrCast(@alignCast(setup.*.mixing_channels)));
+    mm_mix_channels = @as([*c]mm.MixerChannel, @ptrCast(@alignCast(setup.*.mixing_channels)));
     mm_mixch_end = &mm_mix_channels[mm_mixch_count];
     mm_mixbuffer = setup.*.mixing_memory;
     mm_wavebuffer = setup.*.wave_memory;
     mp_writepos = mm_wavebuffer;
-    var mode: mm_word = @as(mm_word, @bitCast(setup.*.mixing_mode));
+    var mode: mm.Word = @as(mm.Word, @intFromEnum(setup.*.mixing_mode));
     _ = &mode;
     const mp_mixing_lengths = struct {
-        const static: [8]mm_hword = [8]mm_hword{
+        const static: [8]mm.Hword = [8]mm.Hword{
             136,
             176,
             224,
-            @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 264))))),
-            @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 304))))),
-            @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 352))))),
-            @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 448))))),
-            @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 528))))),
+            @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 264))))),
+            @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 304))))),
+            @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 352))))),
+            @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 448))))),
+            @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 528))))),
         };
     };
     _ = &mp_mixing_lengths;
-    mm_mixlen = @as(mm_word, @bitCast(@as(c_uint, mp_mixing_lengths.static[mode])));
+    mm_gba.mm_mixlen = @as(mm.Word, @bitCast(@as(c_uint, mp_mixing_lengths.static[mode])));
     const mp_rate_scales = struct {
-        const static: [8]mm_hword = [8]mm_hword{
-            @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 31812))))),
-            @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 24576))))),
-            @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 19310))))),
-            @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 16384))))),
-            @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 14228))))),
-            @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 12288))))),
-            @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 9655))))),
-            @as(mm_hword, @bitCast(@as(c_short, @truncate(@as(c_int, 8192))))),
+        const static: [8]mm.Hword = [8]mm.Hword{
+            @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 31812))))),
+            @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 24576))))),
+            @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 19310))))),
+            @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 16384))))),
+            @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 14228))))),
+            @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 12288))))),
+            @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 9655))))),
+            @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, 8192))))),
         };
     };
     _ = &mp_rate_scales;
-    mm_ratescale = @as(mm_word, @bitCast(@as(c_uint, mp_rate_scales.static[mode])));
+    mm_ratescale = @as(mm.Word, @bitCast(@as(c_uint, mp_rate_scales.static[mode])));
     const mp_timing_sheet = struct {
-        const static: [8]mm_hword = [8]mm_hword{
-            @as(mm_hword, @bitCast(@as(c_short, @truncate(-@as(c_int, 2066))))),
-            @as(mm_hword, @bitCast(@as(c_short, @truncate(-@as(c_int, 1596))))),
-            @as(mm_hword, @bitCast(@as(c_short, @truncate(-@as(c_int, 1254))))),
-            @as(mm_hword, @bitCast(@as(c_short, @truncate(-@as(c_int, 1064))))),
-            @as(mm_hword, @bitCast(@as(c_short, @truncate(-@as(c_int, 924))))),
-            @as(mm_hword, @bitCast(@as(c_short, @truncate(-@as(c_int, 798))))),
-            @as(mm_hword, @bitCast(@as(c_short, @truncate(-@as(c_int, 627))))),
-            @as(mm_hword, @bitCast(@as(c_short, @truncate(-@as(c_int, 532))))),
+        const static: [8]mm.Hword = [8]mm.Hword{
+            @as(mm.Hword, @bitCast(@as(c_short, @truncate(-@as(c_int, 2066))))),
+            @as(mm.Hword, @bitCast(@as(c_short, @truncate(-@as(c_int, 1596))))),
+            @as(mm.Hword, @bitCast(@as(c_short, @truncate(-@as(c_int, 1254))))),
+            @as(mm.Hword, @bitCast(@as(c_short, @truncate(-@as(c_int, 1064))))),
+            @as(mm.Hword, @bitCast(@as(c_short, @truncate(-@as(c_int, 924))))),
+            @as(mm.Hword, @bitCast(@as(c_short, @truncate(-@as(c_int, 798))))),
+            @as(mm.Hword, @bitCast(@as(c_short, @truncate(-@as(c_int, 627))))),
+            @as(mm.Hword, @bitCast(@as(c_short, @truncate(-@as(c_int, 532))))),
         };
     };
     _ = &mp_timing_sheet;
-    mm_timerfreq = @as(mm_word, @bitCast(@as(c_uint, mp_timing_sheet.static[mode])));
+    mm_timerfreq = @as(mm.Word, @bitCast(@as(c_uint, mp_timing_sheet.static[mode])));
     const mp_bpm_divisors = struct {
-        const static: [8]mm_word = [8]mm_word{
-            @as(mm_word, @bitCast(@as(c_int, 20302))),
-            @as(mm_word, @bitCast(@as(c_int, 26280))),
-            @as(mm_word, @bitCast(@as(c_int, 33447))),
-            @as(mm_word, @bitCast(@as(c_int, 39420))),
-            @as(mm_word, @bitCast(@as(c_int, 45393))),
-            @as(mm_word, @bitCast(@as(c_int, 52560))),
-            @as(mm_word, @bitCast(@as(c_int, 66895))),
-            @as(mm_word, @bitCast(@as(c_int, 78840))),
+        const static: [8]mm.Word = [8]mm.Word{
+            @as(mm.Word, @bitCast(@as(c_int, 20302))),
+            @as(mm.Word, @bitCast(@as(c_int, 26280))),
+            @as(mm.Word, @bitCast(@as(c_int, 33447))),
+            @as(mm.Word, @bitCast(@as(c_int, 39420))),
+            @as(mm.Word, @bitCast(@as(c_int, 45393))),
+            @as(mm.Word, @bitCast(@as(c_int, 52560))),
+            @as(mm.Word, @bitCast(@as(c_int, 66895))),
+            @as(mm.Word, @bitCast(@as(c_int, 78840))),
         };
     };
     _ = &mp_bpm_divisors;
     mm_bpmdv = mp_bpm_divisors.static[mode];
-    _ = memset(mm_wavebuffer, @as(c_int, 0), mm_mixlen *% @sizeOf(mm_word));
+    _ = memset(mm_wavebuffer, @as(c_int, 0), mm_gba.mm_mixlen *% @sizeOf(mm.Word));
     mp_mix_seg = 0;
-    var mix_ch: [*c]mm_mixer_channel = &mm_mix_channels[@as(c_uint, @intCast(@as(c_int, 0)))];
+    var mix_ch: [*c]mm.MixerChannel = &mm_mix_channels[@as(c_uint, @intCast(@as(c_int, 0)))];
     _ = &mix_ch;
     {
-        var i: mm_word = 0;
+        var i: mm.Word = 0;
         _ = &i;
         while (i < mm_mixch_count) : (i +%= 1) {
             mix_ch[i].src = MIXCH_GBA_SRC_STOPPED;
@@ -915,24 +843,23 @@ pub export fn mmMixerInit(arg_setup: [*c]mm_gba_system) void {
     @as([*c]volatile u16, @ptrFromInt(@as(c_int, 0x04000082))).* = 0; // REG_SOUNDCNT_H = 0
     @as([*c]volatile u16, @ptrFromInt(@as(c_int, 0x04000082))).* = 0x9A0C; // DIRECT A/B, timer0, full vol
     // Setup DMA sources (wavebuffer halves)
-    @as([*c]volatile u32, @ptrFromInt(@as(c_int, 0x040000BC))).* = @as(mm_word, @intCast(@intFromPtr(mm_wavebuffer))); // DMA1SAD
-    @as([*c]volatile u32, @ptrFromInt(@as(c_int, 0x040000C0))).* = @as(mm_word, @intCast(@intFromPtr(@as([*c]volatile u32, @ptrFromInt(@as(c_int, 0x040000A0)))))); // DMA1DAD -> FIFO A
+    @as([*c]volatile u32, @ptrFromInt(@as(c_int, 0x040000BC))).* = @as(mm.Word, @intCast(@intFromPtr(mm_wavebuffer))); // DMA1SAD
+    @as([*c]volatile u32, @ptrFromInt(@as(c_int, 0x040000C0))).* = @as(mm.Word, @intCast(@intFromPtr(@as([*c]volatile u32, @ptrFromInt(@as(c_int, 0x040000A0)))))); // DMA1DAD -> FIFO A
     @as([*c]volatile u32, @ptrFromInt(@as(c_int, 0x040000C4))).* = 0xB6000000; // DMA1CNT
-    @as([*c]volatile u32, @ptrFromInt(@as(c_int, 0x040000C8))).* = @as(mm_word, @intCast(@intFromPtr(mm_wavebuffer))) +% (mm_mixlen *% @as(mm_word, @bitCast(@as(c_int, 2)))); // DMA2SAD
-    @as([*c]volatile u32, @ptrFromInt(@as(c_int, 0x040000CC))).* = @as(mm_word, @intCast(@intFromPtr(@as([*c]volatile u32, @ptrFromInt(@as(c_int, 0x040000A4)))))); // DMA2DAD -> FIFO B
+    @as([*c]volatile u32, @ptrFromInt(@as(c_int, 0x040000C8))).* = @as(mm.Word, @intCast(@intFromPtr(mm_wavebuffer))) +% (mm_gba.mm_mixlen *% @as(mm.Word, @bitCast(@as(c_int, 2)))); // DMA2SAD
+    @as([*c]volatile u32, @ptrFromInt(@as(c_int, 0x040000CC))).* = @as(mm.Word, @intCast(@intFromPtr(@as([*c]volatile u32, @ptrFromInt(@as(c_int, 0x040000A4)))))); // DMA2DAD -> FIFO B
     @as([*c]volatile u32, @ptrFromInt(@as(c_int, 0x040000D0))).* = 0xB6000000; // DMA2CNT
     // Master sound enable (SOUNDCNT_X)
     @as([*c]volatile u16, @ptrFromInt(@as(c_int, 0x04000084))).* = 0x0080;
     // Enable sampling timer0 at mm_timerfreq
-    @as([*c]volatile u32, @ptrFromInt(@as(c_int, 0x04000100))).* = mm_timerfreq | @as(mm_word, @bitCast(@as(c_int, 128) << @intCast(16)));
+    @as([*c]volatile u32, @ptrFromInt(@as(c_int, 0x04000100))).* = mm_timerfreq | @as(mm.Word, @bitCast(@as(c_int, 128) << @intCast(16)));
     // No extra diagnostics here in C reference
 }
-pub extern fn mmMixerMix(samples_count: mm_word) void;
 // Expose the current mixer channel pointer so other modules can unify usage
-pub export fn mm_get_mix_channels_ptr() [*c]mm_mixer_channel {
+pub fn mm_get_mix_channels_ptr() [*c]mm.MixerChannel {
     return mm_mix_channels;
 }
-pub export fn mmMixerSetRead(arg_channel: c_int, arg_value: mm_word) void {
+pub export fn mmMixerSetRead(arg_channel: c_int, arg_value: mm.Word) void {
     var channel = arg_channel;
     _ = &channel;
     var value = arg_value;
@@ -946,23 +873,23 @@ pub export fn mmMixerSetRead(arg_channel: c_int, arg_value: mm_word) void {
         g_set_debug_budget -= 1;
     }
 }
-pub export fn mmMixerEnd() void {
+pub fn mmMixerEnd() void {
     @as([*c]volatile u16, @ptrFromInt(@as(c_int, 67108994))).* = 0;
     vblank_handler_enabled = @as(c_int, 0) != 0;
     @as([*c]volatile u32, @ptrFromInt(@as(c_int, 67109060))).* = 0;
     @as([*c]volatile u32, @ptrFromInt(@as(c_int, 67109072))).* = 0;
     @as([*c]volatile u32, @ptrFromInt(@as(c_int, 67109120))).* = 0;
 }
-pub export var mp_mix_seg: mm_byte = @import("std").mem.zeroes(mm_byte);
-pub export var mm_mixbuffer: mm_addr = @import("std").mem.zeroes(mm_addr);
-pub export var mm_ratescale: mm_word = @import("std").mem.zeroes(mm_word);
-pub export var mp_writepos: mm_addr = @import("std").mem.zeroes(mm_addr);
-pub var mm_wavebuffer: mm_addr = @import("std").mem.zeroes(mm_addr);
-pub var mm_mixch_count: mm_word = @import("std").mem.zeroes(mm_word);
-pub export var mm_mixch_end: [*c]mm_mixer_channel = @import("std").mem.zeroes([*c]mm_mixer_channel);
-pub var mm_timerfreq: mm_word = @import("std").mem.zeroes(mm_word);
+pub export var mp_mix_seg: mm.Byte = @import("std").mem.zeroes(mm.Byte);
+pub export var mm_mixbuffer: mm.Addr = @import("std").mem.zeroes(mm.Addr);
+pub export var mm_ratescale: mm.Word = @import("std").mem.zeroes(mm.Word);
+pub export var mp_writepos: mm.Addr = @import("std").mem.zeroes(mm.Addr);
+pub var mm_wavebuffer: mm.Addr = @import("std").mem.zeroes(mm.Addr);
+pub var mm_mixch_count: mm.Word = @import("std").mem.zeroes(mm.Word);
+pub export var mm_mixch_end: [*c]mm.MixerChannel = @import("std").mem.zeroes([*c]mm.MixerChannel);
+pub var mm_timerfreq: mm.Word = @import("std").mem.zeroes(mm.Word);
 pub var mm_vblank_function: mm_voidfunc = @import("std").mem.zeroes(mm_voidfunc);
-pub export fn mmMixerSetVolume(arg_channel: c_int, arg_volume: mm_word) void {
+pub export fn mmMixerSetVolume(arg_channel: c_int, arg_volume: mm.Word) void {
     var channel = arg_channel;
     _ = &channel;
     var volume = arg_volume;
@@ -970,13 +897,13 @@ pub export fn mmMixerSetVolume(arg_channel: c_int, arg_volume: mm_word) void {
     (blk: {
         const tmp = channel;
         if (tmp >= 0) break :blk mm_mix_channels + @as(usize, @intCast(tmp)) else break :blk mm_mix_channels - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-    }).*.vol = @as(mm_byte, @bitCast(@as(u8, @truncate(volume))));
+    }).*.vol = @as(mm.Byte, @bitCast(@as(u8, @truncate(volume))));
     if ((channel == 0 or channel == 1 or channel == 9) and g_set_debug_budget > 0) {
         @import("gba").debug.print("[SETVOL] ch={d} v={d}\n", .{ channel, volume }) catch {};
         g_set_debug_budget -= 1;
     }
 }
-pub export fn mmMixerSetPan(arg_channel: c_int, arg_panning: mm_byte) void {
+pub export fn mmMixerSetPan(arg_channel: c_int, arg_panning: mm.Byte) void {
     var channel = arg_channel;
     _ = &channel;
     var panning = arg_panning;
@@ -990,12 +917,12 @@ pub export fn mmMixerSetPan(arg_channel: c_int, arg_panning: mm_byte) void {
         g_set_debug_budget -= 1;
     }
 }
-pub export fn mmMixerMulFreq(arg_channel: c_int, arg_factor: mm_word) void {
+pub export fn mmMixerMulFreq(arg_channel: c_int, arg_factor: mm.Word) void {
     var channel = arg_channel;
     _ = &channel;
     var factor = arg_factor;
     _ = &factor;
-    var freq: mm_word = (blk: {
+    var freq: mm.Word = (blk: {
         const tmp = channel;
         if (tmp >= 0) break :blk mm_mix_channels + @as(usize, @intCast(tmp)) else break :blk mm_mix_channels - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
     }).*.freq;
@@ -1018,7 +945,7 @@ pub export fn mmMixerStopChannel(arg_channel: c_int) void {
         if (tmp >= 0) break :blk mm_mix_channels + @as(usize, @intCast(tmp)) else break :blk mm_mix_channels - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
     }).*.src = MIXCH_GBA_SRC_STOPPED;
 }
-pub export fn mmMixerSetFreq(arg_channel: c_int, arg_rate: mm_word) void {
+pub export fn mmMixerSetFreq(arg_channel: c_int, arg_rate: mm.Word) void {
     var channel = arg_channel;
     _ = &channel;
     var rate = arg_rate;
@@ -2283,68 +2210,3 @@ pub const ACHN_FOREGROUND = @as(c_int, 3);
 pub const ACHN_CUSTOM = @as(c_int, 4);
 pub const MIXCH_GBA_SRC_STOPPED = @as(c_uint, 1) << ((@import("std").zig.c_translation.sizeof(usize) * @as(c_int, 8)) - @as(c_int, 1));
 pub const MP_SAMPFRAC = @as(c_int, 12);
-pub const REG_SOUNDCNT_L = @compileError("unable to translate C expr: unexpected token 'volatile'");
-// maxmod/source/gba/mixer.h:13:9
-pub const REG_SOUNDCNT_H = @compileError("unable to translate C expr: unexpected token 'volatile'");
-// maxmod/source/gba/mixer.h:14:9
-pub const REG_SOUNDCNT_X = @compileError("unable to translate C expr: unexpected token 'volatile'");
-// maxmod/source/gba/mixer.h:15:9
-pub const REG_TM0CNT = @compileError("unable to translate C expr: unexpected token 'volatile'");
-// maxmod/source/gba/mixer.h:17:9
-pub const REG_DMA1SAD = @compileError("unable to translate C expr: unexpected token 'volatile'");
-// maxmod/source/gba/mixer.h:19:9
-pub const REG_DMA1DAD = @compileError("unable to translate C expr: unexpected token 'volatile'");
-// maxmod/source/gba/mixer.h:20:9
-pub const REG_DMA1CNT = @compileError("unable to translate C expr: unexpected token 'volatile'");
-// maxmod/source/gba/mixer.h:21:9
-pub const REG_DMA1CNT_H = @compileError("unable to translate C expr: unexpected token 'volatile'");
-// maxmod/source/gba/mixer.h:22:9
-pub const REG_DMA2SAD = @compileError("unable to translate C expr: unexpected token 'volatile'");
-// maxmod/source/gba/mixer.h:24:9
-pub const REG_DMA2DAD = @compileError("unable to translate C expr: unexpected token 'volatile'");
-// maxmod/source/gba/mixer.h:25:9
-pub const REG_DMA2CNT = @compileError("unable to translate C expr: unexpected token 'volatile'");
-// maxmod/source/gba/mixer.h:26:9
-pub const REG_DMA2CNT_H = @compileError("unable to translate C expr: unexpected token 'volatile'");
-// maxmod/source/gba/mixer.h:27:9
-pub const REG_DMA3SAD = @compileError("unable to translate C expr: unexpected token 'volatile'");
-// maxmod/source/gba/mixer.h:29:9
-pub const REG_DMA3DAD = @compileError("unable to translate C expr: unexpected token 'volatile'");
-// maxmod/source/gba/mixer.h:30:9
-pub const REG_DMA3CNT = @compileError("unable to translate C expr: unexpected token 'volatile'");
-// maxmod/source/gba/mixer.h:31:9
-pub const REG_SGFIFOA = @compileError("unable to translate C expr: unexpected token 'volatile'");
-// maxmod/source/gba/mixer.h:33:9
-pub const REG_SGFIFOB = @compileError("unable to translate C expr: unexpected token 'volatile'");
-// maxmod/source/gba/mixer.h:34:9
-pub const MMDBG = @compileError("unable to translate C expr: expected ')' instead got '...'");
-// /Users/braheezy/personal/gba/maxmod-zig/maxmod/source/gba/mixer.c:29:9
-pub const __lock_t = struct___lock_t;
-pub const __sbuf = struct___sbuf;
-pub const __sFILE = struct___sFILE;
-pub const __locale_t = struct___locale_t;
-pub const _Bigint = struct__Bigint;
-pub const __tm = struct___tm;
-pub const _rand48 = struct__rand48;
-pub const _reent = struct__reent;
-pub const _on_exit_args = struct__on_exit_args;
-pub const _atexit = struct__atexit;
-pub const _glue = struct__glue;
-pub const mmreverbcfg = struct_mmreverbcfg;
-pub const t_mmdssample = struct_t_mmdssample;
-pub const t_mmsoundeffect = struct_t_mmsoundeffect;
-pub const t_mmgbasystem = struct_t_mmgbasystem;
-pub const t_mmdssystem = struct_t_mmdssystem;
-pub const t_mmstream = struct_t_mmstream;
-pub const t_mmstreamdata = struct_t_mmstreamdata;
-pub const tmm_voice = struct_tmm_voice;
-pub const tmm_mas_prefix = struct_tmm_mas_prefix;
-pub const tmm_mas_head = struct_tmm_mas_head;
-pub const tmm_mas_instrument = struct_tmm_mas_instrument;
-pub const tmm_mas_envelope = struct_tmm_mas_envelope;
-pub const tmm_mas_sample_info = struct_tmm_mas_sample_info;
-pub const tmm_mas_pattern = struct_tmm_mas_pattern;
-pub const tmm_mas_gba_sample = struct_tmm_mas_gba_sample;
-pub const tmm_mas_ds_sample = struct_tmm_mas_ds_sample;
-pub const tmslheaddata = struct_tmslheaddata;
-pub const tmslhead = struct_tmslhead;

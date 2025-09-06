@@ -27,7 +27,7 @@ export fn main() void {
     // Register Maxmod VBlank handler and enable VBlank IRQ
     _ = gba.interrupt.add(.vblank, vblank_isr);
 
-    mm_gba.mmInitDefault(@ptrCast(@constCast(&bank_data[0])), 32) catch |e| {
+    mm_gba.initDefault(@ptrCast(@constCast(&bank_data[0])), 32) catch |e| {
         gba.debug.print("Failed to initialize Maxmod: {any}\n", .{@errorName(e)}) catch {};
         unreachable;
     };
@@ -36,7 +36,7 @@ export fn main() void {
 
     while (true) {
         // Mix and service VBlank each frame
-        mas.mmFrame();
+        mm_gba.frame();
 
         // Let IRQ call mmVBlank() and wait for VBlank
         gba.display.vSync();
