@@ -27,7 +27,10 @@ export fn main() void {
     // Register Maxmod VBlank handler and enable VBlank IRQ
     _ = gba.interrupt.add(.vblank, vblank_isr);
 
-    _ = mm_gba.mmInitDefault(@ptrCast(@constCast(&bank_data[0])), 32);
+    mm_gba.mmInitDefault(@ptrCast(@constCast(&bank_data[0])), 32) catch |e| {
+        gba.debug.print("Failed to initialize Maxmod: {any}\n", .{@errorName(e)}) catch {};
+        unreachable;
+    };
 
     mas.mmStart(0, 0);
 
