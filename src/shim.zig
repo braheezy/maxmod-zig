@@ -10,6 +10,19 @@ pub extern fn mmMixerMix(samples_count: mm.Word) void;
 pub extern fn memset(dst: [*]u8, c: c_int, n: usize) [*]u8;
 pub const MIXCH_GBA_SRC_STOPPED = 1 << ((@sizeOf(usize) * 8) - 1);
 
+pub const mm_mas_gba_sample = extern struct {
+    length: mm.Word align(4) = 0,
+    loop_length: mm.Word = 0,
+    format: mm.Byte = 0,
+    reserved: mm.Byte = 0,
+    default_frequency: mm.Hword = 0,
+    pub fn data(self: anytype) @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), u8) {
+        const Intermediate = @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), u8);
+        const ReturnType = @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), u8);
+        return @as(ReturnType, @ptrCast(@alignCast(@as(Intermediate, @ptrCast(self)) + 12)));
+    }
+};
+
 // Very simple bump allocator for tiny needs (calloc/free minimal)
 var heap: [4096]u8 = undefined;
 var heap_off: usize = 0;
@@ -32,28 +45,10 @@ pub const LayerType = enum {
     jingle,
 };
 pub var mpp_clayer: LayerType = .main;
-pub export var mm_schannels: [4]mm.ModuleChannel = .{ .{}, .{}, .{}, .{} };
 
 // Explicit setter so other modules set the same global symbol
 pub fn mmShimSetChannelMask(mask: u32) callconv(.C) void {
     mm_ch_mask = mask;
-}
-
-pub export fn mpp_Update_ACHN_notest(layer: [*c]mm.LayerInfo, act_ch: [*c]mm.ActiveChannel, period: mm.Word, ch: mm.Word) callconv(.c) mm.Word {
-    // Match C ordering exactly:
-    // 1) Envelopes -> updated period/afv/fade (instrument must be valid)
-    // 2) Auto vibrato -> updated period (sample must be valid or skip)
-    // 3) Update/bind mixer (on START)
-    // 4) Set pitch + volume
-    // 5) Disable/panning
-
-    var new_period: mm.Word = period;
-    new_period = mas.mpp_Update_ACHN_notest_envelopes(layer, act_ch, new_period);
-    new_period = mas.mpp_Update_ACHN_notest_auto_vibrato(layer, act_ch, new_period);
-    const mix_ch: [*c]mm.MixerChannel = mas.mpp_Update_ACHN_notest_update_mix(layer, act_ch, ch);
-    const clipped_vol: mm.Word = mas.mpp_Update_ACHN_notest_set_pitch_volume(layer, act_ch, new_period, mix_ch);
-    mas.mpp_Update_ACHN_notest_disable_and_panning(clipped_vol, act_ch, mix_ch);
-    return new_period;
 }
 
 // Port of mpp_Update_ACHN_notest_disable_and_panning (GBA path)
@@ -111,7 +106,7 @@ pub export fn mpp_Update_ACHN_notest_update_mix(layer: [*c]mm.LayerInfo, act_ch:
     const sample: [*c]mas.SampleInfo = mas.mpp_SamplePointer(layer, @as(mm.Word, @intCast(act_ch.*.sample)));
     // Bind from the sample's platform header regardless of MSL; the MAS writer
     // ensures data() points at the correct header for GBA.
-    const gba_sample: *mas.mm_mas_gba_sample = @ptrCast(@alignCast(sample.*.data()));
+    const gba_sample: *mm_mas_gba_sample = @ptrCast(@alignCast(sample.*.data()));
     mix_ch.*.src = @intFromPtr(gba_sample.data());
     // Optional: uncomment for verbose bind logs
     // gba.debug.print("[BIND] ch={d} id={d} src={x} def_freq={d} len={d}\n", .{ channel, sample.*.msl_id, mix_ch.*.src, gba_sample.default_frequency, gba_sample.length }) catch unreachable;

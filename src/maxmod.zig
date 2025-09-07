@@ -7,6 +7,7 @@ pub const shim = @import("shim.zig");
 pub const Word = u32;
 pub const Hword = u16;
 pub const Sword = i32;
+pub const Shword = i16;
 pub const Byte = u8;
 pub const Sbyte = i8;
 pub const Sfxhand = u16;
