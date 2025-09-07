@@ -10,7 +10,7 @@ export var header linksection(".gbaheader") = gba.initHeader("XMPRT", "XMPT", "0
 var bank_data: []const u8 = @embedFile("soundbank.bin");
 
 fn vblank_isr() void {
-    mixer.mmVBlank();
+    mixer.vBlank();
 }
 
 export fn main() void {
@@ -27,15 +27,18 @@ export fn main() void {
     // Register Maxmod VBlank handler and enable VBlank IRQ
     _ = gba.interrupt.add(.vblank, vblank_isr);
 
-    _ = mm_gba.mmInitDefault(@ptrCast(@constCast(&bank_data[0])), 32);
+    mm_gba.initDefault(@ptrCast(@constCast(&bank_data[0])), 32) catch |e| {
+        gba.debug.print("Failed to initialize Maxmod: {any}\n", .{@errorName(e)}) catch {};
+        unreachable;
+    };
 
     mas.mmStart(0, 0);
 
     while (true) {
         // Mix and service VBlank each frame
-        mas.mmFrame();
+        mm_gba.frame();
 
-        // Let IRQ call mmVBlank() and wait for VBlank
+        // Let IRQ call mixer.vBlank() and wait for VBlank
         gba.display.vSync();
     }
 }
