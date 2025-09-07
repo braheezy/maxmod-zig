@@ -13,6 +13,10 @@ inline fn debugPrint(comptime fmt: []const u8, args: anytype) void {
     }
 }
 
+pub export var mm_ch_mask: u32 = 0;
+pub extern fn mmMixerMix(samples_count: mm.Word) void;
+pub export var mm_mixlen: mm.Word = 0;
+
 pub var layer_main: mm.LayerInfo = .{};
 pub var layer_p: [*c]mm.LayerInfo = @ptrFromInt(0);
 pub var mpp_channels: [*c]mm.ModuleChannel = @ptrFromInt(0);
@@ -74,7 +78,7 @@ pub fn initDefault(soundbank: mm.Addr, number_of_channels: mm.Word) !void {
         debugPrint("[initDefault] init failed\n", .{});
         return error.FailedToInitialize;
     }
-    debugPrint("[initDefault] done shim.mm_mixlen={d}\n", .{shim.mm_mixlen});
+    debugPrint("[initDefault] done mm_mixlen={d}\n", .{mm_mixlen});
 }
 pub fn init(setup: *GBASystem) bool {
     bank_base = @ptrCast(@alignCast(setup.*.soundbank));
@@ -94,13 +98,13 @@ pub fn init(setup: *GBASystem) bool {
         mixer.mm_mix_channels = mix_ptr;
     }
     // Log parity with C reference
-    debugPrint("[init] init done, mm_num_mch={d} mm_num_ach={d} shim.mm_mixlen={d}\n", .{ num_mch, num_ach, shim.mm_mixlen });
+    debugPrint("[init] init done, mm_num_mch={d} mm_num_ach={d} mm_mixlen={d}\n", .{ num_mch, num_ach, mm_mixlen });
     // Build channel mask safely for up to 32 channels
     // Avoid undefined shift when mm_num_ach == 32 on 32-bit types
     // Match C: mm_ch_mask = (1U << mm_num_ach) - 1; (32 -> 0xFFFF_FFFF)
-    shim.mm_ch_mask = if (num_ach >= 32) 0xFFFF_FFFF else ((@as(u32, 1) << @intCast(num_ach)) - 1);
+    mm_ch_mask = if (num_ach >= 32) 0xFFFF_FFFF else ((@as(u32, 1) << @intCast(num_ach)) - 1);
     // Propagate to the shared shim symbol (same global)
-    shim.mmShimSetChannelMask(shim.mm_ch_mask);
+    setChannelMask(mm_ch_mask);
     mas.mmSetModuleVolume(1024);
     mas.mmSetJingleVolume(1024);
     sfx.setEffectsVolume(1024);
@@ -114,7 +118,6 @@ pub fn end() bool {
     initialized = false;
     mixer.mmMixerEnd();
     if (mm_init_default_buffer != null) {
-        shim.free(mm_init_default_buffer);
         mm_init_default_buffer = @as(?*anyopaque, @ptrFromInt(0));
     }
     return true;
@@ -127,14 +130,14 @@ pub fn frame() void {
 
     mpp_channels = pchannels;
     mpp_nchannels = @as(mm.Byte, @truncate(num_mch));
-    shim.mpp_clayer = .main;
+    mas.mpp_clayer = .main;
     layer_p = &layer_main;
     if (@as(c_int, @bitCast(@as(c_uint, layer_p.*.isplaying))) == @as(c_int, 0)) {
-        debugPrint("[mmFrame] not playing, mixing {d} (valid={d}) [STOPPING PLAYBACK]\n", .{ shim.mm_mixlen, @as(c_int, @intCast(layer_p.*.valid)) });
-        shim.mmMixerMix(shim.mm_mixlen);
+        debugPrint("[mmFrame] not playing, mixing {d} (valid={d}) [STOPPING PLAYBACK]\n", .{ mm_mixlen, @as(c_int, @intCast(layer_p.*.valid)) });
+        mmMixerMix(mm_mixlen);
         return;
     }
-    var remaining_len: c_int = @bitCast(shim.mm_mixlen);
+    var remaining_len: c_int = @bitCast(mm_mixlen);
     while (true) {
         var sample_num: c_int = @as(c_int, @bitCast(@as(c_uint, layer_p.*.tickrate)));
         const sampcount: c_int = @as(c_int, @bitCast(@as(c_uint, layer_p.*.tick_data.sampcount)));
@@ -150,7 +153,7 @@ pub fn frame() void {
         layer_p.*.tick_data.sampcount = 0;
         remaining_len -= sample_num;
         debugPrint("[MIX] num={d}\n", .{sample_num});
-        shim.mmMixerMix(@as(mm.Word, @bitCast(sample_num)));
+        mmMixerMix(@as(mm.Word, @bitCast(sample_num)));
         debugPrint("[mmFrame] calling mppProcessTick() pos={d} row={d} tick={d}\n", .{ @as(c_int, @intCast(layer_p.*.position)), @as(c_int, @intCast(layer_p.*.row)), @as(c_int, @intCast(layer_p.*.tick)) });
         mas.mppProcessTick();
         debugPrint("[mmFrame] after mppProcessTick() pos={d} row={d} tick={d} isplaying={d}\n", .{ @as(c_int, @intCast(layer_p.*.position)), @as(c_int, @intCast(layer_p.*.row)), @as(c_int, @intCast(layer_p.*.tick)), @as(c_int, @intCast(layer_p.*.isplaying)) });
@@ -166,7 +169,7 @@ pub fn frame() void {
     }
     layer_p.*.tick_data.sampcount +%= @as(mm.Hword, @bitCast(@as(c_short, @truncate(remaining_len))));
     debugPrint("[MIX] tail={d}\n", .{remaining_len});
-    shim.mmMixerMix(@as(mm.Word, @bitCast(remaining_len)));
+    mmMixerMix(@as(mm.Word, @bitCast(remaining_len)));
     // Bounded post-mix snapshot prints to verify mixer read advancement
     if (postmix_budget > 0 and mixer.mm_mix_channels != @as([*c]mm.MixerChannel, @ptrFromInt(0))) {
         const ch_base_ptr: [*c]mm.MixerChannel = mixer.mm_mix_channels;
@@ -193,7 +196,10 @@ pub fn getSampleCount() mm.Word {
 pub fn getModuleCount() mm.Word {
     return @intCast(module_count);
 }
-
+// Explicit setter so other modules set the same global symbol
+fn setChannelMask(mask: u32) void {
+    mm_ch_mask = mask;
+}
 inline fn readLe16(p: [*]const u8) u16 {
     const b0: u16 = p[0];
     const b1: u16 = p[1];

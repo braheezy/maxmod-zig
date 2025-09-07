@@ -203,7 +203,6 @@ pub fn effectCancelAll() void {
             };
         }) {
             if ((@as(c_int, @bitCast(@as(c_uint, act_ch.*.flags))) & (1 << 7)) == 0) continue;
-            _ = shim.memset(@as([*]u8, @ptrCast(act_ch)), 0, @sizeOf(mm.ActiveChannel));
             mix_ch.*.src = shim.MIXCH_GBA_SRC_STOPPED;
         }
     }

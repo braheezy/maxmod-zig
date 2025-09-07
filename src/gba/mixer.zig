@@ -61,7 +61,7 @@ pub fn init(setup: *mm_gba.GBASystem) void {
     const mp_mixing_lengths = struct {
         const static: [8]mm.Hword = [8]mm.Hword{ 136, 176, 224, 264, 304, 352, 448, 528 };
     };
-    shim.mm_mixlen = @as(mm.Word, @bitCast(@as(c_uint, mp_mixing_lengths.static[mode])));
+    mm_gba.mm_mixlen = @as(mm.Word, @bitCast(@as(c_uint, mp_mixing_lengths.static[mode])));
     const mp_rate_scales = struct {
         const static: [8]mm.Hword = [8]mm.Hword{ 31812, 24576, 19310, 16384, 14228, 12288, 9655, 8192 };
     };
@@ -83,7 +83,6 @@ pub fn init(setup: *mm_gba.GBASystem) void {
         const static: [8]mm.Word = [8]mm.Word{ 20302, 26280, 33447, 39420, 45393, 52560, 66895, 78840 };
     };
     mm_bpmdv = mp_bpm_divisors.static[mode];
-    _ = shim.memset(@ptrCast(wavebuffer), 0, shim.mm_mixlen *% @sizeOf(mm.Word));
     mp_mix_seg = 0;
     const mix_ch: [*c]mm.MixerChannel = &mm_mix_channels[0];
     {
@@ -103,7 +102,7 @@ pub fn init(setup: *mm_gba.GBASystem) void {
     @as([*c]volatile u32, @ptrFromInt(@as(c_int, 0x040000BC))).* = @as(mm.Word, @intCast(@intFromPtr(wavebuffer))); // DMA1SAD
     @as([*c]volatile u32, @ptrFromInt(@as(c_int, 0x040000C0))).* = @as(mm.Word, @intCast(@intFromPtr(@as([*c]volatile u32, @ptrFromInt(@as(c_int, 0x040000A0)))))); // DMA1DAD -> FIFO A
     @as([*c]volatile u32, @ptrFromInt(@as(c_int, 0x040000C4))).* = 0xB6000000; // DMA1CNT
-    @as([*c]volatile u32, @ptrFromInt(@as(c_int, 0x040000C8))).* = @as(mm.Word, @intCast(@intFromPtr(wavebuffer))) +% (shim.mm_mixlen *% 2); // DMA2SAD
+    @as([*c]volatile u32, @ptrFromInt(@as(c_int, 0x040000C8))).* = @as(mm.Word, @intCast(@intFromPtr(wavebuffer))) +% (mm_gba.mm_mixlen *% 2); // DMA2SAD
     @as([*c]volatile u32, @ptrFromInt(@as(c_int, 0x040000CC))).* = @as(mm.Word, @intCast(@intFromPtr(@as([*c]volatile u32, @ptrFromInt(@as(c_int, 0x040000A4)))))); // DMA2DAD -> FIFO B
     @as([*c]volatile u32, @ptrFromInt(@as(c_int, 0x040000D0))).* = 0xB6000000; // DMA2CNT
     // Master sound enable (SOUNDCNT_X)

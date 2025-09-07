@@ -20,6 +20,10 @@ inline fn debugPrint(comptime fmt: []const u8, args: anytype) void {
 // - Global budget to cap total prints per session
 var umix_debug_budget: c_int = 2000;
 
+pub const LayerType = enum {
+    main,
+    jingle,
+};
 pub extern var mm_ch_mask: mm.Word;
 
 var mmLayerSub: mm.LayerInfo = .{};
@@ -56,14 +60,15 @@ pub const mm_bool = u8;
 pub const MM_MAIN: c_int = 0;
 pub const MM_JINGLE: c_int = 1;
 pub const mm_layer_type = c_uint;
-pub const mm_callback = ?*const fn (mm.Word, shim.LayerType) mm.Word;
+pub const mm_callback = ?*const fn (mm.Word, LayerType) mm.Word;
 pub const MM_PLAY_LOOP: c_int = 0;
 pub const MM_PLAY_ONCE: c_int = 1;
 pub const mm_pmode = c_uint;
+pub var mpp_clayer: LayerType = .main;
 
 pub fn allocChannel() linksection(".iwram") mm.Word {
     var act_ch: [*c]mm.ActiveChannel = &mm_gba.achannels[0];
-    var bitmask: mm.Word = shim.mm_ch_mask;
+    var bitmask: mm.Word = mm_ch_mask;
     var best_channel: mm.Word = 255;
     var best_volume: mm.Word = 2147483648;
     {
@@ -93,7 +98,7 @@ pub fn allocChannel() linksection(".iwram") mm.Word {
             best_volume = fvol << 23;
         }
     }
-    debugPrint("[allocChannel] return={d} bitmask={x}\n", .{ @as(c_int, @intCast(best_channel)), @as(c_int, @intCast(shim.mm_ch_mask)) });
+    debugPrint("[allocChannel] return={d} bitmask={x}\n", .{ @as(c_int, @intCast(best_channel)), @as(c_int, @intCast(mm_ch_mask)) });
     return best_channel;
 }
 
@@ -120,7 +125,7 @@ pub fn mmResume() void {
     debugPrint("[mmResume] main.isplaying -> 1\n", .{});
 }
 pub fn mmStop() void {
-    shim.mpp_clayer = .main;
+    mpp_clayer = .main;
     mppStop();
 }
 pub fn mmGetPositionTick() mm.Word {
@@ -166,7 +171,7 @@ pub fn mmSetModuleTempo(tempo: mm.Word) void {
         local_tempo = min;
     }
     mm_mastertempo = local_tempo;
-    shim.mpp_clayer = .main;
+    mpp_clayer = .main;
     if (mm_gba.layer_main.bpm != 0) {
         mpp_setbpm(&mm_gba.layer_main, @as(mm.Word, mm_gba.layer_main.bpm));
     }
@@ -183,7 +188,7 @@ pub fn mmSetModulePitch(pitch: mm.Word) void {
     }
     mm_masterpitch = local_pitch;
 }
-pub fn mmPlayModule(address: usize, mode: mm.Word, layer: shim.LayerType) void {
+pub fn mmPlayModule(address: usize, mode: mm.Word, layer: LayerType) void {
     debugPrint("[mmPlayModule] address=0x{x} mode={d} layer={d}\n", .{ address, mode, @intFromEnum(layer) });
     // Read MAS header fields byte-wise to avoid layout drift
     const hptr: [*]const u8 = @ptrFromInt(address);
@@ -196,7 +201,7 @@ pub fn mmPlayModule(address: usize, mode: mm.Word, layer: shim.LayerType) void {
     const spd_b: u8 = hptr[6];
     const tempo_b: u8 = hptr[7];
     const header: [*c]mm.MasHead = @ptrFromInt(address);
-    shim.mpp_clayer = layer;
+    mpp_clayer = layer;
     var layer_info: [*c]mm.LayerInfo = undefined;
     var channels: [*c]mm.ModuleChannel = undefined;
     var num_ch: mm.Word = undefined;
@@ -300,7 +305,7 @@ pub fn mmJingleResume() void {
     debugPrint("[mmResume JINGLE] sub.isplaying -> 1\n", .{});
 }
 pub fn mmJingleStop() void {
-    shim.mpp_clayer = .jingle;
+    mpp_clayer = .jingle;
     mppStop();
 }
 pub fn mmJingleActive() mm_bool {
@@ -388,7 +393,7 @@ pub fn mppUpdateSub() void {
     if (@as(c_int, @bitCast(@as(c_uint, mmLayerSub.isplaying))) == @as(c_int, 0)) return;
     mm_gba.mpp_channels = @as([*c]mm.ModuleChannel, @ptrCast(@alignCast(&mm_schannels[@as(usize, @intCast(0))])));
     mm_gba.mpp_nchannels = 4;
-    shim.mpp_clayer = .jingle;
+    mpp_clayer = .jingle;
     mm_gba.layer_p = &mmLayerSub;
     const tickrate: mm.Word = @as(mm.Word, @bitCast(@as(c_uint, mmLayerSub.tickrate)));
     var tickfrac: mm.Word = @as(mm.Word, @bitCast(@as(c_uint, mmLayerSub.tick_data.tickfrac)));
@@ -408,7 +413,7 @@ pub fn mppProcessTick() linksection(".iwram") void {
         if (!ok) {
             mppStop();
             if (mmCallback != @as(mm_callback, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) {
-                _ = mmCallback.?(@as(mm.Word, @bitCast(@as(c_int, 44))), shim.mpp_clayer);
+                _ = mmCallback.?(@as(mm.Word, @bitCast(@as(c_int, 44))), mpp_clayer);
             }
             return;
         }
@@ -436,7 +441,7 @@ pub fn mppProcessTick() linksection(".iwram") void {
         _ = &ch;
         while (ch < mm_gba.num_ach) : (ch +%= 1) {
             if (@as(c_int, @bitCast(@as(c_uint, act_ch.*._type))) != @as(c_int, 0)) {
-                if (@intFromEnum(shim.mpp_clayer) == @as(c_uint, @bitCast((@as(c_int, @bitCast(@as(c_uint, act_ch.*.flags))) & ((@as(c_int, 1) << @intCast(6)) | (@as(c_int, 1) << @intCast(7)))) >> @intCast(6)))) {
+                if (@intFromEnum(mpp_clayer) == @as(c_uint, @bitCast((@as(c_int, @bitCast(@as(c_uint, act_ch.*.flags))) & ((@as(c_int, 1) << @intCast(6)) | (@as(c_int, 1) << @intCast(7)))) >> @intCast(6)))) {
                     mpp_vars.afvol = act_ch.*.volume;
                     mpp_vars.panplus = 0;
                     mpp_Update_ACHN(layer, act_ch, act_ch.*.period, ch);
@@ -1051,7 +1056,7 @@ pub fn mpp_Update_ACHN(layer: [*c]mm.LayerInfo, act_ch: [*c]mm.ActiveChannel, pe
 }
 pub fn mpp_setbpm(layer_info: [*c]mm.LayerInfo, bpm: mm.Word) void {
     layer_info.*.bpm = @as(mm.Byte, @bitCast(@as(u8, @truncate(bpm))));
-    if (shim.mpp_clayer == .main) {
+    if (mpp_clayer == .main) {
         const tempo: mm.Word = (mm_mastertempo *% bpm) >> @intCast(10);
         var rate: mm.Word = mixer.mm_bpmdv / tempo;
         rate &= @as(mm.Word, @bitCast(~@as(c_int, 1)));
@@ -1087,7 +1092,7 @@ pub fn mpp_suspend(layer: mm_layer_type) void {
         }
     }
 }
-pub fn mpps_backdoor(id: mm.Word, mode: mm_pmode, layer: shim.LayerType) void {
+pub fn mpps_backdoor(id: mm.Word, mode: mm_pmode, layer: LayerType) void {
     // Use exported module table pointer and read entry as LE32 to avoid alignment issues
     const moduleTable_ptr: [*]const u32 = @ptrCast(mm_gba.getModuleTable());
     const module_table_bytes: [*]const u8 = @ptrCast(moduleTable_ptr);
@@ -1105,7 +1110,6 @@ pub fn mpps_backdoor(id: mm.Word, mode: mm_pmode, layer: shim.LayerType) void {
     mmPlayModule(moduleAddress, @as(mm.Word, @bitCast(mode)), layer);
 }
 pub fn mpp_resetchannels(channels: [*c]mm.ModuleChannel, num_ch: mm.Word) void {
-    _ = shim.memset(@as([*]u8, @ptrCast(channels)), @as(c_int, 0), @sizeOf(mm.ModuleChannel) *% num_ch);
     {
         var i: mm.Word = 0;
         _ = &i;
@@ -1135,8 +1139,7 @@ pub fn mpp_resetchannels(channels: [*c]mm.ModuleChannel, num_ch: mm.Word) void {
                 break :blk_1 tmp;
             };
         }) {
-            if (@as(c_uint, @bitCast((@as(c_int, @bitCast(@as(c_uint, act_ch.*.flags))) & ((@as(c_int, 1) << @intCast(6)) | (@as(c_int, 1) << @intCast(7)))) >> @intCast(6))) != @intFromEnum(shim.mpp_clayer)) continue;
-            _ = shim.memset(@as([*]u8, @ptrCast(act_ch)), @as(c_int, 0), @sizeOf(mm.ActiveChannel));
+            if (@as(c_uint, @bitCast((@as(c_int, @bitCast(@as(c_uint, act_ch.*.flags))) & ((@as(c_int, 1) << @intCast(6)) | (@as(c_int, 1) << @intCast(7)))) >> @intCast(6))) != @intFromEnum(mpp_clayer)) continue;
             mix_ch.*.src = shim.MIXCH_GBA_SRC_STOPPED;
         }
     }
@@ -1145,7 +1148,7 @@ pub fn mppStop() void {
     var layer_info: [*c]mm.LayerInfo = undefined;
     var channels: [*c]mm.ModuleChannel = undefined;
     var num_ch: mm.Word = undefined;
-    if (shim.mpp_clayer == .jingle) {
+    if (mpp_clayer == .jingle) {
         layer_info = &mmLayerSub;
         channels = @as([*c]mm.ModuleChannel, @ptrCast(@alignCast(&mm_schannels[@as(usize, @intCast(0))])));
         num_ch = 4;
@@ -1154,7 +1157,7 @@ pub fn mppStop() void {
         channels = mm_gba.pchannels;
         num_ch = mm_gba.num_mch;
     }
-    debugPrint("[mppStop] layer={d} isplaying->0 valid->0\n", .{@intFromEnum(shim.mpp_clayer)});
+    debugPrint("[mppStop] layer={d} isplaying->0 valid->0\n", .{@intFromEnum(mpp_clayer)});
     layer_info.*.isplaying = 0;
     layer_info.*.valid = 0;
     mpp_resetchannels(channels, num_ch);
@@ -1175,7 +1178,7 @@ pub fn mpp_setposition(layer_info: [*c]mm.LayerInfo, position: mm.Word) void {
         if (@as(c_int, @bitCast(@as(c_uint, layer_info.*.mode))) == MM_PLAY_ONCE) {
             mppStop();
             if (mmCallback != @as(mm_callback, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) {
-                _ = mmCallback.?(@as(mm.Word, @bitCast(@as(c_int, 43))), shim.mpp_clayer);
+                _ = mmCallback.?(@as(mm.Word, @bitCast(@as(c_int, 43))), mpp_clayer);
             }
             return;
         } else {
@@ -1289,7 +1292,7 @@ pub fn mpph_FastForward(layer: [*c]mm.LayerInfo, rows_to_skip: mm.Word) void {
         if (!ok) {
             mppStop();
             if (mmCallback != @as(mm_callback, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) {
-                _ = mmCallback.?(@as(mm.Word, @bitCast(@as(c_int, 44))), shim.mpp_clayer);
+                _ = mmCallback.?(@as(mm.Word, @bitCast(@as(c_int, 44))), mpp_clayer);
             }
             break;
         }
@@ -1741,7 +1744,7 @@ pub fn mppex_PatternDelay(param: mm.Word, layer: [*c]mm.LayerInfo) void {
 pub fn mppex_SongMessage(param: mm.Word, layer: [*c]mm.LayerInfo) void {
     if (@as(c_int, @bitCast(@as(c_uint, layer.*.tick))) != @as(c_int, 0)) return;
     if (mmCallback != @as(mm_callback, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(0)))))) {
-        const layer_type = param & @as(mm.Word, 15) | (@as(mm.Word, @intFromEnum(shim.mpp_clayer)) << 4);
+        const layer_type = param & @as(mm.Word, 15) | (@as(mm.Word, @intFromEnum(mpp_clayer)) << 4);
         _ = mmCallback.?(@as(mm.Word, @bitCast(@as(c_int, 42))), @enumFromInt(layer_type));
     }
 }
@@ -2085,7 +2088,7 @@ pub fn mpp_Update_ACHN_notest_set_pitch_volume(layer: [*c]mm.LayerInfo, act_ch: 
         const sample_bytes: [*]const u8 = @ptrCast(sample);
         const c5speed: u16 = @as(u16, sample_bytes[2]) | (@as(u16, sample_bytes[3]) << 8);
         var value: mm.Word = (((period >> @intCast(8)) *% (@as(mm.Word, @intCast(@as(u32, c5speed))) << @intCast(2))) >> @intCast(8));
-        if (shim.mpp_clayer == .main) {
+        if (mpp_clayer == .main) {
             value = (value *% mm_masterpitch) >> @intCast(10);
         }
         // Store scaled mixer rate like C: (scale * value) >> 16
@@ -2099,7 +2102,7 @@ pub fn mpp_Update_ACHN_notest_set_pitch_volume(layer: [*c]mm.LayerInfo, act_ch: 
     } else {
         if (period != @as(mm.Word, @bitCast(@as(c_int, 0)))) {
             var value: mm.Word = @as(mm.Word, @bitCast(@as(c_int, 56750314))) / period;
-            if (shim.mpp_clayer == .main) {
+            if (mpp_clayer == .main) {
                 value = (value *% mm_masterpitch) >> @intCast(10);
             }
             const scale: mm.Word = @as(mm.Word, @bitCast(@divTrunc(@as(c_int, 4096) * @as(c_int, 65536), @as(c_int, 15768))));

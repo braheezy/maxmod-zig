@@ -299,7 +299,7 @@ fn channelStartACHN(module_channel: [*c]mm.ModuleChannel, active_channel: [*c]mm
     if (active_channel != null) {
         active_channel.*._type = 3;
         active_channel.*.flags &= @as(mm.Byte, @bitCast(@as(i8, @truncate(~((@as(c_int, 1) << @intCast(6)) | (@as(c_int, 1) << @intCast(7)))))));
-        if (shim.mpp_clayer == .jingle) {
+        if (mas.mpp_clayer == .jingle) {
             active_channel.*.flags |= @as(mm.Byte, @bitCast(@as(i8, @truncate(@as(c_int, 1) << @intCast(6)))));
         }
         active_channel.*.parent = channel_counter;
