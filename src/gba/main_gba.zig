@@ -83,8 +83,8 @@ pub fn initDefault(soundbank: mm.Addr, number_of_channels: mm.Word) !void {
 pub fn init(setup: *GBASystem) bool {
     bank_base = @ptrCast(@alignCast(setup.*.soundbank));
     parseBankPointers(bank_base);
-    // Point mp_solution to head_data base (without prefix) for any legacy users
-    mp_solution = @constCast(@ptrCast(@alignCast(bank_base + head_off)));
+    // Match C: mp_solution points to the start of the soundbank (including MAS prefix)
+    mp_solution = @constCast(@ptrCast(@alignCast(bank_base)));
     debugPrint("[init] mp_solution=0x{x} sampleCount={d} moduleCount={d}\n", .{ @intFromPtr(mp_solution), @as(c_int, @intCast(sample_count)), @as(c_int, @intCast(module_count)) });
     achannels = @as([*c]mm.ActiveChannel, @ptrCast(@alignCast(setup.*.active_channels)));
     pchannels = @as([*c]mm.ModuleChannel, @ptrCast(@alignCast(setup.*.module_channels)));
@@ -132,8 +132,10 @@ pub fn frame() void {
     mpp_nchannels = @as(mm.Byte, @truncate(num_mch));
     mas.mpp_clayer = .main;
     layer_p = &layer_main;
+    // One-time debug of isplaying to ensure tick path runs (limited prints)
     if (@as(c_int, @bitCast(@as(c_uint, layer_p.*.isplaying))) == @as(c_int, 0)) {
-        debugPrint("[mmFrame] not playing, mixing {d} (valid={d}) [STOPPING PLAYBACK]\n", .{ mm_mixlen, @as(c_int, @intCast(layer_p.*.valid)) });
+        debugPrint("[FRAME] isplaying=0 (skipping tick)\n", .{});
+        // Reduce noisy frame logs to avoid timing impact; keep mixing
         mmMixerMix(mm_mixlen);
         return;
     }
@@ -142,21 +144,14 @@ pub fn frame() void {
         var sample_num: c_int = @as(c_int, @bitCast(@as(c_uint, layer_p.*.tickrate)));
         const sampcount: c_int = @as(c_int, @bitCast(@as(c_uint, layer_p.*.tick_data.sampcount)));
         sample_num -= sampcount;
-        debugPrint(
-            "[mmFrame] sample logic: tickrate={d} sampcount={d} sample_num={d} remaining_len={d}\n",
-            .{ @as(c_int, @intCast(layer_p.*.tickrate)), sampcount, sample_num, remaining_len },
-        );
         if (sample_num < @as(c_int, 0)) {
             sample_num = 0;
         }
         if (sample_num >= remaining_len) break;
         layer_p.*.tick_data.sampcount = 0;
         remaining_len -= sample_num;
-        debugPrint("[MIX] num={d}\n", .{sample_num});
         mmMixerMix(@as(mm.Word, @bitCast(sample_num)));
-        debugPrint("[mmFrame] calling mppProcessTick() pos={d} row={d} tick={d}\n", .{ @as(c_int, @intCast(layer_p.*.position)), @as(c_int, @intCast(layer_p.*.row)), @as(c_int, @intCast(layer_p.*.tick)) });
         mas.mppProcessTick();
-        debugPrint("[mmFrame] after mppProcessTick() pos={d} row={d} tick={d} isplaying={d}\n", .{ @as(c_int, @intCast(layer_p.*.position)), @as(c_int, @intCast(layer_p.*.row)), @as(c_int, @intCast(layer_p.*.tick)), @as(c_int, @intCast(layer_p.*.isplaying)) });
         // Snapshot immediately after tick processing (post-UMIX binding) before next mix
         if (premix_budget > 0 and mixer.mm_mix_channels != @as([*c]mm.MixerChannel, @ptrFromInt(0))) {
             const ch0a: [*c]mm.MixerChannel = mixer.mm_mix_channels;
@@ -168,7 +163,6 @@ pub fn frame() void {
         }
     }
     layer_p.*.tick_data.sampcount +%= @as(mm.Hword, @bitCast(@as(c_short, @truncate(remaining_len))));
-    debugPrint("[MIX] tail={d}\n", .{remaining_len});
     mmMixerMix(@as(mm.Word, @bitCast(remaining_len)));
     // Bounded post-mix snapshot prints to verify mixer read advancement
     if (postmix_budget > 0 and mixer.mm_mix_channels != @as([*c]mm.MixerChannel, @ptrFromInt(0))) {

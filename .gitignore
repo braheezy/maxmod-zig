@@ -8,3 +8,5 @@ src/working_mod_player
 src/simple_mod_player
 *.log
 *ZigGBA*
+*.o
+xm_c_ref

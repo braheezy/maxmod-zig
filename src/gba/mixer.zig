@@ -45,7 +45,7 @@ pub fn vBlank() linksection(".iwram") void {
     if (vblank_function != @as(voidfunc, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(0)))))) {
         vblank_function.?();
     }
-    debugPrint("[mmVBlank] exit\n", .{});
+    if (dbg_vblank) debugPrint("[mmVBlank] exit\n", .{});
 }
 pub fn setVBlankHandler(func: voidfunc) void {
     vblank_function = func;

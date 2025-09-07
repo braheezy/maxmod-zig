@@ -1,5 +1,6 @@
 const gba = @import("gba");
 const xm_name = @import("build_options").xm_name;
+const xm_debug = @import("build_options").xm_debug;
 const mm = @import("maxmod");
 const mas = mm.mas;
 const mixer = mm.mixer;

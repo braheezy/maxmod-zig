@@ -101,6 +101,16 @@ pub fn updateChannel_T0(module_channel: [*c]mm.ModuleChannel, mpp_layer: [*c]mm.
         // Match C: mark UPDATED here so mpp_Update_ACHN() won't re-enter this tick
         act_ch_mut.*.flags |= @as(mm.Byte, @intCast(mas.MCAF_UPDATED));
         act_ch_mut.*.flags |= @as(mm.Byte, @intCast(mas.MCAF_START));
+        // Capture note start for all channels (low overhead: buffered)
+        @import("capture.zig").capture(
+            mpp_layer,
+            @import("capture.zig").Kind.Start,
+            @as(i32, @intCast(channel_counter)),
+            @as(i32, @intCast(module_channel.*.inst)),
+            @as(i32, @intCast(act_ch_mut.*.sample)),
+            @as(i32, @intCast(act_ch_mut.*.flags)),
+            0,
+        );
         // No extra UCT0 debug in C reference
     }
 
@@ -146,7 +156,6 @@ pub fn updateChannel_TN(module_channel: [*c]mm.ModuleChannel, mpp_layer: [*c]mm.
     act_ch.*.period = module_channel.*.period;
     mas.mpp_vars.panplus = 0;
     act_ch.*.flags |= @as(mm.Byte, @bitCast(@as(i8, @truncate(@as(c_int, 1) << @intCast(3)))));
-    // Omit UTN debug for parity with C
     period = mas.mpp_Update_ACHN_notest(mpp_layer, act_ch, period, @as(mm.Word, @bitCast(@as(c_uint, module_channel.*.alloc))));
 }
 pub fn getPeriod(mpp_layer: [*c]mm.LayerInfo, tuning: mm.Word, note: mm.Byte) linksection(".iwram") mm.Word {
@@ -171,12 +180,17 @@ pub fn readPattern(mpp_layer: [*c]mm.LayerInfo) linksection(".iwram") bool {
     mas.mpp_vars.pattread_p = mpp_layer.*.pattread;
     var pattern: [*c]mm.Byte = mas.mpp_vars.pattread_p;
     var update_bits: mm.Word = 0;
-    debugPrint("[Z readPattern] start pattread=0x{x} pattread_p=0x{x} nch={d} row={d}\n", .{
-        @intFromPtr(mpp_layer.*.pattread),
-        @intFromPtr(mas.mpp_vars.pattread_p),
-        @as(c_int, @intCast(mm_gba.mpp_nchannels)),
-        @as(c_int, @intCast(mpp_layer.*.row)),
-    });
+    // Reduce readPattern logs to avoid timing distortion
+    // Capture start-of-row pattern pointers without printing in hot path
+    @import("capture.zig").capture(
+        mpp_layer,
+        @import("capture.zig").Kind.ReadPatStart,
+        @as(i32, @intCast(@intFromPtr(mpp_layer.*.pattread))),
+        @as(i32, @intCast(@intFromPtr(mas.mpp_vars.pattread_p))),
+        @as(i32, @intCast(mm_gba.mpp_nchannels)),
+        @as(i32, @intCast(mpp_layer.*.row)),
+        0,
+    );
     var debug_detail: bool = false;
     if (mpp_layer.*.row < 10) debug_detail = true;
     while (true) {
@@ -186,14 +200,12 @@ pub fn readPattern(mpp_layer: [*c]mm.LayerInfo) linksection(".iwram") bool {
             ref.* += 1;
             break :blk tmp;
         }).*;
-        if (debug_detail) debugPrint("[Z readPattern] read_byte={x} at pos=0x{x}\n", .{ @as(c_int, @intCast(read_byte)), @intFromPtr(pattern - 1) });
         if ((@as(c_int, @bitCast(@as(c_uint, read_byte))) & @as(c_int, 127)) == @as(c_int, 0)) {
             // No extra readPattern break log in C reference
             break;
         }
         var pattern_flags: mm.Word = 0;
         const chan_calculation = (@as(c_int, @bitCast(@as(c_uint, read_byte))) & @as(c_int, 127)) - @as(c_int, 1);
-        if (debug_detail) debugPrint("[Z readPattern] chan_calc=(({x} & 127 0x7F 0x7F)-1)={d}\n", .{ @as(c_int, @intCast(read_byte)), chan_calculation });
         const chan_num: mm.Byte = @as(mm.Byte, @bitCast(@as(i8, @truncate(chan_calculation))));
         if (@as(c_int, @bitCast(@as(c_uint, chan_num))) >= @as(c_int, @bitCast(@as(c_uint, mm_gba.mpp_nchannels)))) {
             debugPrint(
@@ -217,7 +229,6 @@ pub fn readPattern(mpp_layer: [*c]mm.LayerInfo) linksection(".iwram") bool {
                 ref.* += 1;
                 break :blk tmp;
             }).*;
-            if (debug_detail) debugPrint("[Z readPattern] cflags={x} at pos=0x{x}\n", .{ @as(c_int, @intCast(module_channel.*.cflags)), @intFromPtr(pattern - 1) });
         }
         const compr_flags: mm.Word = @as(mm.Word, @bitCast(@as(c_uint, module_channel.*.cflags)));
         if ((compr_flags & @as(mm.Word, @bitCast(@as(c_int, 1) << @intCast(0)))) != 0) {
@@ -227,7 +238,6 @@ pub fn readPattern(mpp_layer: [*c]mm.LayerInfo) linksection(".iwram") bool {
                 ref.* += 1;
                 break :blk tmp;
             }).*;
-            if (debug_detail) debugPrint("[Z readPattern] note={x} at pos=0x{x}\n", .{ @as(c_int, @intCast(note)), @intFromPtr(pattern - 1) });
             if (@as(c_int, @bitCast(@as(c_uint, note))) == @as(c_int, 254)) {
                 pattern_flags |= @as(mm.Word, @bitCast(@as(c_int, 128)));
             } else if (@as(c_int, @bitCast(@as(c_uint, note))) == @as(c_int, 255)) {
@@ -281,17 +291,14 @@ pub fn readPattern(mpp_layer: [*c]mm.LayerInfo) linksection(".iwram") bool {
                 ref.* += 1;
                 break :blk tmp;
             }).*;
-            if (debug_detail) debugPrint("[Z readPattern] effect={x:0>2} param={x:0>2} at pos=0x{x}\n", .{ module_channel.*.effect, module_channel.*.param, @intFromPtr(pattern - 2) });
         }
         // Map compressed field-presence bits into module_channel.flags upper nibble.
         // Bit layout from C: note=1<<0, inst=1<<1, vol=1<<2, eff=1<<3;
         // runtime flags expect these at bits 4..7. Use right shift by 4 (like C code).
         module_channel.*.flags = @as(mm.Byte, @bitCast(@as(u8, @truncate(pattern_flags | (compr_flags >> @intCast(4))))));
-        if (debug_detail) debugPrint("[Z readPattern] end chan {d}, pattern now 0x{x}\n", .{ @as(c_int, @intCast(chan_num)), @intFromPtr(pattern) });
     }
     mpp_layer.*.pattread = pattern;
     mpp_layer.*.mch_update = update_bits;
-    debugPrint("[Z readPattern] row end, pattread=0x{x} update_bits={x}\n", .{ @intFromPtr(mpp_layer.*.pattread), @as(c_int, @intCast(update_bits)) });
     return true;
 }
 fn channelStartACHN(module_channel: [*c]mm.ModuleChannel, active_channel: [*c]mm.ActiveChannel, mpp_layer: [*c]mm.LayerInfo, channel_counter: mm.Byte) linksection(".iwram") mm.Byte {
@@ -334,7 +341,7 @@ fn channelStartACHN(module_channel: [*c]mm.ModuleChannel, active_channel: [*c]mm
         const b10: u8 = inst_bytes_dbg[10];
         const b11: u8 = inst_bytes_dbg[11];
         debugPrint(
-            "[INST] ch={d} inst_ptr={x} bytes: {x:0>2} {x:0>2} {x:0>2} {x:0>2} {x:0>2} {x:0>2} {x:0>2} {x:0>2} nm_lo={x:0>2} nm_hi={x:0>2} res_lo={x:0>2} res_hi={x:0>2}\n",
+            "[INST] ch={d} inst_ptr={x} bytes: {x:0>2} {x:0>2} {x:0>2} {x:0>2} {x:0>2} {x:0>2} {x:0>2} {x:0>2} nm_off_lo={x:0>2} nm_off_hi={x:0>2} inv_lo={x:0>2} inv_hi={x:0>2}\n",
             .{ @as(c_int, @intCast(channel_counter)), inst_base_dbg, b0, b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11 },
         );
         debugPrint(
