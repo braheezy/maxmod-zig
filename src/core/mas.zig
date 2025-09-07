@@ -5,6 +5,7 @@ const shim = @import("../shim.zig");
 // Debug configuration - can be toggled at build time
 const debug_enabled = @import("build_options").xm_debug;
 const std = @import("std");
+const arm = @import("mas_arm.zig");
 
 // Debug printing helper that can be compiled out
 inline fn debugPrint(comptime fmt: []const u8, args: anytype) void {
@@ -12,6 +13,55 @@ inline fn debugPrint(comptime fmt: []const u8, args: anytype) void {
         @import("gba").debug.print(fmt, args) catch {};
     }
 }
+
+pub fn allocChannel() linksection(".iwram") mm.Word {
+    var act_ch: [*c]mm.ActiveChannel = &mm_gba.achannels[@as(c_uint, @intCast(@as(c_int, 0)))];
+    var bitmask: mm.Word = shim.mm_ch_mask;
+    var best_channel: mm.Word = 255;
+    var best_volume: mm.Word = 2147483648;
+    {
+        var i: mm.Word = 0;
+        while (bitmask != @as(mm.Word, @bitCast(@as(c_int, 0)))) : (_ = blk: {
+            _ = blk_1: {
+                i +%= 1;
+                break :blk_1 blk_2: {
+                    const ref = &bitmask;
+                    ref.* >>= @intCast(@as(c_int, 1));
+                    break :blk_2 ref.*;
+                };
+            };
+            break :blk blk_1: {
+                const ref = &act_ch;
+                const tmp = ref.*;
+                ref.* += 1;
+                break :blk_1 tmp;
+            };
+        }) {
+            if ((bitmask & @as(mm.Word, @bitCast(@as(c_int, 1)))) == @as(mm.Word, @bitCast(@as(c_int, 0)))) continue;
+            const fvol: mm.Word = @as(mm.Word, @bitCast(@as(c_uint, act_ch.*.fvol)));
+            const @"type": mm.Word = @as(mm.Word, @bitCast(@as(c_uint, act_ch.*._type)));
+            if (@as(mm.Word, 2) < @"type") continue else if (@as(mm.Word, 2) > @"type") return i;
+            if (best_volume <= (fvol << @intCast(23))) continue;
+            best_channel = i;
+            best_volume = fvol << @intCast(23);
+        }
+    }
+    debugPrint("[allocChannel] return={d} bitmask={x}\n", .{ @as(c_int, @intCast(best_channel)), @as(c_int, @intCast(shim.mm_ch_mask)) });
+    return best_channel;
+}
+
+pub const MpvActiveInfo = extern struct {
+    reserved: mm.Word = 0,
+    pattread_p: [*c]mm.Byte = @import("std").mem.zeroes([*c]mm.Byte),
+    afvol: mm.Byte = 0,
+    sampoff: mm.Byte = 0,
+    volplus: mm.Sbyte = @import("std").mem.zeroes(mm.Sbyte),
+    notedelay: mm.Byte = 0,
+    panplus: mm.Hword = 0,
+    reserved2: mm.Hword = 0,
+};
+
+pub var mpp_vars: MpvActiveInfo = .{};
 
 pub const wint_t = c_int;
 const union_unnamed_1 = extern union {
@@ -435,7 +485,7 @@ pub const struct_tmm_mas_prefix = extern struct {
 };
 pub const mm_mas_prefix = struct_tmm_mas_prefix;
 // maxmod/include/mm_mas.h:82:17: warning: struct demoted to opaque type - has bitfield
-pub const struct_tmm_mas_instrument = extern struct {
+pub const Instrument = extern struct {
     global_volume: mm.Byte = 0,
     fadeout: mm.Byte = 0,
     random_volume: mm.Byte = 0,
@@ -447,7 +497,6 @@ pub const struct_tmm_mas_instrument = extern struct {
     note_map_offset: mm.Hword = 0,
     is_note_map_invalid: mm.Hword = 0,
 };
-pub const mm_mas_instrument = struct_tmm_mas_instrument;
 // maxmod/include/mm_mas.h:112:17: warning: struct demoted to opaque type - has bitfield
 // Translate-C produced an opaque for envelope node entries. We only need the
 // 2-byte + 2-byte layout { value: i16, delta: i16 } to run the math. Define it.
@@ -480,8 +529,7 @@ pub const struct_tmm_mas_envelope = extern struct {
     }
 };
 pub const mm_mas_envelope = struct_tmm_mas_envelope;
-pub const struct_tmm_mas_sample_info = extern struct {
-    // Exact 1-byte packing like C; no extra alignment on first field
+pub const SampleInfo = extern struct {
     default_volume: mm.Byte = 0,
     panning: mm.Byte = 0,
     frequency: mm.Hword = 0,
@@ -497,7 +545,6 @@ pub const struct_tmm_mas_sample_info = extern struct {
         return @as(ReturnType, @ptrCast(@alignCast(@as(Intermediate, @ptrCast(self)) + 12)));
     }
 };
-pub const mm_mas_sample_info = struct_tmm_mas_sample_info;
 pub const struct_tmm_mas_pattern = extern struct {
     row_count: mm.Byte align(1) = 0,
     pub fn pattern_data(self: anytype) @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), u8) {
@@ -566,19 +613,9 @@ const union_unnamed_9 = extern union {
     sampcount: mm.Hword,
     tickfrac: mm.Hword,
 };
-pub const mpv_active_information = extern struct {
-    reserved: mm.Word = 0,
-    pattread_p: [*c]mm.Byte = @import("std").mem.zeroes([*c]mm.Byte),
-    afvol: mm.Byte = 0,
-    sampoff: mm.Byte = 0,
-    volplus: mm.Sbyte = @import("std").mem.zeroes(mm.Sbyte),
-    notedelay: mm.Byte = 0,
-    panplus: mm.Hword = 0,
-    reserved2: mm.Hword = 0,
-};
+
 pub extern var mm_ch_mask: mm.Word;
 var mmLayerSub: mm.LayerInfo = .{};
-pub extern var mpp_vars: mpv_active_information;
 pub extern var mm_schannels: [4]mm.ModuleChannel;
 pub extern fn mmSetResolution(mm.Word) void;
 pub extern fn mmPulse() void;
@@ -602,11 +639,8 @@ pub fn mppProcessTick() linksection(".iwram") void {
     const layer: [*c]mm.LayerInfo = mm_gba.layer_p;
     if (@as(c_int, @bitCast(@as(c_uint, layer.*.isplaying))) == @as(c_int, 0)) return;
     if ((@as(c_int, @bitCast(@as(c_uint, layer.*.pattdelay))) == @as(c_int, 0)) and (@as(c_int, @bitCast(@as(c_uint, layer.*.tick))) == @as(c_int, 0))) {
-        // No extra mppProcessTick pre-read log in C reference
-        var ok: mm_bool = mmReadPattern(layer);
-        _ = &ok;
-        if (@as(c_int, @bitCast(@as(c_uint, ok))) == @as(c_int, 0)) {
-            // No extra failure log in C reference
+        const ok = arm.readPattern(layer);
+        if (!ok) {
             mppStop();
             if (mmCallback != @as(mm_callback, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) {
                 _ = mmCallback.?(@as(mm.Word, @bitCast(@as(c_int, 44))), shim.mpp_clayer);
@@ -621,9 +655,9 @@ pub fn mppProcessTick() linksection(".iwram") void {
         while (true) : (channel_counter +%= 1) {
             if ((update_bits & @as(mm.Word, @bitCast(@as(c_int, 1) << @intCast(0)))) != 0) {
                 if (@as(c_int, @bitCast(@as(c_uint, layer.*.tick))) == @as(c_int, 0)) {
-                    mmUpdateChannel_T0(module_channels, layer, @as(mm.Byte, @bitCast(@as(u8, @truncate(channel_counter)))));
+                    arm.updateChannel_T0(module_channels, layer, @as(mm.Byte, @bitCast(@as(u8, @truncate(channel_counter)))));
                 } else {
-                    mmUpdateChannel_TN(module_channels, layer);
+                    arm.updateChannel_TN(module_channels, layer);
                 }
             }
             module_channels += 1;
@@ -687,11 +721,6 @@ pub fn mppProcessTick() linksection(".iwram") void {
     }
     mpp_setposition(layer, @as(mm.Word, @bitCast(@as(c_int, @bitCast(@as(c_uint, layer.*.position))) + @as(c_int, 1))));
 }
-pub extern fn mmAllocChannel() mm.Word;
-pub extern fn mmUpdateChannel_T0([*c]mm.ModuleChannel, [*c]mm.LayerInfo, mm.Byte) void;
-pub extern fn mmUpdateChannel_TN([*c]mm.ModuleChannel, [*c]mm.LayerInfo) void;
-pub extern fn mmGetPeriod([*c]mm.LayerInfo, mm.Word, mm.Byte) mm.Word;
-const mmReadPattern = @import("mas_arm.zig").mmReadPattern;
 pub export fn mpp_Process_VolumeCommand(arg_layer: [*c]mm.LayerInfo, arg_act_ch: [*c]mm.ActiveChannel, arg_channel: [*c]mm.ModuleChannel, arg_period: mm.Word) mm.Word {
     var layer = arg_layer;
     _ = &layer;
@@ -1126,7 +1155,7 @@ pub export fn mpp_Channel_NewNote(arg_module_channel: [*c]mm.ModuleChannel, arg_
     if (act_ch == null) {
         need_alloc = true;
     } else {
-        const instrument: *mm_mas_instrument = mpp_InstrumentPointer(layer, module_channel.*.inst) orelse return;
+        const instrument: *Instrument = instrumentPointer(layer, module_channel.*.inst) orelse return;
 
         var do_dca: bool = false;
         const dct: mm.Byte = instrument.*.dct & 3;
@@ -1183,27 +1212,36 @@ pub export fn mpp_Channel_NewNote(arg_module_channel: [*c]mm.ModuleChannel, arg_
     }
 
     if (need_alloc) {
-        const alloc: mm.Word = mmAllocChannel();
+        const alloc: mm.Word = allocChannel();
         module_channel.*.alloc = @as(mm.Byte, @intCast(alloc));
     }
 }
-pub inline fn mpp_SamplePointer(arg_layer: [*c]mm.LayerInfo, arg_sampleN: mm.Word) [*c]mm_mas_sample_info {
+pub inline fn mpp_SamplePointer(arg_layer: [*c]mm.LayerInfo, arg_sampleN: mm.Word) [*c]SampleInfo {
     var layer = arg_layer;
     _ = &layer;
     var sampleN = arg_sampleN;
     _ = &sampleN;
     var base: [*c]mm.Byte = @as([*c]mm.Byte, @ptrCast(@alignCast(layer.*.songadr)));
     _ = &base;
-    return @as([*c]mm_mas_sample_info, @ptrCast(@alignCast(base + layer.*.samptable[sampleN -% @as(mm.Word, @bitCast(@as(c_int, 1)))])));
+    const idx: usize = @as(usize, @intCast(sampleN -% @as(mm.Word, @bitCast(@as(c_int, 1)))));
+    const off_ptr: [*]u8 = @constCast(@ptrCast(@alignCast(&base[@as(usize, 0)])));
+    const samptbl_bytes: [*]const u8 = @ptrCast(@alignCast(layer.*.samptable));
+    const p: [*]const u8 = samptbl_bytes + (idx * 4);
+    const off: usize = @as(usize, @intCast(@as(u32, p[0]) | (@as(u32, p[1]) << 8) | (@as(u32, p[2]) << 16) | (@as(u32, p[3]) << 24)));
+    return @as([*c]SampleInfo, @ptrCast(@alignCast(off_ptr + off)));
 }
-pub inline fn mpp_InstrumentPointer(arg_layer: [*c]mm.LayerInfo, arg_instN: mm.Word) ?*mm_mas_instrument {
-    const layer = arg_layer;
-    const instN = arg_instN;
-    const base: [*c]mm.Byte = @as([*c]mm.Byte, @ptrCast(@alignCast(layer.*.songadr)));
-    // The instrument table contains 32-bit offsets, not raw bytes
-    const insttbl_words: [*]const mm.Word = @ptrCast(@alignCast(layer.*.insttable));
-    const off: mm.Word = insttbl_words[instN -% @as(mm.Word, @bitCast(@as(c_int, 1)))];
-    const ptr: [*]u8 = base + off;
+pub inline fn instrumentPointer(arg_layer: [*c]mm.LayerInfo, arg_instN: mm.Word) ?*Instrument {
+    var layer = arg_layer;
+    _ = &layer;
+    var instN = arg_instN;
+    _ = &instN;
+    var base: [*c]mm.Byte = @as([*c]mm.Byte, @ptrCast(@alignCast(layer.*.songadr)));
+    _ = &base;
+    const idx: usize = @as(usize, @intCast(instN -% @as(mm.Word, @bitCast(@as(c_int, 1)))));
+    const insttbl_bytes: [*]const u8 = @ptrCast(@alignCast(layer.*.insttable));
+    const p: [*]const u8 = insttbl_bytes + (idx * 4);
+    const off: usize = @as(usize, @intCast(@as(u32, p[0]) | (@as(u32, p[1]) << 8) | (@as(u32, p[2]) << 16) | (@as(u32, p[3]) << 24)));
+    const ptr: [*]u8 = @ptrCast(@alignCast(base + off));
     return @ptrCast(@alignCast(ptr));
 }
 pub inline fn mpp_PatternPointer(arg_layer: [*c]mm.LayerInfo, arg_entry: mm.Word) [*c]mm_mas_pattern {
@@ -1251,9 +1289,9 @@ pub fn mppe_glis_backdoor(arg_param: mm.Word, arg_period: mm.Word, arg_act_ch: [
     var layer = arg_layer;
     _ = &layer;
     if (act_ch == @as([*c]mm.ActiveChannel, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) return period;
-    var sample: [*c]mm_mas_sample_info = mpp_SamplePointer(layer, @as(mm.Word, @bitCast(@as(c_uint, act_ch.*.sample))));
+    var sample: [*c]SampleInfo = mpp_SamplePointer(layer, @as(mm.Word, @bitCast(@as(c_uint, act_ch.*.sample))));
     _ = &sample;
-    var target_period: mm.Word = mmGetPeriod(layer, @as(mm.Word, @bitCast(@as(c_int, @bitCast(@as(c_uint, sample.*.frequency))) * @as(c_int, 4))), channel.*.note);
+    var target_period: mm.Word = arm.getPeriod(layer, @as(mm.Word, @bitCast(@as(c_int, @bitCast(@as(c_uint, sample.*.frequency))) * @as(c_int, 4))), channel.*.note);
     _ = &target_period;
     var new_period: mm.Word = undefined;
     _ = &new_period;
@@ -2162,9 +2200,8 @@ pub fn mpph_FastForward(arg_layer: [*c]mm.LayerInfo, arg_rows_to_skip: mm.Word) 
     if (rows_to_skip > @as(mm.Word, @bitCast(@as(c_uint, layer.*.nrows)))) return;
     layer.*.row = @as(mm.Byte, @bitCast(@as(u8, @truncate(rows_to_skip))));
     while (true) {
-        var ok: mm_bool = mmReadPattern(layer);
-        _ = &ok;
-        if (@as(c_int, @bitCast(@as(c_uint, ok))) == @as(c_int, 0)) {
+        const ok = arm.readPattern(layer);
+        if (!ok) {
             mppStop();
             if (mmCallback != @as(mm_callback, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) {
                 _ = mmCallback.?(@as(mm.Word, @bitCast(@as(c_int, 44))), shim.mpp_clayer);
@@ -3355,7 +3392,7 @@ pub fn mpp_Update_ACHN_notest_envelopes(arg_layer: [*c]mm.LayerInfo, arg_act_ch:
     const act_ch = arg_act_ch;
     var period = arg_period;
 
-    const instrument: *mm_mas_instrument = mpp_InstrumentPointer(layer, @as(mm.Word, @intCast(act_ch.*.inst))) orelse return period;
+    const instrument: *Instrument = instrumentPointer(layer, @as(mm.Word, @intCast(act_ch.*.inst))) orelse return period;
     // Instrument envelopes and note map data are stored immediately after the
     // fixed-size instrument header in the MAS blob. The translate-c struct
     // does not expose the trailing union, so compute the pointer manually.
@@ -3460,7 +3497,7 @@ pub fn mpp_Update_ACHN_notest_auto_vibrato(arg_layer: [*c]mm.LayerInfo, arg_act_
     _ = &act_ch;
     var period = arg_period;
     _ = &period;
-    var sample: [*c]mm_mas_sample_info = mpp_SamplePointer(layer, @as(mm.Word, @bitCast(@as(c_uint, act_ch.*.sample))));
+    var sample: [*c]SampleInfo = mpp_SamplePointer(layer, @as(mm.Word, @bitCast(@as(c_uint, act_ch.*.sample))));
     _ = &sample;
     var av_rate: mm.Hword = sample.*.av_rate;
     _ = &av_rate;
@@ -3513,7 +3550,7 @@ pub fn mpp_Update_ACHN_notest_update_mix(arg_layer: [*c]mm.LayerInfo, arg_act_ch
         act_ch.*.flags = @as(mm.Byte, @intCast(@as(c_int, @intCast(act_ch.*.flags)) & ~MCAF_START));
         // must have a valid sample
         if (act_ch.*.sample != 0) {
-            const sample: [*c]mm_mas_sample_info = mpp_SamplePointer(layer, @as(mm.Word, @intCast(act_ch.*.sample)));
+            const sample: [*c]SampleInfo = mpp_SamplePointer(layer, @as(mm.Word, @intCast(act_ch.*.sample)));
             // Compute MAS GBA header address without relying on aligned struct loads
             var hdr_addr: usize = 0;
             if (@as(c_uint, @intCast(sample.*.msl_id)) == 0xFFFF) {
@@ -3573,7 +3610,7 @@ pub fn mpp_Update_ACHN_notest_set_pitch_volume(arg_layer: [*c]mm.LayerInfo, arg_
         act_ch.*.fvol = 0;
         return 0;
     }
-    var sample: [*c]mm_mas_sample_info = mpp_SamplePointer(layer, @as(mm.Word, @bitCast(@as(c_uint, act_ch.*.sample))));
+    var sample: [*c]SampleInfo = mpp_SamplePointer(layer, @as(mm.Word, @bitCast(@as(c_uint, act_ch.*.sample))));
     _ = &sample;
     // Debug first: channel index, flags, period, xm flag, ratescale, masterpitch
     // No extra FREQDBG in C reference
@@ -3614,7 +3651,7 @@ pub fn mpp_Update_ACHN_notest_set_pitch_volume(arg_layer: [*c]mm.LayerInfo, arg_
         act_ch.*.fvol = 0;
         return 0;
     }
-    var inst: ?*mm_mas_instrument = mpp_InstrumentPointer(layer, @as(mm.Word, @bitCast(@as(c_uint, act_ch.*.inst))));
+    var inst: ?*Instrument = instrumentPointer(layer, @as(mm.Word, @bitCast(@as(c_uint, act_ch.*.inst))));
     _ = &inst;
     if (inst == null) {
         act_ch.*.fvol = 0;

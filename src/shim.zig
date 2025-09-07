@@ -27,8 +27,6 @@ pub export fn free(_: ?*anyopaque) callconv(.C) void {
     // no-op
 }
 
-pub export var mpp_vars: mas.mpv_active_information = .{ .reserved = 0, .pattread_p = @ptrFromInt(0), .afvol = 0, .sampoff = 0, .volplus = 0, .notedelay = 0, .panplus = 0, .reserved2 = 0 };
-
 pub const LayerType = enum {
     main,
     jingle,
@@ -40,9 +38,6 @@ pub export var mm_schannels: [4]mm.ModuleChannel = .{ .{}, .{}, .{}, .{} };
 pub fn mmShimSetChannelMask(mask: u32) callconv(.C) void {
     mm_ch_mask = mask;
 }
-
-// Missing symbols expected by translated core; provide minimal forwards/no-ops
-extern fn mmUpdateChannel_TN(ch: [*c]mm.ModuleChannel, layer: [*c]mm.LayerInfo, channel_counter: mm.Byte) callconv(.C) void;
 
 pub export fn mpp_Update_ACHN_notest(layer: [*c]mm.LayerInfo, act_ch: [*c]mm.ActiveChannel, period: mm.Word, ch: mm.Word) callconv(.c) mm.Word {
     // Match C ordering exactly:
@@ -113,7 +108,7 @@ pub export fn mpp_Update_ACHN_notest_update_mix(layer: [*c]mm.LayerInfo, act_ch:
     // Validate sample
     if (act_ch.*.sample == 0) return mix_ch;
 
-    const sample: [*c]mas.mm_mas_sample_info = mas.mpp_SamplePointer(layer, @as(mm.Word, @intCast(act_ch.*.sample)));
+    const sample: [*c]mas.SampleInfo = mas.mpp_SamplePointer(layer, @as(mm.Word, @intCast(act_ch.*.sample)));
     // Bind from the sample's platform header regardless of MSL; the MAS writer
     // ensures data() points at the correct header for GBA.
     const gba_sample: *mas.mm_mas_gba_sample = @ptrCast(@alignCast(sample.*.data()));

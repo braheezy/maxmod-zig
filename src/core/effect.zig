@@ -3,7 +3,6 @@ const mixer = @import("../gba/mixer.zig");
 const mm_gba = @import("../gba/main_gba.zig");
 const shim = @import("../shim.zig");
 const mas = @import("mas.zig");
-const mas_arm = @import("mas_arm.zig");
 
 pub const LoopData = extern union {
     loop_length: mm.Word,
@@ -86,7 +85,7 @@ pub fn effectEx(sound: [*c]SoundEffect) mm.Sfxhand {
     if (!reused_handle) {
         sfx_channel = getFreeSfxChannel();
         if (sfx_channel < 0) return 0;
-        mix_channel = @bitCast(mas_arm.mmAllocChannel());
+        mix_channel = @bitCast(mas.allocChannel());
         if (mix_channel == 255) return 0;
         sfx_count = sfx_counter;
         sfx_counter +%= 1;
