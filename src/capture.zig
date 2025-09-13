@@ -1,18 +1,18 @@
 const std = @import("std");
-const mm = @import("../maxmod.zig");
+const mm = @import("maxmod.zig");
 
 // Compile-time switch to ensure capture has zero cost when disabled
 const debug_enabled = @import("build_options").xm_debug;
 
 pub const Kind = enum(u8) {
     UmixSetPitch, // a=period, b=freq, c=fvol, d=unused
-    UmixAudible,  // a=ch, b=vol, c=pan, d=stopped
-    UmixSnap,     // a=ch, b=flags, c=sample, d=read (src printed as extra)
-    Bind,         // a=ch, b=msl_id, c=src, d=def_freq (len printed as extra)
-    PatternSnap,  // a=entry, b=row_count, c=pattern_ptr, d=unused
+    UmixAudible, // a=ch, b=vol, c=pan, d=stopped
+    UmixSnap, // a=ch, b=flags, c=sample, d=read (src printed as extra)
+    Bind, // a=ch, b=msl_id, c=src, d=def_freq (len printed as extra)
+    PatternSnap, // a=entry, b=row_count, c=pattern_ptr, d=unused
     ReadPatStart, // a=pattread, b=pattread_p, c=nch, d=row
-    Start,        // a=ch, b=inst, c=sample, d=flags
-    Stop,         // a=ch, b=reason, c=src_hi, d=src_lo
+    Start, // a=ch, b=inst, c=sample, d=flags
+    Stop, // a=ch, b=reason, c=src_hi, d=src_lo
 };
 
 pub const Event = packed struct {
@@ -97,8 +97,14 @@ pub fn dump() void {
                     .{ e.a, e.b, e.c, e.d },
                 ) catch {};
                 const p: [*]const u8 = @ptrFromInt(@as(usize, @intCast(@as(u32, @bitCast(e.b)))));
-                const b0 = p[0]; const b1 = p[1]; const b2 = p[2]; const b3 = p[3];
-                const b4 = p[4]; const b5 = p[5]; const b6 = p[6]; const b7 = p[7];
+                const b0 = p[0];
+                const b1 = p[1];
+                const b2 = p[2];
+                const b3 = p[3];
+                const b4 = p[4];
+                const b5 = p[5];
+                const b6 = p[6];
+                const b7 = p[7];
                 gba_dbg.print("[PBYTES] {x:0>2} {x:0>2} {x:0>2} {x:0>2} {x:0>2} {x:0>2} {x:0>2} {x:0>2}\n", .{ b0, b1, b2, b3, b4, b5, b6, b7 }) catch {};
                 break :blk;
             },

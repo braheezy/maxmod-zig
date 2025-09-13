@@ -12,10 +12,11 @@ var bank_data: []const u8 = @embedFile("soundbank.bin");
 
 fn vblank_isr() void {
     mixer.vBlank();
+    mm.shim.debug_state.print();
 }
 
 export fn main() void {
-    gba.interrupt.init();
+    gba.debug.init();
 
     // Basic display so we know it's alive
     gba.display.ctrl.* = gba.display.Control{ .bg2 = .enable, .mode = .mode3 };
@@ -26,7 +27,7 @@ export fn main() void {
     gba.text.write(xm_name);
 
     // Register Maxmod VBlank handler and enable VBlank IRQ
-    _ = gba.interrupt.add(.vblank, vblank_isr);
+    // _ = gba.interrupt.add(.vblank, vblank_isr);
 
     mm_gba.initDefault(@ptrCast(@constCast(&bank_data[0])), 32) catch |e| {
         gba.debug.print("Failed to initialize Maxmod: {any}\n", .{@errorName(e)}) catch {};
@@ -35,11 +36,22 @@ export fn main() void {
 
     mas.mmStart(0, 0);
 
+    var frame_count: u32 = 0;
+    const max_frames: u32 = 2;
+
     while (true) {
         // Mix and service VBlank each frame
         mm_gba.frame();
 
-        // Let IRQ call mixer.vBlank() and wait for VBlank
-        gba.display.vSync();
+        mixer.vBlank();
+
+        if (xm_debug) {
+            mm.shim.print();
+            frame_count += 1;
+
+            if (frame_count == max_frames) {
+                break;
+            }
+        }
     }
 }

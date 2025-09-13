@@ -174,8 +174,8 @@ pub fn effectRelease(handle: mm.Sfxhand) void {
 }
 pub fn setEffectsVolume(volume: mm.Word) void {
     var vol = volume;
-    if (vol > @as(mm.Word, 1024)) {
-        vol = @as(mm.Word, 1024);
+    if (vol > 1024) {
+        vol = 1024;
     }
     sfx_mastervolume = vol;
 }
@@ -219,30 +219,31 @@ pub fn resetEffects() void {
 }
 pub fn updateEffects() void {
     var new_bitmask: mm.Word = 0;
-    {
-        var i: usize = 0;
-        while (i < 16) : (i += 1) {
-            if ((sfx_bitmask & @as(mm.Word, @bitCast((@as(usize, 1) << @intCast(i))))) == @as(mm.Word, @bitCast(@as(usize, 0)))) continue;
-            const mix_channel = @as(c_int, @bitCast(@as(c_uint, sfx_channels[@as(c_uint, @intCast(i))].mix_channel))) - 1;
-            if (mix_channel < 0) continue;
-            const mix_ch: [*c]mm.MixerChannel = &(blk: {
-                const tmp = mix_channel;
-                if (tmp >= 0) break :blk mixer.mm_mix_channels + @as(usize, @intCast(tmp)) else break :blk mixer.mm_mix_channels - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-            }).*;
-            if ((mix_ch.*.src & shim.MIXCH_GBA_SRC_STOPPED) == 0) {
-                new_bitmask |= @as(mm.Word, @bitCast(@as(usize, 1) << @intCast(i)));
-                continue;
-            }
-            const act_ch: [*c]mm.ActiveChannel = &(blk: {
-                const tmp = mix_channel;
-                if (tmp >= 0) break :blk mm_gba.achannels + @as(usize, @intCast(tmp)) else break :blk mm_gba.achannels - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
-            }).*;
-            act_ch.*._type = 0;
-            act_ch.*.flags = 0;
-            sfx_channels[i].counter = 0;
-            sfx_channels[i].mix_channel = 0;
+
+    var i: usize = 0;
+    while (i < 16) : (i += 1) {
+        if ((sfx_bitmask & (@as(usize, 1) << @intCast(i))) == 0) continue;
+        const mix_channel = sfx_channels[i].mix_channel - 1;
+        if (mix_channel < 0) continue;
+        const mix_ch: [*c]mm.MixerChannel = &(blk: {
+            const tmp = mix_channel;
+            if (tmp >= 0) break :blk mixer.mm_mix_channels + @as(usize, @intCast(tmp)) else break :blk mixer.mm_mix_channels - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) - 1));
+        }).*;
+        if ((mix_ch.*.src & shim.MIXCH_GBA_SRC_STOPPED) == 0) {
+            new_bitmask |= @as(usize, 1) << @intCast(i);
+            continue;
         }
+        const act_ch: [*c]mm.ActiveChannel = &(blk: {
+            const tmp = mix_channel;
+            if (tmp >= 0) break :blk mm_gba.achannels + @as(usize, @intCast(tmp)) else break :blk mm_gba.achannels - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
+        }).*;
+        act_ch.*._type = 0;
+        act_ch.*.flags = 0;
+        sfx_channels[i].counter = 0;
+        sfx_channels[i].mix_channel = 0;
     }
+    shim.debug_state.new_bitmask = new_bitmask;
+
     sfx_bitmask = new_bitmask;
 }
 pub fn getMixChannelIndex(handle: mm.Sfxhand) c_int {

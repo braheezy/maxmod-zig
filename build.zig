@@ -79,6 +79,27 @@ fn createXmExample(
     const mod_maxmod_zig = b.createModule(.{ .root_source_file = b.path("src/maxmod.zig"), .target = gba_target, .optimize = optimize });
     mod_maxmod_zig.addImport("gba", gba_mod);
 
+    // Add translate-c step for mas_arm.c (using native toolchain to avoid freestanding libc issues)
+    const translate_c_step = b.step("c", "Translate mas_arm.c to Zig");
+    const host_target = b.resolveTargetQuery(.{});
+    const xlate = b.addTranslateC(.{
+        .root_source_file = b.path("maxmod/source/core/mas_arm.c"),
+        .target = host_target, // translate using host so std headers resolve
+        .optimize = optimize,
+    });
+    // Match include layout expected by the C source
+    xlate.addIncludePath(b.path("maxmod/source"));
+    xlate.addIncludePath(b.path("maxmod/include"));
+    xlate.addIncludePath(b.path("maxmod/source/gba"));
+    xlate.addIncludePath(b.path("examples/xm_c_ref/vendor/libmm/include"));
+    // Neutralize platform-specific attributes/macros so translation succeeds on host
+    xlate.defineCMacro("IWRAM_CODE", "");
+    xlate.defineCMacro("ARM_CODE", "");
+    // Emit translated Zig into project tree for inspection
+    const translated_out = xlate.getOutput();
+    const install_translated = b.addInstallFile(translated_out, "src/core/mas_arm_translated.zig");
+    translate_c_step.dependOn(&install_translated.step);
+
     // Hook into top-level steps and install artifacts
     xm_step.dependOn(&xm_create_soundbank.step);
     xm_step.dependOn(&xm_exe.step);
