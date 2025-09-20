@@ -105,7 +105,7 @@ pub fn effectEx(sound: [*c]SoundEffect) mm.Sfxhand {
         act_ch.*._type = 4;
     }
     act_ch.*.flags = @as(mm.Byte, @bitCast(@as(i8, @truncate(1 << @intCast(7)))));
-    const mix_ch: [*c]mm.MixerChannel = &(blk: {
+    const mix_ch: [*c]volatile mm.MixerChannel = &(blk: {
         const tmp = mix_channel;
         if (tmp >= 0) break :blk mixer.mm_mix_channels + @as(usize, @intCast(tmp)) else break :blk mixer.mm_mix_channels - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
     }).*;
@@ -181,7 +181,7 @@ pub fn setEffectsVolume(volume: mm.Word) void {
 }
 pub fn effectCancelAll() void {
     resetEffects();
-    var mix_ch: [*c]mm.MixerChannel = &mixer.mm_mix_channels[0];
+    var mix_ch: [*c]volatile mm.MixerChannel = &mixer.mm_mix_channels[0];
     var act_ch: [*c]mm.ActiveChannel = &mm_gba.achannels[0];
     {
         var i: mm.Word = 0;
@@ -225,7 +225,7 @@ pub fn updateEffects() void {
         if ((sfx_bitmask & (@as(usize, 1) << @intCast(i))) == 0) continue;
         const mix_channel = sfx_channels[i].mix_channel - 1;
         if (mix_channel < 0) continue;
-        const mix_ch: [*c]mm.MixerChannel = &(blk: {
+        const mix_ch: [*c]volatile mm.MixerChannel = &(blk: {
             const tmp = mix_channel;
             if (tmp >= 0) break :blk mixer.mm_mix_channels + @as(usize, @intCast(tmp)) else break :blk mixer.mm_mix_channels - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) - 1));
         }).*;

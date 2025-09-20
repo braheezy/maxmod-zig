@@ -14,8 +14,8 @@ inline fn debugPrint(comptime fmt: []const u8, args: anytype) void {
 var set_debug_budget: u32 = 64;
 const dbg_vblank = false;
 
-pub export var mm_mix_channels: [*c]mm.MixerChannel = @ptrFromInt(0);
-pub export var mm_mixch_end: [*c]mm.MixerChannel = @import("std").mem.zeroes([*c]mm.MixerChannel);
+pub export var mm_mix_channels: [*c]volatile mm.MixerChannel = @ptrFromInt(0);
+pub export var mm_mixch_end: [*c]volatile mm.MixerChannel = @ptrFromInt(0);
 pub export var mm_mixbuffer: mm.Addr = @import("std").mem.zeroes(mm.Addr);
 pub export var mm_ratescale: mm.Word = 0;
 pub export var mp_writepos: mm.Addr = @import("std").mem.zeroes(mm.Addr);
@@ -96,9 +96,13 @@ pub fn vBlank() linksection(".iwram") void {
 pub fn setVBlankHandler(func: voidfunc) void {
     vblank_function = func;
 }
+pub fn getCount() mm.Word {
+    return mixch_count;
+}
+
 pub fn init(setup: *mm_gba.GBASystem) void {
     mixch_count = setup.*.mix_channel_count;
-    mm_mix_channels = @as([*c]mm.MixerChannel, @ptrCast(@alignCast(setup.*.mixing_channels)));
+    mm_mix_channels = @as([*c]volatile mm.MixerChannel, @ptrCast(@alignCast(setup.*.mixing_channels)));
     mm_mixch_end = &mm_mix_channels[mixch_count];
     mm_mixbuffer = setup.*.mixing_memory;
     wavebuffer = setup.*.wave_memory;
@@ -115,7 +119,7 @@ pub fn init(setup: *mm_gba.GBASystem) void {
     shim.debug_state.bpmdv = mm_bpmdv;
 
     mp_mix_seg = 0;
-    const mix_ch: [*c]mm.MixerChannel = &mm_mix_channels[0];
+    const mix_ch: [*c]volatile mm.MixerChannel = &mm_mix_channels[0];
     {
         var i: mm.Word = 0;
         while (i < mixch_count) : (i +%= 1) {
@@ -142,7 +146,7 @@ pub fn init(setup: *mm_gba.GBASystem) void {
     tm0cnt_ptr.* = timerfreq | 128 << 16;
 }
 // Expose the current mixer channel pointer so other modules can unify usage
-pub fn mm_get_mix_channels_ptr() [*c]mm.MixerChannel {
+pub fn mm_get_mix_channels_ptr() [*c]volatile mm.MixerChannel {
     return mm_mix_channels;
 }
 pub fn mmMixerSetRead(channel: c_int, value: mm.Word) void {

@@ -7,6 +7,7 @@ const mixer = @import("mixer.zig");
 
 // Debug configuration - can be toggled at build time
 const debug_enabled = @import("build_options").xm_debug;
+const frame_log_enabled = false;
 // Debug printing helper that can be compiled out
 inline fn debugPrint(comptime fmt: []const u8, args: anytype) void {
     if (debug_enabled) {
@@ -37,6 +38,19 @@ var postmix_budget: u32 = 4;
 var premix_budget: u32 = 8;
 var mixbuffer: [@intFromEnum(MixLen._16khz) / @sizeOf(u32)]u32 = @import("std").mem.zeroes([@intFromEnum(MixLen._16khz) / @sizeOf(u32)]u32);
 var mm_init_default_buffer: mm.Addr = @as(?*anyopaque, @ptrFromInt(0));
+var mix_debug_budget: u32 = 100;
+var stop_log_budget: u32 = 16;
+inline fn debugLogMix(stage: []const u8, samples: c_int) void {
+    if (!debug_enabled) return;
+    if (mix_debug_budget == 0) return;
+    mix_debug_budget -= 1;
+    const values = [_]u32{
+        mixbuffer[0], mixbuffer[1], mixbuffer[2], mixbuffer[3],
+        mixbuffer[4], mixbuffer[5], mixbuffer[6], mixbuffer[7],
+    };
+    const code: u8 = if (stage.len > 0 and stage[0] == 'l') 'L' else 'F';
+    shim.mixCapture(code, samples, values);
+}
 
 pub const GBASystem = struct {
     mixing_mode: MixMode = ._8khz,
@@ -121,6 +135,17 @@ pub fn init(setup: *GBASystem) bool {
     initialized = true;
     return true;
 }
+inline fn recordStops() void {
+    const count = @as(usize, @intCast(mixer.getCount()));
+    var i: usize = 0;
+    while (i < count) : (i += 1) {
+        const src_val = mixer.mm_mix_channels[i].src;
+        if ((src_val & shim.MIXCH_GBA_SRC_STOPPED) != 0) {
+            mix_stop_pending[i] = true;
+        }
+    }
+}
+
 pub fn end() bool {
     initialized = false;
     mixer.mmMixerEnd();
@@ -131,6 +156,7 @@ pub fn end() bool {
 }
 var idx: usize = 0;
 var get_rem: bool = true;
+pub var mix_stop_pending: [32]bool = [_]bool{false} ** 32;
 pub fn frame() void {
     if (!initialized) return;
     // Update effects and sublayer first to mirror C reference ordering
@@ -154,11 +180,24 @@ pub fn frame() void {
         if (sample_num < 0) {
             sample_num = 0;
         }
-        @import("gba").debug.print("frame sample_num={d}\n", .{sample_num}) catch {};
+        if (frame_log_enabled and debug_enabled) {
+            debugPrint(
+                "[FRAME] sample_num={d} remaining_len={d} sampcount={d}\n",
+                .{ sample_num, remaining_len, @as(c_int, @intCast(layer_p.*.tick_data.sampcount)) },
+            );
+        }
         if (sample_num >= remaining_len) break;
         layer_p.*.tick_data.sampcount = 0;
         remaining_len -= sample_num;
         mmMixerMix(@intCast(sample_num));
+        debugLogMix("loop", sample_num);
+        if (debug_enabled and stop_log_budget > 0) {
+            const src0 = mixer.mm_mix_channels[0].src;
+            if ((src0 & shim.MIXCH_GBA_SRC_STOPPED) != 0) {
+                stop_log_budget -= 1;
+                debugPrint("[STOPCHK] stage=loop src=0x{x}\n", .{src0});
+            }
+        }
         mas.mppProcessTick();
     }
     if (get_rem) {
@@ -168,7 +207,22 @@ pub fn frame() void {
     }
     layer_p.*.tick_data.sampcount +%= @intCast(remaining_len);
     shim.debug_state.tick_data_sampcount = @intCast(layer_p.*.tick_data.sampcount);
+    if (frame_log_enabled and debug_enabled) {
+        debugPrint(
+            "[FRAME] remaining_len={d} sampcount={d}\n",
+            .{ remaining_len, @as(c_int, @intCast(layer_p.*.tick_data.sampcount)) },
+        );
+    }
     mmMixerMix(@intCast(remaining_len));
+    debugLogMix("final", @intCast(remaining_len));
+    recordStops();
+    if (debug_enabled and stop_log_budget > 0) {
+        const src0 = mixer.mm_mix_channels[0].src;
+        if ((src0 & shim.MIXCH_GBA_SRC_STOPPED) != 0) {
+            stop_log_budget -= 1;
+            debugPrint("[STOPCHK] stage=final src=0x{x}\n", .{src0});
+        }
+    }
 }
 pub fn getModuleTable() [*]const mm.Word {
     return @ptrCast(module_table);

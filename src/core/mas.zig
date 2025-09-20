@@ -9,6 +9,7 @@ const gba = @import("gba");
 const std = @import("std");
 // Debug configuration - can be toggled at build time
 const debug_enabled = @import("build_options").xm_debug;
+const panchk_log_enabled = false;
 inline fn debugPrint(comptime fmt: []const u8, args: anytype) void {
     if (debug_enabled) {
         @import("gba").debug.print(fmt, args) catch {};
@@ -308,13 +309,6 @@ pub fn mmActiveSub() bool {
 // Envelope node bitfield layout in C:
 //   mm.Shword delta; mm.Hword base:7; mm.Hword range:9;
 // Represent as packed and provide accessors.
-const EnvelopeNode = extern struct {
-    delta: mm.Shword, // signed 16-bit delta
-    bits: mm.Hword, // [range:9 | base:7]
-};
-inline fn envNodeBase(n: EnvelopeNode) mm.Hword {
-    return n.bits & 0x7F;
-}
 const Envelope = extern struct {
     size: mm.Byte align(2) = 0,
     loop_start: mm.Byte = 0,
@@ -324,11 +318,6 @@ const Envelope = extern struct {
     node_count: mm.Byte = 0,
     is_filter: mm.Byte = 0,
     wasted: mm.Byte = 0,
-    pub fn env_nodes(self: anytype) @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), EnvelopeNode) {
-        const Intermediate = @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), u8);
-        const ReturnType = @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), EnvelopeNode);
-        return @as(ReturnType, @ptrCast(@alignCast(@as(Intermediate, @ptrCast(self)) + 8)));
-    }
 };
 pub const SampleInfo = extern struct {
     default_volume: mm.Byte = 0,
@@ -356,7 +345,7 @@ pub const Pattern = packed struct {
     }
 };
 
-pub inline fn umixChannelIndexFromMix(mix_ch: [*c]const mm.MixerChannel) c_int {
+pub inline fn umixChannelIndexFromMix(mix_ch: [*c]volatile mm.MixerChannel) c_int {
     const offset = @intFromPtr(mix_ch) - @intFromPtr(&mixer.mm_mix_channels[0]);
     return @as(c_int, @intCast(offset / @sizeOf(mm.MixerChannel)));
 }
@@ -402,12 +391,26 @@ pub fn mppProcessTick() linksection(".iwram") void {
     }
     var update_bits: mm.Word = layer.*.mch_update;
     var module_channels: [*c]mm.ModuleChannel = mm_gba.mpp_channels;
+    if (debug_enabled) {
+        debugPrint(
+            "[UPD] tick={d} row={d} bits=0x{x}\n",
+            .{ layer.*.tick, layer.*.row, @as(u32, @intCast(update_bits)) },
+        );
+    }
+    if (shim.debug_state.upd_len < shim.debug_state.upd_events.len) {
+        const idx = shim.debug_state.upd_len;
+        shim.debug_state.upd_events[idx] = .{
+            .tick = layer.*.tick,
+            .row = layer.*.row,
+            .bits = @intCast(update_bits),
+        };
+        shim.debug_state.upd_len +%= 1;
+    }
     {
         var channel_counter: mm.Word = 0;
         while (true) : (channel_counter +%= 1) {
             if ((update_bits & @as(mm.Word, @bitCast(@as(c_int, 1) << @intCast(0)))) != 0) {
                 if (layer.*.tick == 0) {
-                    @import("gba").debug.print("updateChannel_T0\n", .{}) catch {};
                     arm.updateChannel_T0(module_channels, layer, @intCast(channel_counter));
                 } else {
                     arm.updateChannel_TN(module_channels, layer);
@@ -877,7 +880,7 @@ pub fn mpp_Update_ACHN_notest(layer: [*c]mm.LayerInfo, act_ch: [*c]mm.ActiveChan
     var new_period: mm.Word = period;
     new_period = mpp_Update_ACHN_notest_envelopes(layer, act_ch, new_period);
     new_period = mpp_Update_ACHN_notest_auto_vibrato(layer, act_ch, new_period);
-    const mix_ch: [*c]mm.MixerChannel = mpp_Update_ACHN_notest_update_mix(layer, act_ch, ch);
+    const mix_ch: [*c]volatile mm.MixerChannel = mpp_Update_ACHN_notest_update_mix(layer, act_ch, ch);
     const clipped_vol: mm.Word = mpp_Update_ACHN_notest_set_pitch_volume(layer, act_ch, new_period, mix_ch);
     mpp_Update_ACHN_notest_disable_and_panning(clipped_vol, act_ch, mix_ch);
     return new_period;
@@ -1051,7 +1054,7 @@ pub fn mpp_setbpm(layer_info: [*c]mm.LayerInfo, bpm: mm.Word) void {
 }
 pub fn mpp_suspend(layer: mm_layer_type) void {
     var act_ch: [*c]mm.ActiveChannel = &mm_gba.achannels[@as(c_uint, @intCast(@as(c_int, 0)))];
-    var mix_ch: [*c]mm.MixerChannel = &mixer.mm_mix_channels[@as(c_uint, @intCast(@as(c_int, 0)))];
+    var mix_ch: [*c]volatile mm.MixerChannel = &mixer.mm_mix_channels[@as(c_uint, @intCast(@as(c_int, 0)))];
     {
         var count: mm.Word = mm_gba.num_ach;
         while (count != @as(mm.Word, @bitCast(@as(c_int, 0)))) : (_ = blk: {
@@ -1108,7 +1111,7 @@ pub fn mpp_resetchannels(channels: [*c]mm.ModuleChannel, num_ch: mm.Word) void {
         var j: mm.Word = 0;
         while (j < mm_gba.num_ach) : (j += 1) {
             const act_ch: [*c]mm.ActiveChannel = &mm_gba.achannels[curr_act_ch];
-            const mix_ch: [*c]mm.MixerChannel = &mixer.mm_mix_channels[curr_mix_ch];
+            const mix_ch: [*c]volatile mm.MixerChannel = &mixer.mm_mix_channels[curr_mix_ch];
             if (act_ch.*.flags & (MCAF_SUB | MCAF_EFFECT) >> 6 != @intFromEnum(mpp_clayer)) continue;
 
             act_ch.* = .{};
@@ -1844,41 +1847,50 @@ pub fn mppe_OldTremor(param: mm.Word, channel: [*c]mm.ModuleChannel, layer: [*c]
 pub fn mpph_ProcessEnvelope(count_: [*c]mm.Hword, node_: [*c]mm.Byte, envelope: [*c]Envelope, act_ch: [*c]mm.ActiveChannel, value_mul_64: [*c]mm.Word) mm.Word {
     var count: mm.Hword = count_.*;
     var node: mm.Byte = node_.*;
-    // Node array immediately follows the fixed header; compute pointer manually.
-    const nodes_base: [*]mm.Byte = @as([*]mm.Byte, @ptrCast(@alignCast(envelope))) + @sizeOf(Envelope);
-    const nodes_ptr: [*]EnvelopeNode = @ptrCast(@alignCast(nodes_base));
-    const node_info: *EnvelopeNode = &nodes_ptr[@as(usize, @intCast(node))];
-    value_mul_64.* = @as(mm.Word, @intCast(@as(c_int, envNodeBase(node_info.*)) * @as(c_int, 64)));
-    if (@as(c_int, @bitCast(@as(c_uint, count))) == @as(c_int, 0)) {
-        if (@as(c_int, @bitCast(@as(c_uint, node))) == @as(c_int, @bitCast(@as(c_uint, envelope.*.loop_end)))) {
+
+    const nodes_bytes: [*]const u8 = @as([*]const u8, @ptrCast(@alignCast(envelope))) + @sizeOf(Envelope);
+    const stride: usize = 4;
+    const node_offset: usize = stride * @as(usize, @intCast(node));
+    const node_bytes: [*]const u8 = nodes_bytes + node_offset;
+
+    const delta_raw: i16 = std.mem.readInt(i16, node_bytes[0..2], .little);
+    const base_range_raw: u16 = std.mem.readInt(u16, node_bytes[2..4], .little);
+    const node_base: mm.Hword = @as(mm.Hword, @intCast(base_range_raw & 0x7F));
+    const node_range: mm.Hword = @as(mm.Hword, @intCast((base_range_raw >> 7) & 0x1FF));
+
+    value_mul_64.* = @as(mm.Word, @intCast(@as(i32, @intCast(node_base)) * 64));
+
+    if (count == 0) {
+        if (node == envelope.*.loop_end) {
             count_.* = count;
             node_.* = envelope.*.loop_start;
             return 2;
         }
-        if ((@as(c_int, @bitCast(@as(c_uint, act_ch.*.flags))) & (@as(c_int, 1) << @intCast(0))) != 0) {
-            if (@as(c_int, @bitCast(@as(c_uint, node))) == @as(c_int, @bitCast(@as(c_uint, envelope.*.sus_end)))) {
+        if ((act_ch.*.flags & @as(mm.Byte, @intCast(MCAF_KEYON))) != 0) {
+            if (node == envelope.*.sus_end) {
                 count_.* = count;
                 node_.* = envelope.*.sus_start;
                 return 0;
             }
         }
-        var last_node: mm.Hword = @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, @bitCast(@as(c_uint, @as(mm.Hword, @bitCast(@as(c_ushort, envelope.*.node_count)))))) - @as(c_int, 1)))));
-        _ = &last_node;
-        if (@as(c_int, @bitCast(@as(c_uint, node))) == @as(c_int, @bitCast(@as(c_uint, last_node)))) {
+        const last_node: mm.Hword = if (envelope.*.node_count == 0) 0 else @as(mm.Hword, @intCast(envelope.*.node_count - 1));
+        if (node == last_node) {
             count_.* = count;
             node_.* = node;
             return 2;
         }
     } else {
-        var delta: mm.Sword = node_info.delta;
-        _ = &delta;
-        value_mul_64.* +%= @as(mm.Word, @bitCast(@as(mm.Sword, @bitCast(delta * @as(c_int, @bitCast(@as(c_uint, count))))) >> @intCast(3)));
+        const interp: i32 = (@as(i32, delta_raw) * @as(i32, @intCast(count))) >> 3;
+        const current: i32 = @as(i32, @intCast(value_mul_64.*));
+        value_mul_64.* = @as(mm.Word, @intCast(current + interp));
     }
+
     count +%= 1;
-    if (@as(c_int, @bitCast(@as(c_uint, count))) == @as(c_int, @bitCast(@as(c_uint, envelope.*.node_count)))) {
+    if (node_range != 0 and count == node_range) {
         count = 0;
-        node = @as(mm.Byte, @bitCast(@as(i8, @truncate(@as(c_int, @bitCast(@as(c_uint, node))) + @as(c_int, 1)))));
+        node = @as(mm.Byte, @intCast((@as(usize, node) + 1) & 0xFF));
     }
+
     count_.* = count;
     node_.* = node;
     return 2;
@@ -1892,37 +1904,14 @@ pub fn mpp_Update_ACHN_notest_envelopes(layer: [*c]mm.LayerInfo, act_ch: [*c]mm.
     const INSTR_HDR_SIZE: usize = 12;
     var env_ptr: [*]mm.Byte = @as([*]mm.Byte, @ptrCast(@alignCast(instrument))) + INSTR_HDR_SIZE;
 
-    // Emit ENVDBG2 like C for first two channels at tick 0 regardless of existence
-    if (mm_gba.layer_p.*.tick == 0) {
-        const act_addr_dbg2: usize = @intFromPtr(act_ch);
-        const base_addr_dbg2: usize = @intFromPtr(&mm_gba.achannels[0]);
-        const ch_idx_dbg2: c_int = @as(c_int, @intCast((act_addr_dbg2 - base_addr_dbg2) / @sizeOf(mm.ActiveChannel)));
-        if (ch_idx_dbg2 >= 0 and ch_idx_dbg2 < 2) {
-            const vol_enabled_dbg: c_int = @as(c_int, @intCast(@intFromBool((@as(c_int, @intCast(instrument.*.env_flags)) & MAS_INSTR_FLAG_VOL_ENV_ENABLED) != 0)));
-            debugPrint(
-                "[ENVDBG2] ch={d} env_flags=0x{x} vol_enabled={d}\n",
-                .{ ch_idx_dbg2, @as(c_int, @intCast(instrument.*.env_flags)), vol_enabled_dbg },
-            );
-        }
-    }
-
+    var vol_env_active = false;
     if ((@as(c_int, @intCast(instrument.*.env_flags)) & MAS_INSTR_FLAG_VOL_ENV_EXISTS) != 0) {
-        const vol_enabled: bool = ((@as(c_int, @intCast(instrument.*.env_flags)) & MAS_INSTR_FLAG_VOL_ENV_ENABLED) != 0);
         var value_mul_64: mm.Word = 0;
         const env: *Envelope = @ptrCast(@alignCast(env_ptr));
         env_ptr += env_ptr[0];
-        // No extra ENVDUMP in C reference
-        // (ENVDBG2 already printed above once per channel at tick 0)
-        if (vol_enabled) {
+        if ((act_ch.*.flags & @as(mm.Byte, @intCast(MCAF_VOLENV))) != 0) {
+            vol_env_active = true;
             const exit_value = mpph_ProcessEnvelope(&act_ch.*.envc_vol, &act_ch.*.envn_vol, env, act_ch, &value_mul_64);
-            if (mm_gba.layer_p.*.tick == 0) {
-                const act_addr_dbg: usize = @intFromPtr(act_ch);
-                const base_addr_dbg: usize = @intFromPtr(&mm_gba.achannels[0]);
-                const ch_idx_dbg: c_int = @as(c_int, @intCast((act_addr_dbg - base_addr_dbg) / @sizeOf(mm.ActiveChannel)));
-                if (ch_idx_dbg >= 0 and ch_idx_dbg < 2) {
-                    debugPrint("[ENVDBG] ch={d} exit={d} flags=0x{x}\n", .{ ch_idx_dbg, @as(c_int, @intCast(exit_value)), @as(c_int, @intCast(act_ch.*.flags)) });
-                }
-            }
             if (layer.*.tick != 0) {
                 if (exit_value == @as(mm.Word, @intCast(1))) {
                     if ((@as(c_int, @intCast(layer.*.flags)) & MAS_HEADER_FLAG_XM_MODE) != 0) {
@@ -1936,17 +1925,12 @@ pub fn mpp_Update_ACHN_notest_envelopes(layer: [*c]mm.LayerInfo, act_ch: [*c]mm.
                     }
                 }
             }
-            // Always scale AFV by envelope factor (parity with C)
             const afv: mm.Sword = @as(mm.Sword, @intCast(mpp_vars.afvol));
             mpp_vars.afvol = @as(mm.Byte, @intCast((@as(c_int, @intCast(afv)) * @as(c_int, @intCast(value_mul_64))) >> (6 + 6)));
-            // At tick 0, mark VOLENV only (C does not set UPDATED here)
-            if (layer.*.tick == 0) {
-                act_ch.*.flags |= @as(mm.Byte, @intCast(MCAF_VOLENV));
-            }
         }
     }
 
-    if ((@as(c_int, @intCast(act_ch.*.flags)) & MCAF_KEYON) == 0) {
+    if (!vol_env_active and (act_ch.*.flags & @as(mm.Byte, @intCast(MCAF_KEYON))) == 0) {
         act_ch.*.flags |= @as(mm.Byte, @intCast(MCAF_FADE | MCAF_ENVEND));
         if ((@as(c_int, @intCast(layer.*.flags)) & MAS_HEADER_FLAG_XM_MODE) != 0) {
             act_ch.*.fade = 0;
@@ -2009,8 +1993,29 @@ pub fn mpp_Update_ACHN_notest_auto_vibrato(layer: [*c]mm.LayerInfo, act_ch: [*c]
     return per;
 }
 
-pub fn mpp_Update_ACHN_notest_update_mix(layer: [*c]mm.LayerInfo, act_ch: [*c]mm.ActiveChannel, channel: mm.Word) [*c]mm.MixerChannel {
-    const mix_ch: [*c]mm.MixerChannel = &mixer.mm_mix_channels[@as(usize, @intCast(channel))];
+pub fn mpp_Update_ACHN_notest_update_mix(layer: [*c]mm.LayerInfo, act_ch: [*c]mm.ActiveChannel, channel: mm.Word) [*c]volatile mm.MixerChannel {
+    const mix_ch: [*c]volatile mm.MixerChannel = &mixer.mm_mix_channels[@as(usize, @intCast(channel))];
+    const sample_idx_entry: u8 = @as(u8, @intCast(act_ch.*.sample));
+    var dbg_msl_id: u16 = 0;
+    var dbg_sample_offset: u32 = 0;
+    const ch_idx: usize = @as(usize, @intCast(channel));
+    if (debug_enabled and channel == 0) {
+        const flags_entry: u8 = act_ch.*.flags;
+        const start_entry = (flags_entry & @as(u8, @intCast(MCAF_START))) != 0;
+        shim.umixUpdateCapture(
+            .entry,
+            0,
+            @as(u8, @intCast(layer.*.tick)),
+            flags_entry,
+            start_entry,
+            sample_idx_entry,
+            dbg_msl_id,
+            dbg_sample_offset,
+            @as(u32, @intCast(mix_ch.*.src)),
+            @as(u32, @intCast(mix_ch.*.read)),
+            @as(u8, @intCast(mix_ch.*.vol)),
+        );
+    }
     // UMIX trace: snapshot before possible (re)bind — capture only
     if (umixAllowLogCh(layer, @as(c_int, @intCast(channel))))
         capture.capture(
@@ -2030,9 +2035,13 @@ pub fn mpp_Update_ACHN_notest_update_mix(layer: [*c]mm.LayerInfo, act_ch: [*c]mm
     if ((@as(c_int, @intCast(act_ch.*.flags)) & MCAF_START) != 0) {
         // Mirror C: clear START immediately on entering start path
         act_ch.*.flags = @as(mm.Byte, @intCast(@as(c_int, @intCast(act_ch.*.flags)) & ~MCAF_START));
+        if (ch_idx < mm_gba.mix_stop_pending.len) {
+            mm_gba.mix_stop_pending[ch_idx] = false;
+        }
         // must have a valid sample
         if (act_ch.*.sample != 0) {
             const sample: [*c]SampleInfo = mpp_SamplePointer(layer, @as(mm.Word, @intCast(act_ch.*.sample)));
+            dbg_msl_id = @as(u16, @intCast(sample.*.msl_id));
             // Compute MAS GBA header address without relying on aligned struct loads
             var hdr_addr: usize = 0;
             if (@as(c_uint, @intCast(sample.*.msl_id)) == 0xFFFF) {
@@ -2045,6 +2054,10 @@ pub fn mpp_Update_ACHN_notest_update_mix(layer: [*c]mm.LayerInfo, act_ch: [*c]mm
                 const idx: usize = @as(usize, @intCast(sample.*.msl_id));
                 const p: [*]const u8 = samp_tbl_bytes + (idx * 4);
                 const off: usize = @as(usize, @intCast(std.mem.readInt(u32, p[0..4], .little)));
+                if (debug_enabled and ch_idx < 3 and mm_gba.layer_p.*.tick == 0) {
+                    debugPrint("[BINDDBG] bank=0x{x} off=0x{x} prefix={d}\n", .{ @as(usize, @intCast(@intFromPtr(mm_gba.bank_base))), off, @sizeOf(Prefix) });
+                }
+                dbg_sample_offset = @as(u32, @intCast(off));
                 hdr_addr = (@as(usize, @intCast(@intFromPtr(mm_gba.bank_base))) + off) + @sizeOf(Prefix);
             }
             const hb: [*]const u8 = @ptrFromInt(hdr_addr);
@@ -2057,6 +2070,9 @@ pub fn mpp_Update_ACHN_notest_update_mix(layer: [*c]mm.LayerInfo, act_ch: [*c]mm
             const def_le: u16 = @as(u16, hb[10]) | (@as(u16, hb[11]) << 8);
             // initialize read pointer and source to header+12
             mix_ch.*.src = @as(mm.Word, @intCast(hdr_addr + 12));
+            if (debug_enabled and ch_idx < 3 and mm_gba.layer_p.*.tick == 0) {
+                debugPrint("[BINDDBG] hdr=0x{x} src=0x{x}\n", .{ hdr_addr, mix_ch.*.src });
+            }
             did_bind = true;
             // Gate BIND/HDR like C (only on bind and only early channels/first tick)
             should_umix_log = (mm_gba.layer_p.*.tick == 0 and channel < 2);
@@ -2088,9 +2104,26 @@ pub fn mpp_Update_ACHN_notest_update_mix(layer: [*c]mm.LayerInfo, act_ch: [*c]mm
             @as(u32, @intCast(mix_ch.*.src)),
         );
     }
+    if (debug_enabled and channel == 0) {
+        const flags_exit: u8 = act_ch.*.flags;
+        const start_exit = (flags_exit & @as(u8, @intCast(MCAF_START))) != 0;
+        shim.umixUpdateCapture(
+            .exit,
+            0,
+            @as(u8, @intCast(layer.*.tick)),
+            flags_exit,
+            start_exit,
+            sample_idx_entry,
+            dbg_msl_id,
+            dbg_sample_offset,
+            @as(u32, @intCast(mix_ch.*.src)),
+            @as(u32, @intCast(mix_ch.*.read)),
+            @as(u8, @intCast(mix_ch.*.vol)),
+        );
+    }
     return mix_ch;
 }
-pub fn mpp_Update_ACHN_notest_set_pitch_volume(layer: [*c]mm.LayerInfo, act_ch: [*c]mm.ActiveChannel, period: mm.Word, mix_ch: [*c]mm.MixerChannel) mm.Word {
+pub fn mpp_Update_ACHN_notest_set_pitch_volume(layer: [*c]mm.LayerInfo, act_ch: [*c]mm.ActiveChannel, period: mm.Word, mix_ch: [*c]volatile mm.MixerChannel) mm.Word {
     if (@as(c_int, @bitCast(@as(c_uint, act_ch.*.sample))) == @as(c_int, 0)) {
         act_ch.*.fvol = 0;
         return 0;
@@ -2168,70 +2201,149 @@ pub fn mpp_Update_ACHN_notest_set_pitch_volume(layer: [*c]mm.LayerInfo, act_ch: 
     var clipped: mm.Word = out;
     if (clipped > @as(mm.Word, @intCast(255))) clipped = 255;
     act_ch.*.fvol = @as(mm.Byte, @intCast(clipped));
-    // Ordered per-tick logging after fvol is computed (gate like C)
-    {
-        const tnow: u8 = mm_gba.layer_p.*.tick;
-        // Mixer channel index
-        const mix_idx: c_int = @as(c_int, @intCast((@intFromPtr(mix_ch) - @intFromPtr(mixer.mm_mix_channels)) / @sizeOf(mm.MixerChannel)));
-        // Gate like C: only tick==0 and first two mixer channels
-        if (tnow == 0 and mix_idx >= 0 and mix_idx < 2)
-            capture.capture(
-                mm_gba.layer_p,
-                capture.Kind.UmixSetPitch,
-                @as(i32, @intCast(period)),
-                @as(i32, @intCast(mix_ch.*.freq)),
-                @as(i32, @intCast(act_ch.*.fvol)),
-                0,
-                0,
-            );
+    const mix_idx: c_int = @as(c_int, @intCast((@intFromPtr(mix_ch) - @intFromPtr(mixer.mm_mix_channels)) / @sizeOf(mm.MixerChannel)));
+    if (debug_enabled) {
+        var module_vol: u8 = 0;
+        var module_cvol: u8 = 0;
+        if (mm_gba.mpp_channels != @as([*c]mm.ModuleChannel, @ptrFromInt(0))) {
+            const parent_idx: usize = @as(usize, @intCast(act_ch.*.parent));
+            if (parent_idx < @as(usize, @intCast(mm_gba.mpp_nchannels))) {
+                const module_channel_ptr: [*c]mm.ModuleChannel = &mm_gba.mpp_channels[parent_idx];
+                module_vol = module_channel_ptr.*.volume;
+                module_cvol = module_channel_ptr.*.cvolume;
+            }
+        }
+        shim.volCapture(
+            mix_idx,
+            module_vol,
+            module_cvol,
+            @as(u8, @intCast(mpp_vars.afvol)),
+            sample.*.default_volume,
+            sample.*.global_volume,
+            (inst.?).*.global_volume,
+            layer.*.global_volume,
+            xm_mode != 0,
+            layer.*.volume,
+            act_ch.*.fade,
+            vol,
+            @as(u16, @intCast(clipped)),
+            act_ch.*.fvol,
+        );
+    }
+    // Record SPV event for early channels to match C logging
+    if (mix_idx >= 0 and (mix_idx == 0 or mix_idx == 1 or mix_idx == 2 or mix_idx == 9)) {
+        shim.spvCapture(
+            @as(u8, @intCast(mix_idx)),
+            period,
+            mix_ch.*.freq,
+            act_ch.*.fvol,
+            act_ch.*.inst,
+            act_ch.*.sample,
+            (layer.*.flags & MAS_HEADER_FLAG_XM_MODE) != 0,
+        );
     }
     // Do not set mix_ch.vol here; the C path applies panning/disable logic before volume write
     return clipped;
 }
 
-pub fn mpp_Update_ACHN_notest_disable_and_panning(volume: mm.Word, act_ch: [*c]mm.ActiveChannel, mix_ch: [*c]mm.MixerChannel) void {
-    // C behavior: if resulting volume is zero, stop and disable immediately
+pub fn mpp_Update_ACHN_notest_disable_and_panning(volume: mm.Word, act_ch: [*c]mm.ActiveChannel, mix_ch: [*c]volatile mm.MixerChannel) void {
+    const mix_idx_entry: c_int = @as(c_int, @intCast((@intFromPtr(mix_ch) - @intFromPtr(mixer.mm_mix_channels)) / @sizeOf(mm.MixerChannel)));
+    var stop_pending = false;
+    if (mix_idx_entry >= 0 and @as(usize, @intCast(mix_idx_entry)) < mm_gba.mix_stop_pending.len) {
+        if (mm_gba.mix_stop_pending[@as(usize, @intCast(mix_idx_entry))]) {
+            stop_pending = true;
+            mm_gba.mix_stop_pending[@as(usize, @intCast(mix_idx_entry))] = false;
+        }
+    }
+    if (panchk_log_enabled and debug_enabled and mix_idx_entry == 0) {
+        const keyon_dbg: u8 = if ((act_ch.*.flags & @as(mm.Byte, @intCast(MCAF_KEYON))) != 0) @as(u8, 1) else @as(u8, 0);
+        const envend_dbg: u8 = if ((act_ch.*.flags & @as(mm.Byte, @intCast(MCAF_ENVEND))) != 0) @as(u8, 1) else @as(u8, 0);
+        debugPrint(
+            "[PANCHK] stage=entry vol={d} flags=0x{x} src=0x{x} type={d} keyon={d} envend={d}\n",
+            .{
+                @as(u32, @intCast(volume)),
+                @as(u8, act_ch.*.flags),
+                @as(usize, mix_ch.*.src),
+                @as(u8, act_ch.*._type),
+                keyon_dbg,
+                envend_dbg,
+            },
+        );
+    }
     if (volume == 0) {
-        // Stop mixer channel immediately on zero volume (C behavior)
+        const env_end = (act_ch.*.flags & @as(mm.Byte, @intCast(MCAF_ENVEND))) != 0;
+        const key_on = (act_ch.*.flags & @as(mm.Byte, @intCast(MCAF_KEYON))) != 0;
+        if (env_end and !key_on) {
+            mix_ch.*.src = shim.MIXCH_GBA_SRC_STOPPED;
+            if (act_ch.*._type == ACHN_FOREGROUND) {
+                mm_gba.mpp_channels[act_ch.*.parent].alloc = NO_CHANNEL_AVAILABLE;
+            }
+            act_ch.*._type = ACHN_DISABLED;
+            const mix_idx0: c_int = @as(c_int, @intCast((@intFromPtr(mix_ch) - @intFromPtr(mixer.mm_mix_channels)) / @sizeOf(mm.MixerChannel)));
+        if (panchk_log_enabled and debug_enabled and mix_idx_entry == 0) {
+            debugPrint(
+                "[PANCHK] stage=envzero vol={d} flags=0x{x} src=0x{x} type={d}\n",
+                .{
+                    @as(u32, @intCast(volume)),
+                    @as(u8, act_ch.*.flags),
+                        @as(usize, mix_ch.*.src),
+                        @as(u8, act_ch.*._type),
+                    },
+                );
+            }
+            if (mix_idx0 >= 0 and (mix_idx0 == 0 or mix_idx0 == 1 or mix_idx0 == 2 or mix_idx0 == 9))
+                shim.dapCapture(@as(u8, @intCast(mix_idx0)), @as(u8, 0), act_ch.*.panning, mix_ch.*.src, act_ch.*._type);
+            return;
+        }
+    }
+
+    // C writes the raw mm_word into the 8-bit channel volume slot, truncating to 0..255.
+    mix_ch.*.vol = @as(mm.Byte, @truncate(volume));
+
+    if (stop_pending or (mix_ch.*.src & shim.MIXCH_GBA_SRC_STOPPED) != 0) {
+        if (stop_pending and (mix_ch.*.src & shim.MIXCH_GBA_SRC_STOPPED) == 0) {
+            mix_ch.*.src = shim.MIXCH_GBA_SRC_STOPPED;
+        }
+        if (act_ch.*._type == ACHN_FOREGROUND) {
+            mm_gba.mpp_channels[act_ch.*.parent].alloc = NO_CHANNEL_AVAILABLE;
+        }
         mix_ch.*.src = shim.MIXCH_GBA_SRC_STOPPED;
-        if (act_ch.*._type == ACHN_FOREGROUND) {
-            mm_gba.mpp_channels[act_ch.*.parent].alloc = NO_CHANNEL_AVAILABLE;
-        }
         act_ch.*._type = ACHN_DISABLED;
+        if (panchk_log_enabled and debug_enabled and mix_idx_entry == 0) {
+            debugPrint(
+                "[PANCHK] stage=stopped vol={d} flags=0x{x} src=0x{x} type={d}\n",
+                .{
+                    @as(u32, @intCast(volume)),
+                    @as(u8, act_ch.*.flags),
+                    @as(usize, mix_ch.*.src),
+                    @as(u8, act_ch.*._type),
+                },
+            );
+        }
         return;
     }
 
-    // Audible path: write volume (clamped to 255)
-    mix_ch.*.vol = @as(mm.Byte, @intCast(if (volume > @as(mm.Word, @intCast(255))) 255 else volume));
-
-    // If mixer channel has ended, disable this active channel
-    if ((mix_ch.*.src & shim.MIXCH_GBA_SRC_STOPPED) != 0) {
-        if (act_ch.*._type == ACHN_FOREGROUND) {
-            mm_gba.mpp_channels[act_ch.*.parent].alloc = NO_CHANNEL_AVAILABLE;
-        }
-        act_ch.*._type = ACHN_DISABLED;
-        return;
-    }
-
-    // Apply panning adjustment with panplus and clamp
     const panplus: mm.Shword = @as(mm.Shword, @bitCast(mpp_vars.panplus));
     const old_panning: mm.Word = act_ch.*.panning;
     var newpan: c_int = @as(c_int, @intCast(old_panning)) + @as(c_int, @intCast(panplus));
     if (newpan < 0) newpan = 0 else if (newpan > 255) newpan = 255;
     mix_ch.*.pan = @as(mm.Byte, @intCast(newpan));
 
-    // Capture audible state for diffing
-    const stopped: c_int = if ((mix_ch.*.src & shim.MIXCH_GBA_SRC_STOPPED) != 0) 1 else 0;
-    if (umixAllowLogCh(mm_gba.layer_p, umixChannelIndexFromMix(mix_ch)))
-        capture.capture(
-            mm_gba.layer_p,
-            capture.Kind.UmixAudible,
-            @as(i32, @intCast(act_ch.*.parent)),
-            @as(i32, @intCast(mix_ch.*.vol)),
-            @as(i32, @intCast(mix_ch.*.pan)),
-            @as(i32, @intCast(stopped)),
-            0,
+    const mix_idx1: c_int = @as(c_int, @intCast((@intFromPtr(mix_ch) - @intFromPtr(mixer.mm_mix_channels)) / @sizeOf(mm.MixerChannel)));
+    if (mix_idx1 >= 0 and (mix_idx1 == 0 or mix_idx1 == 1 or mix_idx1 == 2 or mix_idx1 == 9))
+        shim.dapCapture(@as(u8, @intCast(mix_idx1)), mix_ch.*.vol, mix_ch.*.pan, mix_ch.*.src, act_ch.*._type);
+    if (panchk_log_enabled and debug_enabled and mix_idx_entry == 0) {
+        debugPrint(
+            "[PANCHK] stage=final vol={d} flags=0x{x} src=0x{x} pan={d} type={d}\n",
+            .{
+                @as(u32, @intCast(volume)),
+                @as(u8, act_ch.*.flags),
+                @as(usize, mix_ch.*.src),
+                @as(u8, mix_ch.*.pan),
+                @as(u8, act_ch.*._type),
+            },
         );
+    }
 }
 
 pub const MAS_HEADER_FLAG_XM_MODE = @as(c_int, 1) << @as(c_int, 3);

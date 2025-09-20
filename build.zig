@@ -1,5 +1,5 @@
 const std = @import("std");
-const ziggba = @import("ziggba");
+const ziggba = @import("my-ZigGBA/src/build/build.zig");
 
 const gba_thumb_target_query = blk: {
     var t = std.Target.Query{
@@ -19,8 +19,13 @@ pub fn build(b: *std.Build) void {
 
     // Get dependencies
     const mmutil_dep = b.dependency("mmutil_zig", .{});
-    const ziggba_dep = b.dependency("ziggba", .{});
-    const gba_mod = ziggba_dep.module("gba");
+    // Avoid executing my-ZigGBA's top-level build (which builds its examples)
+    // by wiring the GBA module directly from the local source tree.
+    const gba_mod = b.createModule(.{
+        .root_source_file = b.path("my-ZigGBA/src/gba/gba.zig"),
+        .target = gba_target,
+        .optimize = optimize,
+    });
 
     // Setup maxmod
     const maxmod_zig = b.addModule("maxmod", .{

@@ -203,10 +203,16 @@ fn processChannelStarted(module_channel: [*c]mm.ModuleChannel, mpp_layer: [*c]mm
 pub fn updateChannel_T0(module_channel: [*c]mm.ModuleChannel, mpp_layer: [*c]mm.LayerInfo, channel_counter: mm.Byte) linksection(".iwram") void {
     // Determine initial state based on C logic
     var state = determineInitialState(module_channel, mpp_layer);
+    shim.t0Capture(1, channel_counter, module_channel, null, module_channel.*.period);
 
     while (true) {
         switch (state) {
             .dont_start => {
+                {
+                    const act = getActiveChannel(module_channel);
+                    const actp: ?*const mm.ActiveChannel = if (act) |a| @as(*const mm.ActiveChannel, @ptrCast(a)) else null;
+                    shim.t0Capture(2, channel_counter, module_channel, actp, module_channel.*.period);
+                }
                 const act_ch = getActiveChannel(module_channel);
                 if (act_ch == null) {
                     updateChannel_TN(module_channel, mpp_layer);
@@ -231,16 +237,24 @@ pub fn updateChannel_T0(module_channel: [*c]mm.ModuleChannel, mpp_layer: [*c]mm.
                     updateChannel_TN(module_channel, mpp_layer);
                     return;
                 }
-
                 const note = channelStartACHN(module_channel, act_ch.?, mpp_layer, channel_counter);
                 if (act_ch.?.*.sample != 0) {
                     const sample: [*c]mas.SampleInfo = mas.mpp_SamplePointer(mpp_layer, @as(mm.Word, @intCast(act_ch.?.*.sample)));
                     module_channel.*.period = getPeriod(mpp_layer, sample.*.frequency << 2, note);
                     act_ch.?.*.flags |= mas.MCAF_START;
                 }
+                {
+                    const actp: ?*const mm.ActiveChannel = @as(*const mm.ActiveChannel, @ptrCast(act_ch.?));
+                    shim.t0Capture(3, channel_counter, module_channel, actp, module_channel.*.period);
+                }
                 state = .started;
             },
             .started => {
+                {
+                    const act = getActiveChannel(module_channel);
+                    const actp: ?*const mm.ActiveChannel = if (act) |a| @as(*const mm.ActiveChannel, @ptrCast(a)) else null;
+                    shim.t0Capture(4, channel_counter, module_channel, actp, module_channel.*.period);
+                }
                 processChannelStarted(module_channel, mpp_layer);
                 updateChannel_TN(module_channel, mpp_layer);
                 return;
@@ -265,10 +279,10 @@ pub fn updateChannel_TN(module_channel: [*c]mm.ModuleChannel, mpp_layer: [*c]mm.
         period = mas.mpp_Process_Effect(mpp_layer, act_ch, module_channel, period);
     }
     if (act_ch == null) return;
-    var volume = (module_channel.*.volume * module_channel.*.cvolume) >> @intCast(5);
+    var volume: i32 = (@as(i32, module_channel.*.volume) * @as(i32, module_channel.*.cvolume)) >> 5;
     act_ch.?.*.volume = @intCast(volume);
     const vol_addition: mm.Sword = @intCast(mas.mpp_vars.volplus);
-    volume += @intCast(vol_addition << 3);
+    volume += @as(i32, vol_addition) << 3;
     if (volume < 0) {
         volume = 0;
     }
@@ -422,35 +436,6 @@ fn channelStartACHN(module_channel: [*c]mm.ModuleChannel, active_channel: [*c]mm
     const nm_off: usize = @as(usize, @intCast(bitfield_raw & 0x7FFF)); // bits 0-14
     const invalid_map: bool = ((bitfield_raw & 0x8000) != 0); // bit 15
     // One-time detailed dump for mapping on first two channels at tick 0
-    if (mpp_layer.*.tick == 0 and channel_counter < 2) {
-        const inst_base_dbg: usize = @intFromPtr(instrument);
-        const nm_ptr_dbg: usize = inst_base_dbg + nm_off;
-        const idx_dbg: usize = @as(usize, @intCast(module_channel.*.pnoter));
-        const map_ptr_dbg: [*]const mm.Hword = @ptrFromInt(nm_ptr_dbg);
-        const raw_entry_dbg: mm.Hword = map_ptr_dbg[idx_dbg];
-        // Dump first 16 bytes of instrument to verify bitfield packing
-        const inst_bytes_dbg: [*]const u8 = @ptrFromInt(inst_base_dbg);
-        const b0: u8 = inst_bytes_dbg[0];
-        const b1: u8 = inst_bytes_dbg[1];
-        const b2: u8 = inst_bytes_dbg[2];
-        const b3: u8 = inst_bytes_dbg[3];
-        const b4: u8 = inst_bytes_dbg[4];
-        const b5: u8 = inst_bytes_dbg[5];
-        const b6: u8 = inst_bytes_dbg[6];
-        const b7: u8 = inst_bytes_dbg[7];
-        const b8: u8 = inst_bytes_dbg[8];
-        const b9: u8 = inst_bytes_dbg[9];
-        const b10: u8 = inst_bytes_dbg[10];
-        const b11: u8 = inst_bytes_dbg[11];
-        debugPrint(
-            "[INST] ch={d} inst_ptr={x} bytes: {x:0>2} {x:0>2} {x:0>2} {x:0>2} {x:0>2} {x:0>2} {x:0>2} {x:0>2} nm_off_lo={x:0>2} nm_off_hi={x:0>2} inv_lo={x:0>2} inv_hi={x:0>2}\n",
-            .{ @as(c_int, @intCast(channel_counter)), inst_base_dbg, b0, b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11 },
-        );
-        debugPrint(
-            "[MAPDBG] ch={d} inst_ptr={x} nmap_off={x} map_ptr={x} pnoter={d} entry={x} invalid={d}\n",
-            .{ @as(c_int, @intCast(channel_counter)), inst_base_dbg, nm_off, nm_ptr_dbg, @as(c_int, @intCast(module_channel.*.pnoter)), @as(c_int, @intCast(raw_entry_dbg)), @as(c_int, @intCast(@intFromBool(invalid_map))) },
-        );
-    }
     if (invalid_map) {
         // No valid note map: use instrument default mapping
         if (active_channel != null) {
@@ -472,12 +457,6 @@ fn channelStartACHN(module_channel: [*c]mm.ModuleChannel, active_channel: [*c]mm
         }
     }
     // Minimal mapping debug on first channels/tick 0 (guarded)
-    if (mpp_layer.*.tick == 0 and channel_counter < 2) {
-        debugPrint(
-            "[BINDMAP] ch={d} inst={d} pnoter={d} invalid={d} nmap_off={x} note={d} sample={d}\n",
-            .{ @as(c_int, @intCast(channel_counter)), @as(c_int, @intCast(module_channel.*.inst)), @as(c_int, @intCast(module_channel.*.pnoter)), @as(c_int, @intCast(@intFromBool(invalid_map))), @as(c_int, @intCast(nm_off)), @as(c_int, @intCast(module_channel.*.note)), if (active_channel != null) @as(c_int, @intCast(active_channel.*.sample)) else 0 },
-        );
-    }
     return module_channel.*.note;
 }
 fn getActiveChannel(module_channel: [*c]mm.ModuleChannel) linksection(".iwram") ?[*c]mm.ActiveChannel {
