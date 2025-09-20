@@ -221,6 +221,7 @@ pub inline fn t0Capture(
     act_ch: ?*const mm.ActiveChannel,
     period_after: u32,
 ) void {
+    if (!debug_enabled) return;
     if (debug_state.t0_len >= debug_state.t0_events.len) return;
     const e = &debug_state.t0_events[debug_state.t0_len];
     e.* = .{
@@ -266,6 +267,7 @@ pub inline fn t0Capture(
     debug_state.t0_len +%= 1;
 }
 pub inline fn spvCapture(ch: u8, per: u32, freq: u32, fvol: u8, inst: u8, sample: u8, xm: bool) void {
+    if (!debug_enabled) return;
     if (debug_state.spv_len >= debug_state.spv_events.len) return;
     const e = &debug_state.spv_events[debug_state.spv_len];
     e.* = .{ .ch = ch, .per = per, .freq = freq, .fvol = fvol, .inst = inst, .sample = sample, .xm = if (xm) 1 else 0 };
@@ -278,6 +280,7 @@ pub inline fn spvCapture(ch: u8, per: u32, freq: u32, fvol: u8, inst: u8, sample
     debug_state.spv_len +%= 1;
 }
 pub inline fn dapCapture(ch: u8, vol: u8, pan: u8, src: u32, typ: u8) void {
+    if (!debug_enabled) return;
     if (debug_state.dap_len >= debug_state.dap_events.len) return;
     const e = &debug_state.dap_events[debug_state.dap_len];
     e.* = .{ .ch = ch, .vol = vol, .pan = pan, .src = src, .typ = typ };
@@ -299,6 +302,7 @@ pub inline fn volCapture(
     clipped: u16,
     fvol: u8,
 ) void {
+    if (!debug_enabled) return;
     if (debug_state.vol_len >= debug_state.vol_events.len) return;
     if (ch != vol_trace_channel) return;
     const e = &debug_state.vol_events[debug_state.vol_len];
@@ -368,6 +372,7 @@ pub inline fn umixUpdateCapture(
     }
 }
 pub inline fn mixCapture(stage: u8, samples: c_int, values: [8]u32) void {
+    if (!debug_enabled) return;
     if (debug_state.mix_len >= debug_state.mix_events.len) return;
     debug_state.mix_events[debug_state.mix_len] = .{
         .stage = stage,
