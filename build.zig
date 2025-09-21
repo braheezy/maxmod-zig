@@ -74,7 +74,7 @@ fn createXmExample(
     xm_exe.root_module.addImport("maxmod", maxmod_zig);
 
     const xm_opts = b.addOptions();
-    xm_opts.addOption([]const u8, "xm_name", selected_xm_file);
+    xm_opts.addOption([]const u8, "xm_name", std.fs.path.basename(selected_xm_file));
     xm_opts.addOption(bool, "xm_debug", xm_debug);
     const build_options_mod = xm_opts.createModule();
     maxmod_zig.addImport("build_options", build_options_mod);
