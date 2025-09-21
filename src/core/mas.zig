@@ -396,6 +396,20 @@ pub fn mppProcessTick() linksection(".iwram") void {
             "[UPD] tick={d} row={d} bits=0x{x}\n",
             .{ layer.*.tick, layer.*.row, @as(u32, @intCast(update_bits)) },
         );
+        if (layer.*.row >= 6 and layer.*.row <= 20 and layer.*.tick == 0) {
+            debugPrint(
+                "[ROWSTATE] row={d} pattdelay={d} fpattdelay={d} pattjump={d} pattjump_row={d} ploop_jump={d} ploop_times={d}\n",
+                .{
+                    @as(c_int, @intCast(layer.*.row)),
+                    @as(c_int, @intCast(layer.*.pattdelay)),
+                    @as(c_int, @intCast(layer.*.fpattdelay)),
+                    @as(c_int, @intCast(layer.*.pattjump)),
+                    @as(c_int, @intCast(layer.*.pattjump_row)),
+                    @as(c_int, @intCast(layer.*.ploop_jump)),
+                    @as(c_int, @intCast(layer.*.ploop_times)),
+                },
+            );
+        }
     }
     if (shim.debug_state.upd_len < shim.debug_state.upd_events.len) {
         const idx = shim.debug_state.upd_len;
@@ -774,6 +788,16 @@ pub fn mpp_Process_VolumeCommand(layer: [*c]mm.LayerInfo, act_ch: ?[*c]mm.Active
 pub fn mpp_Process_Effect(layer: [*c]mm.LayerInfo, act_ch: ?[*c]mm.ActiveChannel, channel: [*c]mm.ModuleChannel, period: mm.Word) mm.Word {
     const param: mm.Word = mpp_Channel_ExchangeMemory(channel.*.effect, channel.*.param, channel, layer);
     const effect: mm.Word = @as(mm.Word, @bitCast(@as(c_uint, channel.*.effect)));
+    if (debug_enabled) {
+        const row_dbg = @as(c_int, @intCast(layer.*.row));
+        const ch_idx_dbg = @as(c_int, @intCast((@intFromPtr(channel) - @intFromPtr(mm_gba.mpp_channels)) / @sizeOf(mm.ModuleChannel)));
+        if (row_dbg <= 40 and ch_idx_dbg <= 15) {
+            debugPrint(
+                "[EFFECT] row={d} tick={d} ch={d} effect=0x{x:0>2} param=0x{x:0>2}\n",
+                .{ row_dbg, @as(c_int, @intCast(layer.*.tick)), ch_idx_dbg, @as(u32, @intCast(effect)), @as(u32, @intCast(param)) },
+            );
+        }
+    }
     while (true) {
         switch (effect) {
             @as(mm.Word, @bitCast(@as(c_int, 0))) => return period,
@@ -1395,13 +1419,31 @@ pub fn mppe_SetSpeed(param: mm.Word, layer: [*c]mm.LayerInfo) void {
 }
 pub fn mppe_PositionJump(param: mm.Word, layer: [*c]mm.LayerInfo) void {
     if (@as(c_int, @bitCast(@as(c_uint, layer.*.tick))) != @as(c_int, 0)) return;
+    if (debug_enabled) {
+        debugPrint(
+            "[POSJMP] row={d} param={d} position(before)={d}\n",
+            .{ @as(c_int, @intCast(layer.*.row)), @as(c_int, @intCast(param)), @as(c_int, @intCast(layer.*.position)) },
+        );
+    }
     layer.*.pattjump = @as(mm.Byte, @bitCast(@as(u8, @truncate(param))));
 }
 pub fn mppe_PatternBreak(param: mm.Word, layer: [*c]mm.LayerInfo) void {
     if (@as(c_int, @bitCast(@as(c_uint, layer.*.tick))) != @as(c_int, 0)) return;
+    if (debug_enabled) {
+        debugPrint(
+            "[PATBRK] row={d} param=0x{x:0>2} position={d} pattjump(before)={d}\n",
+            .{ @as(c_int, @intCast(layer.*.row)), @as(u32, @intCast(param)), @as(c_int, @intCast(layer.*.position)), @as(c_int, @intCast(layer.*.pattjump)) },
+        );
+    }
     layer.*.pattjump_row = @as(mm.Byte, @bitCast(@as(u8, @truncate(param))));
     if (@as(c_int, @bitCast(@as(c_uint, layer.*.pattjump))) == @as(c_int, 255)) {
         layer.*.pattjump = @as(mm.Byte, @bitCast(@as(i8, @truncate(@as(c_int, @bitCast(@as(c_uint, layer.*.position))) + @as(c_int, 1)))));
+        if (debug_enabled) {
+            debugPrint(
+                "[PATBRK] set pattjump={d} pattjump_row={d}\n",
+                .{ @as(c_int, @intCast(layer.*.pattjump)), @as(c_int, @intCast(layer.*.pattjump_row)) },
+            );
+        }
     }
 }
 pub fn mppe_VolumeSlide(param: mm.Word, channel: [*c]mm.ModuleChannel, layer: [*c]mm.LayerInfo) void {
@@ -1716,6 +1758,12 @@ pub fn mppex_SoundControl(param: mm.Word) void {
 pub fn mppex_PatternLoop(param: mm.Word, layer: [*c]mm.LayerInfo) void {
     if (@as(c_int, @bitCast(@as(c_uint, layer.*.tick))) != @as(c_int, 0)) return;
     const subparam: mm.Word = param & @as(mm.Word, @bitCast(@as(c_int, 15)));
+    if (debug_enabled) {
+        debugPrint(
+            "[PLOOP] row={d} subparam=0x{x:0>2} counter={d}\n",
+            .{ @as(c_int, @intCast(layer.*.row)), @as(u32, @intCast(subparam)), @as(c_int, @intCast(layer.*.ploop_times)) },
+        );
+    }
     if (subparam == @as(mm.Word, @bitCast(@as(c_int, 0)))) {
         layer.*.ploop_row = layer.*.row;
         layer.*.ploop_adr = mpp_vars.pattread_p;
@@ -1745,6 +1793,12 @@ pub fn mppex_NoteDelay(param: mm.Word, layer: [*c]mm.LayerInfo) void {
 pub fn mppex_PatternDelay(param: mm.Word, layer: [*c]mm.LayerInfo) void {
     if (@as(c_int, @bitCast(@as(c_uint, layer.*.tick))) != @as(c_int, 0)) return;
     if (@as(c_int, @bitCast(@as(c_uint, layer.*.pattdelay))) == @as(c_int, 0)) {
+        if (debug_enabled) {
+            debugPrint(
+                "[PDELAY] row={d} param=0x{x:0>2}\n",
+                .{ @as(c_int, @intCast(layer.*.row)), @as(u32, @intCast(param)) },
+            );
+        }
         layer.*.pattdelay = @as(mm.Byte, @bitCast(@as(u8, @truncate((param & @as(mm.Word, @bitCast(@as(c_int, 15)))) +% @as(mm.Word, @bitCast(@as(c_int, 1)))))));
     }
 }
@@ -2070,8 +2124,11 @@ pub fn mpp_Update_ACHN_notest_update_mix(layer: [*c]mm.LayerInfo, act_ch: [*c]mm
             const def_le: u16 = @as(u16, hb[10]) | (@as(u16, hb[11]) << 8);
             // initialize read pointer and source to header+12
             mix_ch.*.src = @as(mm.Word, @intCast(hdr_addr + 12));
-            if (debug_enabled and ch_idx < 3 and mm_gba.layer_p.*.tick == 0) {
-                debugPrint("[BINDDBG] hdr=0x{x} src=0x{x}\n", .{ hdr_addr, mix_ch.*.src });
+           if (debug_enabled and ch_idx < 3 and mm_gba.layer_p.*.tick == 0) {
+                debugPrint(
+                    "[BINDDBG] hdr=0x{x} src=0x{x} len=0x{x} loop=0x{x}\n",
+                    .{ hdr_addr, mix_ch.*.src, len_le, loop_le },
+                );
             }
             did_bind = true;
             // Gate BIND/HDR like C (only on bind and only early channels/first tick)
@@ -2088,6 +2145,18 @@ pub fn mpp_Update_ACHN_notest_update_mix(layer: [*c]mm.LayerInfo, act_ch: [*c]mm
             );
             // initialize read pointer
             mix_ch.*.read = @as(mm.Word, @intCast(@as(u32, mpp_vars.sampoff))) << (MP_SAMPFRAC + 8);
+            if (debug_enabled and channel == 0) {
+                debugPrint(
+                    "[BIND] row={d} tick={d} sampoff={d} src=0x{x} read=0x{x}\n",
+                    .{
+                        @as(c_int, @intCast(layer.*.row)),
+                        @as(c_int, @intCast(layer.*.tick)),
+                        @as(u32, @intCast(mpp_vars.sampoff)),
+                        @as(usize, mix_ch.*.src),
+                        @as(u32, @intCast(mix_ch.*.read)),
+                    },
+                );
+            }
         }
     }
 
@@ -2255,6 +2324,21 @@ pub fn mpp_Update_ACHN_notest_disable_and_panning(volume: mm.Word, act_ch: [*c]m
             mm_gba.mix_stop_pending[@as(usize, @intCast(mix_idx_entry))] = false;
         }
     }
+    if (debug_enabled and mix_idx_entry == 0) {
+        const row_dbg = mm_gba.layer_p.*.row;
+        if (row_dbg >= 15 and row_dbg <= 30) {
+            debugPrint(
+                "[STOPDBG] row={d} tick={d} stop_pending={d} src=0x{x} flags=0x{x}\n",
+                .{
+                    @as(c_int, @intCast(row_dbg)),
+                    @as(c_int, @intCast(mm_gba.layer_p.*.tick)),
+                    @as(u8, if (stop_pending) 1 else 0),
+                    @as(usize, mix_ch.*.src),
+                    @as(u8, act_ch.*.flags),
+                },
+            );
+        }
+    }
     if (panchk_log_enabled and debug_enabled and mix_idx_entry == 0) {
         const keyon_dbg: u8 = if ((act_ch.*.flags & @as(mm.Byte, @intCast(MCAF_KEYON))) != 0) @as(u8, 1) else @as(u8, 0);
         const envend_dbg: u8 = if ((act_ch.*.flags & @as(mm.Byte, @intCast(MCAF_ENVEND))) != 0) @as(u8, 1) else @as(u8, 0);
@@ -2276,7 +2360,12 @@ pub fn mpp_Update_ACHN_notest_disable_and_panning(volume: mm.Word, act_ch: [*c]m
         if (env_end and !key_on) {
             mix_ch.*.src = shim.MIXCH_GBA_SRC_STOPPED;
             if (act_ch.*._type == ACHN_FOREGROUND) {
-                mm_gba.mpp_channels[act_ch.*.parent].alloc = NO_CHANNEL_AVAILABLE;
+                const parent_idx: usize = @as(usize, @intCast(act_ch.*.parent));
+                if (parent_idx < @as(usize, @intCast(mm_gba.mpp_nchannels))) {
+                    const parent_mod: [*c]mm.ModuleChannel = &mm_gba.mpp_channels[parent_idx];
+                    parent_mod.*.alloc = NO_CHANNEL_AVAILABLE;
+                    parent_mod.*.flags &= @as(mm.Byte, @truncate(~@as(mm.Word, @intCast(MF_START | MF_NEWINSTR))));
+                }
             }
             act_ch.*._type = ACHN_DISABLED;
             const mix_idx0: c_int = @as(c_int, @intCast((@intFromPtr(mix_ch) - @intFromPtr(mixer.mm_mix_channels)) / @sizeOf(mm.MixerChannel)));
@@ -2300,12 +2389,62 @@ pub fn mpp_Update_ACHN_notest_disable_and_panning(volume: mm.Word, act_ch: [*c]m
     // C writes the raw mm_word into the 8-bit channel volume slot, truncating to 0..255.
     mix_ch.*.vol = @as(mm.Byte, @truncate(volume));
 
+    // Extra safeguard (debug-only): mirror mixer end-of-sample stop when source
+    // has no loop and the read cursor has reached or exceeded the sample
+    // length. The C mixer (mmMixerMix) sets the STOP sentinel in mix_ch->src.
+    // If for any reason the assembler routine hasn't flipped the bit by the
+    // time we process channel state, replicate the same behavior so higher-
+    // level logic observes a stopped channel at the same frame.
+    if ((mix_ch.*.src & shim.MIXCH_GBA_SRC_STOPPED) == 0) {
+        // Compute header address (12 bytes before data pointer)
+        const src_addr: usize = @as(usize, @intCast(mix_ch.*.src));
+        if (src_addr >= 12) {
+            const hdr: [*]const u8 = @ptrFromInt(src_addr - 12);
+            const len_le: u32 = std.mem.readInt(u32, hdr[0..4], .little);
+            const loop_le: u32 = std.mem.readInt(u32, hdr[4..8], .little);
+            const read_q12: u32 = @as(u32, @intCast(mix_ch.*.read));
+            const len_q12: u32 = len_le << @intCast(MP_SAMPFRAC);
+            if (debug_enabled and mix_idx_entry == 0) {
+                const row_dbg2 = mm_gba.layer_p.*.row;
+                if (row_dbg2 >= 14 and row_dbg2 <= 18) {
+                    debugPrint(
+                        "[HDRCHK] row={d} tick={d} len=0x{x} loop=0x{x} read_q12=0x{x} src=0x{x}\n",
+                        .{ @as(c_int, @intCast(row_dbg2)), @as(c_int, @intCast(mm_gba.layer_p.*.tick)), len_le, loop_le, read_q12, src_addr },
+                    );
+                }
+            }
+            // No-loop if MSB set in loop_length; STOP when read passes/equal length
+            if (debug_enabled) {
+                if (read_q12 >= len_q12 and (loop_le & 0x8000_0000) != 0) {
+                    if (mix_idx_entry == 0) {
+                        debugPrint(
+                            "[STOPDBG] forced stop read_q12=0x{x} len_q12=0x{x} src=0x{x}\n",
+                            .{ read_q12, len_q12, src_addr },
+                        );
+                    }
+                    mix_ch.*.src = shim.MIXCH_GBA_SRC_STOPPED;
+                }
+            }
+        }
+    }
+
     if (stop_pending or (mix_ch.*.src & shim.MIXCH_GBA_SRC_STOPPED) != 0) {
+        if (debug_enabled and mix_idx_entry == 0) {
+            debugPrint(
+                "[STOPDBG] stop branch stop_pending={d} src=0x{x}\n",
+                .{ @as(u8, if (stop_pending) 1 else 0), @as(usize, mix_ch.*.src) },
+            );
+        }
         if (stop_pending and (mix_ch.*.src & shim.MIXCH_GBA_SRC_STOPPED) == 0) {
             mix_ch.*.src = shim.MIXCH_GBA_SRC_STOPPED;
         }
         if (act_ch.*._type == ACHN_FOREGROUND) {
-            mm_gba.mpp_channels[act_ch.*.parent].alloc = NO_CHANNEL_AVAILABLE;
+            const parent_idx: usize = @as(usize, @intCast(act_ch.*.parent));
+            if (parent_idx < @as(usize, @intCast(mm_gba.mpp_nchannels))) {
+                const parent_mod: [*c]mm.ModuleChannel = &mm_gba.mpp_channels[parent_idx];
+                parent_mod.*.alloc = NO_CHANNEL_AVAILABLE;
+                parent_mod.*.flags &= @as(mm.Byte, @truncate(~@as(mm.Word, @intCast(MF_START | MF_NEWINSTR))));
+            }
         }
         mix_ch.*.src = shim.MIXCH_GBA_SRC_STOPPED;
         act_ch.*._type = ACHN_DISABLED;

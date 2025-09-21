@@ -133,6 +133,8 @@ pub fn init(setup: *mm_gba.GBASystem) void {
     // Reset and configure direct sound
     soundcnt_h_ptr.* = 0; // REG_SOUNDCNT_H = 0
     soundcnt_h_ptr.* = 0x9A0C; // DIRECT A/B, timer0, full vol
+    // Ensure sound bias is enabled (matches C reference main)
+    @as([*c]volatile u16, @ptrFromInt(0x04000088)).* = 0x0200;
     // Setup DMA sources (wavebuffer halves)
     dma1sad_ptr.* = @intCast(@intFromPtr(wavebuffer.?));
     dma2sad_ptr.* = @intCast(@intFromPtr(wavebuffer.?) + mm_gba.mm_mixlen * 2);

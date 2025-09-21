@@ -142,6 +142,9 @@ inline fn recordStops() void {
         const src_val = mixer.mm_mix_channels[i].src;
         if ((src_val & shim.MIXCH_GBA_SRC_STOPPED) != 0) {
             mix_stop_pending[i] = true;
+            if (debug_enabled and i == 0) {
+                debugPrint("[STOPREC] src=0x{x}\n", .{src_val});
+            }
         }
     }
 }

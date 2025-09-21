@@ -23,10 +23,6 @@ static void agb_printv(const char *fmt, ...) {
 
 #define VERBOSE_LOG 0
 
-// Binary blob (MAS) produced via objcopy in Makefile
-extern const unsigned char _binary_bad_apple_mas_start[];
-extern const unsigned char _binary_bad_apple_mas_end[];
-
 // Override maxmod's internal debug function at link time (enable logs)
 void mm_dbgf(const char *fmt, ...) __attribute__((weak));
 void mm_dbgf(const char *fmt, ...) {
@@ -121,7 +117,7 @@ int main(void) {
     // Module count and start (match Zig logs)
     mgba_printf("[main] module_count=1 (hardcoded, mmGetModuleCount not available)\n");
     mgba_printf("[main] mmStart(0, MM_PLAY_LOOP)\n");
-    mmStart(MOD_BAD_APPLE, MM_PLAY_LOOP);
+    mmStart(MOD_ZELDA_3___FAIRY_THEME, MM_PLAY_LOOP);
     mgba_printf("[main] mmStart() called\n");
 
     // Use tempo/pitch from MAS header (don't override)
@@ -154,7 +150,7 @@ typedef struct {
     // Track last-seen CH2 fields to print only on change
     mm_mixer_channel ch2_prev = {0};
 
-    const unsigned max_frames = 90;
+    const unsigned max_frames = 180;
     while (1) {
         // Update Maxmod first so DMA has fresh data by VBlank
 #if VERBOSE_LOG
@@ -235,8 +231,8 @@ typedef struct {
             mix_hash ^= ((unsigned)chp->freq) << ((idx + 5) & 7);
         }
         agb_printv("[MXSUM] frame=%u hash=0x%08x\n", frame_count, mix_hash);
-        if (frame_count <= 2) {
-            for (unsigned idx = 0; idx < 32; ++idx) {
+        if (frame_count >= 100 && frame_count <= 110) {
+            for (unsigned idx = 0; idx < 8; ++idx) {
                 volatile mm_mixer_channel *chp = &mm_mix_channels[idx];
                 uintptr_t src_val = (uintptr_t)chp->src;
                 unsigned src_rel = 0;
@@ -258,14 +254,22 @@ typedef struct {
             }
         }
 
-        // Toggle pixel and wait for VBlank
-        *vid = col;
-        col ^= 0x7FFF; // toggle
-        VBlankIntrWait();
-        frame_count += 1;
-        if (frame_count == max_frames)
-            break;
-    }
+       // Toggle pixel and wait for VBlank
+       *vid = col;
+       col ^= 0x7FFF; // toggle
+       VBlankIntrWait();
+        if (frame_count >= 100 && frame_count <= 110) {
+            volatile mm_mixer_channel *ch0 = &mm_mix_channels[0];
+            agb_printv("[FRAMECHK] frame=%u src=0x%08x read=0x%08x vol=%u\n",
+                       frame_count,
+                       (unsigned)(uintptr_t)ch0->src,
+                       (unsigned)ch0->read,
+                       ch0->vol);
+        }
+       frame_count += 1;
+       if (frame_count == max_frames)
+           break;
+   }
 
     mm_dbgf("[DONE] frame_count=%u\n", frame_count);
     mmDebugFlushMixLog();

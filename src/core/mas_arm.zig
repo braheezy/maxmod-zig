@@ -5,6 +5,8 @@ const mas = @import("mas.zig");
 const tables = @import("tables.zig");
 
 const debug_enabled = @import("build_options").xm_debug;
+const COMPR_FLAG_NOTE: mm.Word = 1;
+const COMPR_FLAG_INSTR: mm.Word = 1 << 1;
 
 // Debug printing helper that can be compiled out
 inline fn debugPrint(comptime fmt: []const u8, args: anytype) void {
@@ -23,6 +25,32 @@ const ChannelState = enum {
 // Determine initial state based on C logic
 fn determineInitialState(module_channel: [*c]mm.ModuleChannel, mpp_layer: [*c]mm.LayerInfo) ChannelState {
     // Test start flag
+    if (debug_enabled) {
+        const row_dbg = @as(c_int, @intCast(mpp_layer.*.row));
+        if (row_dbg >= 6 and row_dbg <= 20) {
+            const ch_dbg = @as(c_int, @intCast((@intFromPtr(module_channel) - @intFromPtr(mm_gba.mpp_channels)) / @sizeOf(mm.ModuleChannel)));
+            if (ch_dbg <= 7 and (@as(c_int, @intCast(mpp_layer.*.tick)) == 0)) {
+                const act_dbg = mas.mpp_Channel_GetACHN(module_channel);
+                var act_flags: u8 = 0;
+                if (act_dbg != null) {
+                    act_flags = act_dbg.?.*.flags;
+                }
+                debugPrint(
+                    "[STATE] row={d} ch={d} flags=0x{x:0>2} effect=0x{x:0>2} param=0x{x:0>2} pnoter={d} inst={d} act_flags=0x{x:0>2}\n",
+                    .{
+                        row_dbg,
+                        ch_dbg,
+                        @as(u32, @intCast(module_channel.*.flags)),
+                        @as(u32, @intCast(module_channel.*.effect)),
+                        @as(u32, @intCast(module_channel.*.param)),
+                        @as(c_int, @intCast(module_channel.*.pnoter)),
+                        @as(c_int, @intCast(module_channel.*.inst)),
+                        @as(u32, act_flags),
+                    },
+                );
+            }
+        }
+    }
     if ((module_channel.*.flags & mas.MF_START) == 0) {
         return .dont_start;
     }
@@ -329,6 +357,15 @@ pub fn readPattern(mpp_layer: [*c]mm.LayerInfo) linksection(".iwram") bool {
             ref.* += 1;
             break :blk tmp;
         }).*;
+        if (debug_enabled) {
+            const row_dbg = @as(c_int, @intCast(mpp_layer.*.row));
+            if (row_dbg >= 16 and row_dbg <= 20) {
+                debugPrint(
+                    "[RP] row={d} raw=0x{x:0>2}\n",
+                    .{ row_dbg, @as(u32, @intCast(read_byte)) },
+                );
+            }
+        }
         if ((read_byte & 127) == 0) {
             break;
         }
@@ -341,22 +378,50 @@ pub fn readPattern(mpp_layer: [*c]mm.LayerInfo) linksection(".iwram") bool {
         }
         update_bits |= @as(mm.Word, @intCast(1)) << @intCast(chan_num);
         const module_channel: [*c]mm.ModuleChannel = &module_channels[chan_num];
-        if (read_byte & (@as(c_int, 1) << @intCast(7)) != 0) {
-            module_channel.*.cflags = (blk: {
-                const ref = &pattern;
-                const tmp = ref.*;
-                ref.* += 1;
-                break :blk tmp;
-            }).*;
+       if (read_byte & (@as(c_int, 1) << @intCast(7)) != 0) {
+           module_channel.*.cflags = (blk: {
+               const ref = &pattern;
+               const tmp = ref.*;
+               ref.* += 1;
+               break :blk tmp;
+           }).*;
+            if (debug_enabled) {
+                const row_dbg = @as(c_int, @intCast(mpp_layer.*.row));
+                if (row_dbg >= 16 and row_dbg <= 20) {
+                    debugPrint(
+                        "[CFLAGS] row={d} ch={d} new=0x{x:0>2}\n",
+                        .{ row_dbg, @as(c_int, @intCast(chan_num)), @as(u32, @intCast(module_channel.*.cflags)) },
+                    );
+                }
+            }
+       }
+       const compr_flags: mm.Word = @intCast(module_channel.*.cflags);
+        if (debug_enabled) {
+            const row_dbg = @as(c_int, @intCast(mpp_layer.*.row));
+            if (row_dbg >= 16 and row_dbg <= 20) {
+                debugPrint(
+                    "[CFLAGS] row={d} ch={d} effective=0x{x:0>2}\n",
+                    .{ row_dbg, @as(c_int, @intCast(chan_num)), @as(u32, @intCast(compr_flags)) },
+                );
+            }
         }
-        const compr_flags: mm.Word = @intCast(module_channel.*.cflags);
-        if ((compr_flags & 1) != 0) {
+       if ((compr_flags & 1) != 0) {
             const note: mm.Byte = (blk: {
                 const ref = &pattern;
                 const tmp = ref.*;
                 ref.* += 1;
                 break :blk tmp;
             }).*;
+            if (debug_enabled) {
+                const row_dbg = @as(c_int, @intCast(mpp_layer.*.row));
+                if (row_dbg >= 6 and row_dbg <= 20) {
+                    const ch_dbg = @as(c_int, @intCast(chan_num));
+                    debugPrint(
+                        "[NOTE] row={d} ch={d} note={d}\n",
+                        .{ row_dbg, ch_dbg, @as(c_int, @intCast(note)) },
+                    );
+                }
+            }
             if (note == 254) {
                 pattern_flags |= 128;
             } else if (note == 255) {
@@ -410,6 +475,21 @@ pub fn readPattern(mpp_layer: [*c]mm.LayerInfo) linksection(".iwram") bool {
         // Map compressed field-presence bits into module_channel.flags upper nibble.
         // Bit layout from C: note=1<<0, inst=1<<1, vol=1<<2, eff=1<<3;
         // runtime flags expect these at bits 4..7. Use right shift by 4 (like C code).
+        if (debug_enabled) {
+            const row_dbg = @as(c_int, @intCast(mpp_layer.*.row));
+            if (row_dbg >= 6 and row_dbg <= 20) {
+                debugPrint(
+                    "[FLAGS] row={d} ch={d} patt=0x{x:0>2} compr=0x{x:0>2} combined=0x{x:0>2}\n",
+                    .{
+                        row_dbg,
+                        @as(c_int, @intCast(chan_num)),
+                        @as(u32, @intCast(pattern_flags)),
+                        @as(u32, @intCast(compr_flags)),
+                        @as(u32, @intCast(pattern_flags | (compr_flags >> 4))),
+                    },
+                );
+            }
+        }
         module_channel.*.flags = @intCast(pattern_flags | (compr_flags >> 4));
     }
     mpp_layer.*.pattread = pattern;

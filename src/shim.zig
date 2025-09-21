@@ -408,7 +408,7 @@ pub fn logMixHash(frame_idx: u32) void {
 }
 pub fn logMixChannels(frame_idx: u32) void {
     if (!(mix_hash_log_enabled and debug_enabled)) return;
-    if (frame_idx > 2) return;
+    if (frame_idx < 100 or frame_idx > 110) return;
     const count = @as(usize, @intCast(mm.mixer.getCount()));
     const bank_base = @as(usize, @intCast(@intFromPtr(mm.gba.bank_base)));
     var i: usize = 0;
