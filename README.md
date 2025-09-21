@@ -1,9 +1,6 @@
 # maxmod-zig
 
-This is a WIP port of the MaxMod audio library to Zig for Game Boy Advance development.
-
-> [!WARNING]
-> XM playback works, but there is a terrible bug that makes playback bad for most files so you probably don't want to use this unless you want to fix it!!
+This is a WIP Zig port of the [MaxMod](https://github.com/blocksds/maxmod) GBA audio library.
 
 ## Usage
 
