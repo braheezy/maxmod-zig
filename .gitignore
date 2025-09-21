@@ -8,3 +8,9 @@ src/working_mod_player
 src/simple_mod_player
 *.log
 *ZigGBA*
+*.gdb
+/examples/xm_c_ref/*.o
+/examples/xm_c_ref/soundbank.h
+/examples/xm_c_ref/*.elf
+/examples/xm_c_ref/*.gba
+/examples/xm_c_ref/*.mas

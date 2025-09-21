@@ -2,24 +2,17 @@ const mm = @import("../maxmod.zig");
 const mixer = @import("../gba/mixer.zig");
 const mm_gba = @import("../gba/main_gba.zig");
 const shim = @import("../shim.zig");
-const std = @import("std");
 const arm = @import("mas_arm.zig");
 const tables = @import("tables.zig");
-
+const gba = @import("gba");
+const std = @import("std");
 // Debug configuration - can be toggled at build time
 const debug_enabled = @import("build_options").xm_debug;
-inline fn debugPrint(comptime fmt: []const u8, args: anytype) void {
-    if (debug_enabled) {
-        @import("gba").debug.print(fmt, args) catch {};
-    }
-}
-// Guard: per-channel last tick we logged [UMIX]/[DISPAN] to avoid duplicate pairs
-// Throttle UMIX logging to avoid audio disruption.
-// - Only log on tick==0 (first tick of a row)
-// - Only log for first two channels to reduce volume
-// - Global budget to cap total prints per session
-var umix_debug_budget: c_int = 2000;
 
+inline fn readLe32(ptr: anytype) u32 {
+    const bytes: [*]const u8 = @ptrCast(ptr);
+    return std.mem.readInt(u32, bytes[0..4], .little);
+}
 pub const LayerType = enum {
     main,
     jingle,
@@ -57,13 +50,13 @@ pub const Instrument = extern struct {
 };
 pub var mpp_vars: MpvActiveInfo = .{};
 pub const mm_bool = u8;
-pub const MM_MAIN: c_int = 0;
-pub const MM_JINGLE: c_int = 1;
-pub const mm_layer_type = c_uint;
+pub const MM_MAIN: i32 = 0;
+pub const MM_JINGLE: i32 = 1;
+pub const mm_layer_type = usize;
 pub const mm_callback = ?*const fn (mm.Word, LayerType) mm.Word;
-pub const MM_PLAY_LOOP: c_int = 0;
-pub const MM_PLAY_ONCE: c_int = 1;
-pub const mm_pmode = c_uint;
+pub const MM_PLAY_LOOP: i32 = 0;
+pub const MM_PLAY_ONCE: i32 = 1;
+pub const mm_pmode = usize;
 pub var mpp_clayer: LayerType = .main;
 
 pub fn allocChannel() linksection(".iwram") mm.Word {
@@ -90,25 +83,23 @@ pub fn allocChannel() linksection(".iwram") mm.Word {
             };
         }) {
             if ((bitmask & 1) == 0) continue;
-            const fvol: mm.Word = @as(mm.Word, @bitCast(@as(c_uint, act_ch.*.fvol)));
-            const @"type": mm.Word = @as(mm.Word, @bitCast(@as(c_uint, act_ch.*._type)));
+            const fvol: mm.Word = @as(mm.Word, @bitCast(@as(usize, act_ch.*.fvol)));
+            const @"type": mm.Word = @as(mm.Word, @bitCast(@as(usize, act_ch.*._type)));
             if (2 < @"type") continue else if (2 > @"type") return i;
             if (best_volume <= (fvol << 23)) continue;
             best_channel = i;
             best_volume = fvol << 23;
         }
     }
-    debugPrint("[allocChannel] return={d} bitmask={x}\n", .{ @as(c_int, @intCast(best_channel)), @as(c_int, @intCast(mm_ch_mask)) });
+
     return best_channel;
 }
-
 pub fn mmSetEventHandler(handler: mm_callback) void {
     mmCallback = handler;
 }
 pub fn mmStart(id: mm.Word, mode: mm_pmode) void {
     const mc = mm_gba.getModuleCount();
     if (id >= mc) {
-        debugPrint("[mmStart] early return: id>=count\n", .{});
         return;
     }
     mpps_backdoor(id, mode, .main);
@@ -116,13 +107,11 @@ pub fn mmStart(id: mm.Word, mode: mm_pmode) void {
 pub fn mmPause() void {
     if (mm_gba.layer_main.valid == 0) return;
     mm_gba.layer_main.isplaying = 0;
-    debugPrint("[mmPause] main.isplaying -> 0\n", .{});
     mpp_suspend(@bitCast(MM_MAIN));
 }
 pub fn mmResume() void {
     if (mm_gba.layer_main.valid == 0) return;
     mm_gba.layer_main.isplaying = 1;
-    debugPrint("[mmResume] main.isplaying -> 1\n", .{});
 }
 pub fn mmStop() void {
     mpp_clayer = .main;
@@ -138,7 +127,6 @@ pub fn mmGetPosition() mm.Word {
     return @intCast(mm_gba.layer_main.position);
 }
 fn mmSetPositionEx(position: mm.Word, row: mm.Word) void {
-    debugPrint("[mmSetPositionEx] position={d} row={d}\n", .{ position, row });
     mpp_setposition(&mm_gba.layer_main, position);
     if (row != @as(mm.Word, 0)) {
         mpph_FastForward(&mm_gba.layer_main, row);
@@ -173,7 +161,7 @@ pub fn mmSetModuleTempo(tempo: mm.Word) void {
     mm_mastertempo = local_tempo;
     mpp_clayer = .main;
     if (mm_gba.layer_main.bpm != 0) {
-        mpp_setbpm(&mm_gba.layer_main, @as(mm.Word, mm_gba.layer_main.bpm));
+        mpp_setbpm(&mm_gba.layer_main, @intCast(mm_gba.layer_main.bpm));
     }
 }
 pub fn mmSetModulePitch(pitch: mm.Word) void {
@@ -189,18 +177,7 @@ pub fn mmSetModulePitch(pitch: mm.Word) void {
     mm_masterpitch = local_pitch;
 }
 pub fn mmPlayModule(address: usize, mode: mm.Word, layer: LayerType) void {
-    debugPrint("[mmPlayModule] address=0x{x} mode={d} layer={d}\n", .{ address, mode, @intFromEnum(layer) });
-    // Read MAS header fields byte-wise to avoid layout drift
-    const hptr: [*]const u8 = @ptrFromInt(address);
-    const order_count: u8 = hptr[0];
-    const instr_count: u8 = hptr[1];
-    const sampl_count: u8 = hptr[2];
-    const pattn_count: u8 = hptr[3];
-    const flags_b: u8 = hptr[4];
-    const gvol_b: u8 = hptr[5];
-    const spd_b: u8 = hptr[6];
-    const tempo_b: u8 = hptr[7];
-    const header: [*c]mm.MasHead = @ptrFromInt(address);
+    const header: [*c]mm.MasHead = @ptrFromInt(address + @sizeOf(Prefix));
     mpp_clayer = layer;
     var layer_info: [*c]mm.LayerInfo = undefined;
     var channels: [*c]mm.ModuleChannel = undefined;
@@ -211,56 +188,53 @@ pub fn mmPlayModule(address: usize, mode: mm.Word, layer: LayerType) void {
         num_ch = mm_gba.num_mch;
     } else {
         layer_info = &mmLayerSub;
-        channels = @as([*c]mm.ModuleChannel, @ptrCast(@alignCast(&mm_schannels[@as(usize, @intCast(0))])));
+        channels = @ptrCast(@alignCast(&mm_schannels[0]));
         num_ch = 4;
     }
-    debugPrint(
-        "[mmPlayModule] num_ch={d} channels_ptr=0x{x} layer_info=0x{x}\n",
-        .{ num_ch, @intFromPtr(channels), @intFromPtr(layer_info) },
-    );
-    // Print header info after num_ch to match C ordering
-    debugPrint(
-        "[mmPlayModule] hdr: orders={d} instr={d} sampl={d} pattn={d} flags={x} spd={d} tempo={d} gvol={d}\n",
-        .{
-            @as(c_int, @intCast(order_count)),
-            @as(c_int, @intCast(instr_count)),
-            @as(c_int, @intCast(sampl_count)),
-            @as(c_int, @intCast(pattn_count)),
-            @as(c_int, @intCast(flags_b)),
-            @as(c_int, @intCast(spd_b)),
-            @as(c_int, @intCast(tempo_b)),
-            @as(c_int, @intCast(gvol_b)),
-        },
-    );
-    layer_info.*.mode = @as(mm.Byte, @bitCast(@as(u8, @truncate(mode))));
+    layer_info.*.mode = @intCast(mode);
     layer_info.*.songadr = header;
     mpp_resetchannels(channels, num_ch);
-    // Setup instrument, sample and pattern tables - use the tables array directly like C version
-    const instn_size: usize = @as(usize, @intCast(instr_count));
-    const sampn_size: usize = @as(usize, @intCast(sampl_count));
-    const tables_ptr = header.*.tables();
-    layer_info.*.insttable = @constCast(@ptrCast(@alignCast(&tables_ptr[0])));
-    layer_info.*.samptable = @constCast(@ptrCast(@alignCast(&tables_ptr[instn_size])));
-    layer_info.*.patttable = @constCast(@ptrCast(@alignCast(&tables_ptr[instn_size + sampn_size])));
-    debugPrint(
-        "[mmPlayModule] tables inst=0x{x} samp=0x{x} patt=0x{x}\n",
-        .{ @intFromPtr(layer_info.*.insttable), @intFromPtr(layer_info.*.samptable), @intFromPtr(layer_info.*.patttable) },
-    );
-    mpp_setposition(layer_info, @as(mm.Word, @bitCast(@as(c_int, 0))));
-    debugPrint("[mmPlayModule] after setposition pos={d} row={d} tick={d}\n", .{ @as(c_int, @intCast(layer_info.*.position)), @as(c_int, @intCast(layer_info.*.row)), @as(c_int, @intCast(layer_info.*.tick)) });
-    mpp_setbpm(layer_info, @as(mm.Word, @bitCast(@as(c_uint, header.*.initial_tempo))));
-    debugPrint("[mpp_setbpm] MAIN tickrate={d}\n", .{@as(c_int, @intCast(layer_info.*.tickrate))});
+
+    // Read MAS header fields byte-wise to avoid layout drift
+    const instr_count: u8 = header.*.instr_count;
+    const sampl_count: u8 = header.*.sampl_count;
+
+    // Setup instrument, sample and pattern tables using the 32-bit offsets
+    // stored in MasHead->tables[]. The layout is:
+    // tables[0 .. instr_count-1]       -> instrument offsets table address
+    // tables[instr_count .. +sampl-1]  -> sample offsets table address
+    // tables[instr_count+sampl ..]     -> pattern offsets table address
+    const tables_off: usize = 276;
+    // Use the MasHead flexible array like C: treat tables[] as an array of u32 offsets.
+    const tables_ptr: [*]const u32 = @ptrFromInt(@as(u32, @intFromPtr(header)) + tables_off);
+    const inst_tbl_ptr: [*]const u32 = tables_ptr;
+    const samp_tbl_ptr: [*]const u32 = tables_ptr + instr_count;
+    const patt_tbl_ptr: [*]const u32 = tables_ptr + instr_count + sampl_count;
+    // Save pointers to the beginning of each offsets table region
+    layer_info.*.insttable = @constCast(@ptrCast(inst_tbl_ptr));
+    layer_info.*.samptable = @constCast(@ptrCast(samp_tbl_ptr));
+    layer_info.*.patttable = @constCast(@ptrCast(patt_tbl_ptr));
+
+    if (debug_enabled) {
+        shim.debug_state.num_instr = instr_count;
+        shim.debug_state.num_sampl = sampl_count;
+
+        shim.debug_state.inst_tbl_peek = readLe32(layer_info.*.insttable);
+        shim.debug_state.samp_tbl_peek = readLe32(layer_info.*.samptable);
+        shim.debug_state.patt_tbl_peek = readLe32(layer_info.*.patttable);
+    }
+
+    // limit extra probes now that pattern_data() is used
+    mpp_setposition(layer_info, 0);
+    mpp_setbpm(layer_info, header.*.initial_tempo);
     layer_info.*.global_volume = header.*.global_volume;
-    const flags: mm.Word = @as(mm.Word, @bitCast(@as(c_uint, header.*.flags)));
-    layer_info.*.flags = @as(mm.Byte, @bitCast(@as(u8, @truncate(flags))));
-    layer_info.*.oldeffects = @as(mm.Byte, @bitCast(@as(u8, @truncate((flags >> @intCast(1)) & @as(mm.Word, @bitCast(@as(c_int, 1)))))));
+    const flags: mm.Word = header.*.flags;
+    layer_info.*.flags = header.*.flags;
+    layer_info.*.oldeffects = @intCast((flags >> 1) & 1);
     layer_info.*.speed = header.*.initial_speed;
     layer_info.*.isplaying = 1;
     layer_info.*.valid = 1;
-    debugPrint(
-        "[mmPlayModule] set isplaying={d} valid={d} speed={d} tempo={d}\n",
-        .{ @as(c_int, @intCast(layer_info.*.isplaying)), @as(c_int, @intCast(layer_info.*.valid)), @as(c_int, @intCast(layer_info.*.speed)), @as(c_int, @intCast(header.*.initial_tempo)) },
-    );
+    if (debug_enabled) shim.debug_state.layer1 = layer_info.*;
     mpp_resetvars(layer_info);
     {
         var i: mm.Word = 0;
@@ -274,35 +248,27 @@ pub fn mmPlayModule(address: usize, mode: mm.Word, layer: LayerType) void {
             channels[i].panning = header.*.channel_panning[i];
         }
     }
-    // Initialize per-channel volume to XM default (64) to avoid zero afvol at T0
-    {
-        var i: mm.Word = 0;
-        while (i < num_ch) : (i +%= 1) {
-            channels[i].volume = @as(mm.Byte, @intCast(64));
-        }
+
+    if (debug_enabled) {
+        shim.debug_state.header_channel_volumes = header.*.channel_volume;
+        shim.debug_state.header_channel_panning = header.*.channel_panning;
     }
-    debugPrint(
-        "[mmPlayModule] end isplaying={d} valid={d} pos={d} row={d} tick={d}\n",
-        .{ @as(c_int, @intCast(layer_info.*.isplaying)), @as(c_int, @intCast(layer_info.*.valid)), @as(c_int, @intCast(layer_info.*.position)), @as(c_int, @intCast(layer_info.*.row)), @as(c_int, @intCast(layer_info.*.tick)) },
-    );
 }
 pub fn mmJingleStart(module_ID: mm.Word, mode: mm_pmode) void {
     if (module_ID >= mm_gba.getModuleCount()) return;
     mpps_backdoor(module_ID, mode, .jingle);
 }
 pub fn mmJingle(module_ID: mm.Word) void {
-    mmJingleStart(module_ID, @as(c_uint, @bitCast(MM_PLAY_ONCE)));
+    mmJingleStart(module_ID, MM_PLAY_ONCE);
 }
 pub fn mmJinglePause() void {
-    if (@as(c_int, @bitCast(@as(c_uint, mmLayerSub.valid))) == 0) return;
+    if (mmLayerSub.valid == 0) return;
     mmLayerSub.isplaying = 0;
-    debugPrint("[mmPause JINGLE] sub.isplaying -> 0\n", .{});
-    mpp_suspend(@as(c_uint, @bitCast(MM_JINGLE)));
+    mpp_suspend(MM_JINGLE);
 }
 pub fn mmJingleResume() void {
-    if (@as(c_int, @bitCast(@as(c_uint, mmLayerSub.valid))) == 0) return;
+    if (mmLayerSub.valid == 0) return;
     mmLayerSub.isplaying = 1;
-    debugPrint("[mmResume JINGLE] sub.isplaying -> 1\n", .{});
 }
 pub fn mmJingleStop() void {
     mpp_clayer = .jingle;
@@ -316,23 +282,10 @@ pub fn mmSetJingleVolume(arg_volume: mm.Word) void {
     if (volume > 1024) {
         volume = 1024;
     }
-    mmLayerSub.volume = @as(mm.Hword, @bitCast(@as(c_ushort, @truncate(volume))));
+    mmLayerSub.volume = @intCast(volume);
 }
 pub fn mmActiveSub() bool {
     return mmJingleActive();
-}
-
-// Translate-C produced an opaque for envelope node entries. We only need the
-// 2-byte + 2-byte layout { value: i16, delta: i16 } to run the math. Define it.
-// Envelope node bitfield layout in C:
-//   mm.Shword delta; mm.Hword base:7; mm.Hword range:9;
-// Represent as packed and provide accessors.
-const EnvelopeNode = extern struct {
-    delta: mm.Shword, // signed 16-bit delta
-    bits: mm.Hword, // [range:9 | base:7]
-};
-inline fn envNodeBase(n: EnvelopeNode) mm.Hword {
-    return n.bits & 0x7F;
 }
 const Envelope = extern struct {
     size: mm.Byte align(2) = 0,
@@ -343,11 +296,6 @@ const Envelope = extern struct {
     node_count: mm.Byte = 0,
     is_filter: mm.Byte = 0,
     wasted: mm.Byte = 0,
-    pub fn env_nodes(self: anytype) @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), EnvelopeNode) {
-        const Intermediate = @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), u8);
-        const ReturnType = @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), EnvelopeNode);
-        return @as(ReturnType, @ptrCast(@alignCast(@as(Intermediate, @ptrCast(self)) + 8)));
-    }
 };
 pub const SampleInfo = extern struct {
     default_volume: mm.Byte = 0,
@@ -365,8 +313,9 @@ pub const SampleInfo = extern struct {
         return @as(ReturnType, @ptrCast(@alignCast(@as(Intermediate, @ptrCast(self)) + 12)));
     }
 };
-pub const Pattern = extern struct {
-    row_count: mm.Byte align(1) = 0,
+// Pattern header + data
+pub const Pattern = packed struct {
+    row_count: mm.Byte = 0,
     pub fn pattern_data(self: anytype) @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), u8) {
         const Intermediate = @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), u8);
         const ReturnType = @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), u8);
@@ -374,508 +323,531 @@ pub const Pattern = extern struct {
     }
 };
 
-pub inline fn umixChannelIndexFromMix(mix_ch: [*c]const mm.MixerChannel) c_int {
+pub inline fn umixChannelIndexFromMix(mix_ch: [*c]volatile mm.MixerChannel) i32 {
     const offset = @intFromPtr(mix_ch) - @intFromPtr(&mixer.mm_mix_channels[0]);
-    return @as(c_int, @intCast(offset / @sizeOf(mm.MixerChannel)));
-}
-pub inline fn umixAllowLogCh(layer: [*c]const mm.LayerInfo, ch_idx: c_int) bool {
-    if (umix_debug_budget <= 0) return false;
-    // Allow channels 0,1,9 for focused early-audio tracing (cymbal/drums/bassline)
-    if (!(ch_idx == 0 or ch_idx == 1 or ch_idx == 9)) return false;
-    // Allow all ticks for channel 9 debugging
-    if (ch_idx == 9) return true;
-    // Only gate by tick for non-9 channels
-    if (layer.*.tick != 0) return false;
-    umix_debug_budget -= 1;
-    return true;
+    return @as(i32, @intCast(offset / @sizeOf(mm.MixerChannel)));
 }
 pub fn mppUpdateSub() void {
-    if (@as(c_int, @bitCast(@as(c_uint, mmLayerSub.isplaying))) == @as(c_int, 0)) return;
-    mm_gba.mpp_channels = @as([*c]mm.ModuleChannel, @ptrCast(@alignCast(&mm_schannels[@as(usize, @intCast(0))])));
+    if (mmLayerSub.isplaying == 0) return;
+    mm_gba.mpp_channels = @ptrCast(@alignCast(&mm_schannels[0]));
     mm_gba.mpp_nchannels = 4;
     mpp_clayer = .jingle;
     mm_gba.layer_p = &mmLayerSub;
-    const tickrate: mm.Word = @as(mm.Word, @bitCast(@as(c_uint, mmLayerSub.tickrate)));
-    var tickfrac: mm.Word = @as(mm.Word, @bitCast(@as(c_uint, mmLayerSub.tick_data.tickfrac)));
-    tickfrac = tickfrac +% (tickrate << @intCast(1));
-    mmLayerSub.tick_data.tickfrac = @as(mm.Hword, @bitCast(@as(c_ushort, @truncate(tickfrac))));
-    tickfrac >>= @intCast(@as(c_int, 16));
-    while (tickfrac > @as(mm.Word, @bitCast(@as(c_int, 0)))) {
+    const tickrate: mm.Word = mmLayerSub.tickrate;
+    var tickfrac: mm.Word = mmLayerSub.tick_data.tickfrac;
+    tickfrac += tickrate << @intCast(1);
+    mmLayerSub.tick_data.tickfrac = @intCast(tickfrac);
+    tickfrac >>= @intCast(16);
+    while (tickfrac > 0) {
         mppProcessTick();
         tickfrac -%= 1;
     }
 }
 pub fn mppProcessTick() linksection(".iwram") void {
     const layer: [*c]mm.LayerInfo = mm_gba.layer_p;
-    if (@as(c_int, @bitCast(@as(c_uint, layer.*.isplaying))) == @as(c_int, 0)) return;
-    if ((@as(c_int, @bitCast(@as(c_uint, layer.*.pattdelay))) == @as(c_int, 0)) and (@as(c_int, @bitCast(@as(c_uint, layer.*.tick))) == @as(c_int, 0))) {
+    if (layer.*.isplaying == 0) return;
+    if (layer.*.tick == 0 and layer.*.pattdelay == 0) {
         const ok = arm.readPattern(layer);
         if (!ok) {
             mppStop();
-            if (mmCallback != @as(mm_callback, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) {
-                _ = mmCallback.?(@as(mm.Word, @bitCast(@as(c_int, 44))), mpp_clayer);
+            if (mmCallback != @as(mm_callback, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(0)))))) {
+                _ = mmCallback.?(44, mpp_clayer);
             }
             return;
         }
     }
     var update_bits: mm.Word = layer.*.mch_update;
     var module_channels: [*c]mm.ModuleChannel = mm_gba.mpp_channels;
-    {
-        var channel_counter: mm.Word = 0;
-        while (true) : (channel_counter +%= 1) {
-            if ((update_bits & @as(mm.Word, @bitCast(@as(c_int, 1) << @intCast(0)))) != 0) {
-                if (@as(c_int, @bitCast(@as(c_uint, layer.*.tick))) == @as(c_int, 0)) {
-                    arm.updateChannel_T0(module_channels, layer, @as(mm.Byte, @bitCast(@as(u8, @truncate(channel_counter)))));
-                } else {
-                    arm.updateChannel_TN(module_channels, layer);
-                }
-            }
-            module_channels += 1;
-            update_bits >>= @intCast(@as(c_int, 1));
-            if (update_bits == @as(mm.Word, @bitCast(@as(c_int, 0)))) break;
+    if (debug_enabled) {
+        if (shim.debug_state.upd_len < shim.debug_state.upd_events.len) {
+            const idx = shim.debug_state.upd_len;
+            shim.debug_state.upd_events[idx] = .{
+                .tick = layer.*.tick,
+                .row = layer.*.row,
+                .bits = @intCast(update_bits),
+            };
+            shim.debug_state.upd_len +%= 1;
         }
     }
-    var act_ch: [*c]mm.ActiveChannel = &mm_gba.achannels[@as(c_uint, @intCast(@as(c_int, 0)))];
-    {
-        var ch: mm.Word = 0;
-        _ = &ch;
-        while (ch < mm_gba.num_ach) : (ch +%= 1) {
-            if (@as(c_int, @bitCast(@as(c_uint, act_ch.*._type))) != @as(c_int, 0)) {
-                if (@intFromEnum(mpp_clayer) == @as(c_uint, @bitCast((@as(c_int, @bitCast(@as(c_uint, act_ch.*.flags))) & ((@as(c_int, 1) << @intCast(6)) | (@as(c_int, 1) << @intCast(7)))) >> @intCast(6)))) {
-                    mpp_vars.afvol = act_ch.*.volume;
-                    mpp_vars.panplus = 0;
-                    mpp_Update_ACHN(layer, act_ch, act_ch.*.period, ch);
-                }
+    var channel_counter: mm.Word = 0;
+    while (true) : (channel_counter +%= 1) {
+        if ((update_bits & @as(mm.Word, @bitCast(@as(i32, 1) << @intCast(0)))) != 0) {
+            if (layer.*.tick == 0) {
+                arm.updateChannel_T0(module_channels, layer, @intCast(channel_counter));
+            } else {
+                arm.updateChannel_TN(module_channels, layer);
             }
-            act_ch.*.flags &= @as(mm.Byte, @bitCast(@as(i8, @truncate(~(@as(c_int, 1) << @intCast(3))))));
-            act_ch += 1;
         }
+        module_channels += 1;
+        update_bits >>= 1;
+        if (update_bits == 0) break;
     }
-    const new_tick: mm.Word = @as(mm.Word, @bitCast(@as(c_int, @bitCast(@as(c_uint, layer.*.tick))) + @as(c_int, 1)));
-    // No extra tick delta log in C reference
-    if (new_tick < @as(mm.Word, @bitCast(@as(c_uint, layer.*.speed)))) {
-        layer.*.tick = @as(mm.Byte, @bitCast(@as(u8, @truncate(new_tick))));
-        // No extra early-return log in C reference
+    var act_ch: [*c]mm.ActiveChannel = &mm_gba.achannels[0];
+    var ch: mm.Word = 0;
+    while (ch < mm_gba.num_ach) : (ch +%= 1) {
+        if (act_ch.*._type != 0) {
+            if (@intFromEnum(mpp_clayer) == @as(usize, @bitCast((@as(i32, @bitCast(@as(usize, act_ch.*.flags))) & ((@as(i32, 1) << @intCast(6)) | (@as(i32, 1) << @intCast(7)))) >> @intCast(6)))) {
+                mpp_vars.afvol = act_ch.*.volume;
+                mpp_vars.panplus = 0;
+                mpp_Update_ACHN(layer, act_ch, act_ch.*.period, ch);
+            }
+        }
+        act_ch.*.flags &= @as(mm.Byte, @bitCast(@as(i8, @truncate(~(@as(i32, 1) << @intCast(3))))));
+        act_ch += 1;
+    }
+
+    const new_tick: mm.Byte = layer.*.tick + 1;
+    if (new_tick < layer.*.speed) {
+        layer.*.tick = new_tick;
         return;
     }
-    if (@as(c_int, @bitCast(@as(c_uint, layer.*.fpattdelay))) != @as(c_int, 0)) {
-        layer.*.fpattdelay -%= 1;
+    if (layer.*.fpattdelay != 0) {
+        layer.*.fpattdelay -= 1;
     }
-    if (@as(c_int, @bitCast(@as(c_uint, layer.*.pattdelay))) != @as(c_int, 0)) {
-        layer.*.pattdelay -%= 1;
-        if (@as(c_int, @bitCast(@as(c_uint, layer.*.pattdelay))) != @as(c_int, 0)) {
+    if (layer.*.pattdelay != 0) {
+        layer.*.pattdelay -= 1;
+        if (layer.*.pattdelay != 0) {
             layer.*.tick = 0;
             return;
         }
     }
     layer.*.tick = 0;
-    // No extra row-advance log in C reference
-    if (@as(c_int, @bitCast(@as(c_uint, layer.*.pattjump))) != @as(c_int, 255)) {
-        mpp_setposition(layer, @as(mm.Word, @bitCast(@as(c_uint, layer.*.pattjump))));
+    if (layer.*.pattjump != 255) {
+        mpp_setposition(layer, layer.*.pattjump);
         layer.*.pattjump = 255;
-        if (@as(c_int, @bitCast(@as(c_uint, layer.*.pattjump_row))) == @as(c_int, 0)) return;
-        mpph_FastForward(layer, @as(mm.Word, @bitCast(@as(c_uint, layer.*.pattjump_row))));
+        if (layer.*.pattjump_row == 0) return;
+        mpph_FastForward(layer, layer.*.pattjump_row);
         layer.*.pattjump_row = 0;
         return;
     }
-    if (@as(c_int, @bitCast(@as(c_uint, layer.*.ploop_jump))) != @as(c_int, 0)) {
+    if (layer.*.ploop_jump != 0) {
         layer.*.ploop_jump = 0;
         layer.*.row = layer.*.ploop_row;
         layer.*.pattread = layer.*.ploop_adr;
         return;
     }
-    const new_row: c_int = @as(c_int, @bitCast(@as(c_uint, layer.*.row))) + @as(c_int, 1);
-    if (new_row != (@as(c_int, @bitCast(@as(c_uint, layer.*.nrows))) + @as(c_int, 1))) {
-        layer.*.row = @as(mm.Byte, @bitCast(@as(i8, @truncate(new_row))));
+    const new_row = layer.*.row + 1;
+    if (new_row != layer.*.nrows + 1) {
+        // If they are different, continue playing this pattern
+        layer.*.row = new_row;
         return;
     }
-    mpp_setposition(layer, @as(mm.Word, @bitCast(@as(c_int, @bitCast(@as(c_uint, layer.*.position))) + @as(c_int, 1))));
+    mpp_setposition(layer, layer.*.position + 1);
 }
-pub fn mpp_Process_VolumeCommand(layer: [*c]mm.LayerInfo, act_ch: [*c]mm.ActiveChannel, channel: [*c]mm.ModuleChannel, period: mm.Word) mm.Word {
+pub fn mpp_Process_VolumeCommand(layer: [*c]mm.LayerInfo, act_ch: ?[*c]mm.ActiveChannel, channel: [*c]mm.ModuleChannel, period: mm.Word) mm.Word {
     const tick: mm.Byte = layer.*.tick;
     const header: [*c]mm.MasHead = layer.*.songadr;
     var volcmd: mm.Byte = channel.*.volcmd;
-    if ((@as(c_int, @bitCast(@as(c_uint, header.*.flags))) & (@as(c_int, 1) << @intCast(3))) != 0) {
-        if (@as(c_int, @bitCast(@as(c_uint, volcmd))) == @as(c_int, 0)) {} else if (@as(c_int, @bitCast(@as(c_uint, volcmd))) <= @as(c_int, 80)) {
-            if (@as(c_int, @bitCast(@as(c_uint, tick))) == 0) {
-                channel.*.volume = @as(mm.Byte, @bitCast(@as(i8, @truncate(@as(c_int, @bitCast(@as(c_uint, volcmd))) - @as(c_int, 16)))));
+    // XM commands
+    if ((header.*.flags & MAS_HEADER_FLAG_XM_MODE) != 0) {
+        if (volcmd == 0) {} else if (volcmd <= 80) {
+            // Set volume
+            if (tick == 0) {
+                channel.*.volume = volcmd - 16;
             }
-        } else if (@as(c_int, @bitCast(@as(c_uint, volcmd))) < @as(c_int, 128)) {
-            if (@as(c_int, @bitCast(@as(c_uint, tick))) == @as(c_int, 0)) return period;
-            var volume: c_int = @as(c_int, @bitCast(@as(c_uint, channel.*.volume)));
-            _ = &volume;
-            var mem: mm.Byte = channel.*.memory[@as(c_uint, @intCast(@as(c_int, 12)))];
-            _ = &mem;
-            if (@as(c_int, @bitCast(@as(c_uint, volcmd))) < @as(c_int, 112)) {
-                volcmd -%= @as(mm.Byte, @bitCast(@as(i8, @truncate(@as(c_int, 96)))));
-                var delta: c_int = undefined;
-                _ = &delta;
-                if (@as(c_int, @bitCast(@as(c_uint, volcmd))) == @as(c_int, 0)) {
-                    delta = @as(c_int, @bitCast(@as(c_uint, mem))) & @as(c_int, 15);
+        } else if (volcmd < 128) {
+            // Volume slide
+            if (tick == 0) return period;
+            var volume: i32 = @intCast(channel.*.volume);
+            const mem: mm.Byte = channel.*.memory[MPP_XM_VCMD_MEM_VS];
+            if (volcmd < 112) {
+                volcmd -%= 96;
+                var delta: i32 = undefined;
+                if (volcmd == 0) {
+                    delta = mem & 15;
                 } else {
-                    delta = @as(c_int, @bitCast(@as(c_uint, volcmd)));
-                    channel.*.memory[@as(c_uint, @intCast(@as(c_int, 12)))] = @as(mm.Byte, @bitCast(@as(i8, @truncate((@as(c_int, @bitCast(@as(c_uint, mem))) & ~@as(c_int, 15)) | @as(c_int, @bitCast(@as(c_uint, volcmd)))))));
+                    delta = volcmd;
+                    channel.*.memory[MPP_XM_VCMD_MEM_VS] = (mem & ~@as(u8, 15)) | volcmd;
                 }
-                volume -= delta;
-                if (volume < @as(c_int, 0)) {
+                volume -= @intCast(delta);
+                if (volume < 0) {
                     volume = 0;
                 }
                 channel.*.volume = @as(mm.Byte, @bitCast(@as(i8, @truncate(volume))));
             } else {
-                volcmd -%= @as(mm.Byte, @bitCast(@as(i8, @truncate(@as(c_int, 112)))));
-                var delta: c_int = undefined;
-                _ = &delta;
-                if (@as(c_int, @bitCast(@as(c_uint, volcmd))) == @as(c_int, 0)) {
-                    delta = @as(c_int, @bitCast(@as(c_uint, mem))) >> @intCast(4);
+                volcmd -%= 112;
+                var delta: i32 = undefined;
+                if (volcmd == 0) {
+                    delta = mem >> 4;
                 } else {
-                    delta = @as(c_int, @bitCast(@as(c_uint, volcmd)));
-                    channel.*.memory[@as(c_uint, @intCast(@as(c_int, 12)))] = @as(mm.Byte, @bitCast(@as(i8, @truncate((@as(c_int, @bitCast(@as(c_uint, volcmd))) << @intCast(4)) | (@as(c_int, @bitCast(@as(c_uint, mem))) & @as(c_int, 15))))));
+                    delta = volcmd;
+                    channel.*.memory[MPP_XM_VCMD_MEM_VS] = (volcmd << 4) | (mem & 15);
                 }
                 volume += delta;
-                if (volume > @as(c_int, 64)) {
+                if (volume > 64) {
                     volume = 64;
                 }
                 channel.*.volume = @as(mm.Byte, @bitCast(@as(i8, @truncate(volume))));
             }
-        } else if (@as(c_int, @bitCast(@as(c_uint, volcmd))) < @as(c_int, 160)) {
-            if (@as(c_int, @bitCast(@as(c_uint, tick))) != @as(c_int, 0)) return period;
-            var volume: c_int = @as(c_int, @bitCast(@as(c_uint, channel.*.volume)));
-            _ = &volume;
-            var mem: mm.Byte = channel.*.memory[@as(c_uint, @intCast(@as(c_int, 13)))];
-            _ = &mem;
-            if (@as(c_int, @bitCast(@as(c_uint, volcmd))) < @as(c_int, 144)) {
-                volcmd -%= @as(mm.Byte, @bitCast(@as(i8, @truncate(@as(c_int, 128)))));
-                var delta: c_int = undefined;
-                _ = &delta;
-                if (@as(c_int, @bitCast(@as(c_uint, volcmd))) == @as(c_int, 0)) {
-                    delta = @as(c_int, @bitCast(@as(c_uint, mem))) & @as(c_int, 15);
+        } else if (volcmd < 160) {
+            // Fine volume slide
+            if (tick != 0) return period;
+            var volume: i32 = @intCast(channel.*.volume);
+            const mem: mm.Byte = channel.*.memory[MPP_XM_VCMD_MEM_FVS];
+            if (volcmd < 144) {
+                // mppuv_xm_volslide_down
+                volcmd -%= 128;
+                var delta: i32 = undefined;
+                if (volcmd == 0) {
+                    delta = mem & 15;
                 } else {
-                    delta = @as(c_int, @bitCast(@as(c_uint, volcmd)));
-                    channel.*.memory[@as(c_uint, @intCast(@as(c_int, 13)))] = @as(mm.Byte, @bitCast(@as(i8, @truncate((@as(c_int, @bitCast(@as(c_uint, mem))) & ~@as(c_int, 15)) | @as(c_int, @bitCast(@as(c_uint, volcmd)))))));
+                    delta = volcmd;
+                    channel.*.memory[MPP_XM_VCMD_MEM_FVS] = (mem & ~@as(u8, 15)) | volcmd;
                 }
                 volume -= delta;
-                if (volume < @as(c_int, 0)) {
+                if (volume < 0) {
                     volume = 0;
                 }
                 channel.*.volume = @as(mm.Byte, @bitCast(@as(i8, @truncate(volume))));
             } else {
-                volcmd -%= @as(mm.Byte, @bitCast(@as(i8, @truncate(@as(c_int, 144)))));
-                var delta: c_int = undefined;
-                _ = &delta;
-                if (@as(c_int, @bitCast(@as(c_uint, volcmd))) == @as(c_int, 0)) {
-                    delta = @as(c_int, @bitCast(@as(c_uint, mem))) >> @intCast(4);
+                volcmd -%= 144;
+                var delta: i32 = undefined;
+                if (volcmd == 0) {
+                    delta = mem >> 4;
                 } else {
-                    delta = @as(c_int, @bitCast(@as(c_uint, volcmd)));
-                    channel.*.memory[@as(c_uint, @intCast(@as(c_int, 13)))] = @as(mm.Byte, @bitCast(@as(i8, @truncate((@as(c_int, @bitCast(@as(c_uint, volcmd))) << @intCast(4)) | (@as(c_int, @bitCast(@as(c_uint, mem))) & @as(c_int, 15))))));
+                    delta = volcmd;
+                    channel.*.memory[MPP_XM_VCMD_MEM_FVS] = (volcmd << 4) | (mem & 15);
                 }
                 volume += delta;
-                if (volume > @as(c_int, 64)) {
+                if (volume > 64) {
                     volume = 64;
                 }
                 channel.*.volume = @as(mm.Byte, @bitCast(@as(i8, @truncate(volume))));
             }
-        } else if (@as(c_int, @bitCast(@as(c_uint, volcmd))) < @as(c_int, 192)) {
-            if (@as(c_int, @bitCast(@as(c_uint, tick))) == @as(c_int, 0)) return period;
-            if (@as(c_int, @bitCast(@as(c_uint, volcmd))) < @as(c_int, 176)) {
-                volcmd = @as(mm.Byte, @bitCast(@as(i8, @truncate((@as(c_int, @bitCast(@as(c_uint, volcmd))) - @as(c_int, 160)) << @intCast(2)))));
-                if (@as(c_int, @bitCast(@as(c_uint, volcmd))) != @as(c_int, 0)) {
+        } else if (volcmd < 192) {
+            // Vibrato
+            if (tick == 0) return period;
+            // Sets speed or depth
+            if (volcmd < 176) {
+                // mppuv_xm_vibspd
+                volcmd = (volcmd - 160) << 2;
+                if (volcmd != 0) {
                     channel.*.vibspd = volcmd;
                 }
             } else {
-                volcmd = @as(mm.Byte, @bitCast(@as(i8, @truncate((@as(c_int, @bitCast(@as(c_uint, volcmd))) - @as(c_int, 176)) << @intCast(3)))));
-                if (@as(c_int, @bitCast(@as(c_uint, volcmd))) != @as(c_int, 0)) {
+                // mppuv_xm_vibdepth
+                volcmd = (volcmd - 176) << 3;
+                if (volcmd != 0) {
                     channel.*.vibdep = volcmd;
                 }
             }
             return mppe_DoVibrato(period, channel, layer);
-        } else if (@as(c_int, @bitCast(@as(c_uint, volcmd))) < @as(c_int, 208)) {
-            if (@as(c_int, @bitCast(@as(c_uint, tick))) != @as(c_int, 0)) return period;
-            var panning: mm.Word = @as(mm.Word, @bitCast((@as(c_int, @bitCast(@as(c_uint, volcmd))) - @as(c_int, 192)) << @intCast(4)));
-            _ = &panning;
-            if (panning == @as(mm.Word, @bitCast(@as(c_int, 240)))) {
+        } else if (volcmd < 208) {
+            // Panning
+            if (tick != 0) return period;
+            const panning: mm.Word = (volcmd - 192) << 4;
+            // This is a hack to make the panning reach the maximum value
+            if (panning == 240) {
                 channel.*.panning = 255;
             } else {
                 channel.*.panning = @as(mm.Byte, @bitCast(@as(u8, @truncate(panning))));
             }
-        } else if (@as(c_int, @bitCast(@as(c_uint, volcmd))) < @as(c_int, 240)) {
-            if (@as(c_int, @bitCast(@as(c_uint, tick))) == @as(c_int, 0)) return period;
-            var panning: c_int = @as(c_int, @bitCast(@as(c_uint, channel.*.panning)));
-            _ = &panning;
-            var mem: mm.Byte = channel.*.memory[@as(c_uint, @intCast(@as(c_int, 7)))];
-            _ = &mem;
-            if (@as(c_int, @bitCast(@as(c_uint, volcmd))) < @as(c_int, 224)) {
-                volcmd -%= @as(mm.Byte, @bitCast(@as(i8, @truncate(@as(c_int, 208)))));
-                var delta: c_int = undefined;
-                _ = &delta;
-                if (@as(c_int, @bitCast(@as(c_uint, volcmd))) == @as(c_int, 0)) {
-                    delta = @as(c_int, @bitCast(@as(c_uint, mem))) >> @intCast(4);
+        } else if (volcmd < 240) {
+            // Panning slide
+            if (tick == 0) return period;
+            var panning: i32 = @as(i32, @bitCast(@as(usize, channel.*.panning)));
+            const mem: mm.Byte = channel.*.memory[MPP_XM_VCMD_MEM_PANSL];
+            if (volcmd < 224) {
+                // mppuv_xm_panslide_left
+                volcmd -%= 208;
+                var delta: i32 = undefined;
+                if (volcmd == 0) {
+                    delta = mem >> 4;
                 } else {
-                    channel.*.memory[@as(c_uint, @intCast(@as(c_int, 7)))] = @as(mm.Byte, @bitCast(@as(i8, @truncate((@as(c_int, @bitCast(@as(c_uint, mem))) & @as(c_int, 15)) | (@as(c_int, @bitCast(@as(c_uint, volcmd))) << @intCast(4))))));
-                    delta = @as(c_int, @bitCast(@as(c_uint, volcmd))) & @as(c_int, 15);
+                    channel.*.memory[MPP_XM_VCMD_MEM_PANSL] = (mem & 15) | (volcmd << 4);
+                    delta = volcmd & 15;
                 }
-                delta <<= @intCast(@as(c_int, 2));
+                delta <<= 2;
                 panning -= delta;
-                if (panning < @as(c_int, 0)) {
+                if (panning < 0) {
                     panning = 0;
                 }
                 channel.*.panning = @as(mm.Byte, @bitCast(@as(i8, @truncate(panning))));
             } else {
-                volcmd -%= @as(mm.Byte, @bitCast(@as(i8, @truncate(@as(c_int, 224)))));
-                var delta: c_int = undefined;
-                _ = &delta;
-                if (@as(c_int, @bitCast(@as(c_uint, volcmd))) == @as(c_int, 0)) {
-                    delta = @as(c_int, @bitCast(@as(c_uint, mem))) & @as(c_int, 15);
+                // mppuv_xm_panslide_right
+                volcmd -%= 224;
+                var delta: i32 = undefined;
+                if (volcmd == 0) {
+                    delta = mem & 15;
                 } else {
-                    delta = @as(c_int, @bitCast(@as(c_uint, volcmd)));
-                    channel.*.memory[@as(c_uint, @intCast(@as(c_int, 7)))] = @as(mm.Byte, @bitCast(@as(i8, @truncate(@as(c_int, @bitCast(@as(c_uint, volcmd))) | (@as(c_int, @bitCast(@as(c_uint, mem))) & @as(c_int, 15))))));
+                    delta = volcmd;
+                    channel.*.memory[MPP_XM_VCMD_MEM_PANSL] = volcmd | (mem & 15);
                 }
-                delta <<= @intCast(@as(c_int, 2));
+                delta <<= 2;
                 panning += delta;
-                if (panning > @as(c_int, 255)) {
+                if (panning > 255) {
                     panning = 255;
                 }
                 channel.*.panning = @as(mm.Byte, @bitCast(@as(i8, @truncate(panning))));
             }
         } else {
-            if (@as(c_int, @bitCast(@as(c_uint, tick))) == @as(c_int, 0)) return period;
-            volcmd = @as(mm.Byte, @bitCast(@as(i8, @truncate((@as(c_int, @bitCast(@as(c_uint, volcmd))) - @as(c_int, 240)) << @intCast(4)))));
-            if (@as(c_int, @bitCast(@as(c_uint, volcmd))) != @as(c_int, 0)) {
-                channel.*.memory[@as(c_uint, @intCast(@as(c_int, 14)))] = volcmd;
+            // Glissando
+            // On nonzero ticks, do a regular glissando slide at speed * 16
+            if (tick == 0) return period;
+            volcmd = (volcmd - 240) << 4;
+            if (volcmd != 0) {
+                channel.*.memory[MPP_XM_VCMD_MEM_GLIS] = volcmd;
             }
-            volcmd = channel.*.memory[@as(c_uint, @intCast(@as(c_int, 14)))];
-            return mppe_glis_backdoor(@as(mm.Word, @bitCast(@as(c_uint, volcmd))), period, act_ch, channel, layer);
+            volcmd = channel.*.memory[MPP_XM_VCMD_MEM_GLIS];
+            return mppe_glis_backdoor(volcmd, period, act_ch, channel, layer);
         }
     } else {
-        if (@as(c_int, @bitCast(@as(c_uint, volcmd))) <= @as(c_int, 64)) {
-            if (@as(c_int, @bitCast(@as(c_uint, tick))) == @as(c_int, 0)) {
-                channel.*.volume = volcmd;
-            }
-        } else if (@as(c_int, @bitCast(@as(c_uint, volcmd))) <= @as(c_int, 84)) {
-            if (@as(c_int, @bitCast(@as(c_uint, tick))) != @as(c_int, 0)) return period;
-            var volume: c_int = @as(c_int, @bitCast(@as(c_uint, channel.*.volume)));
-            _ = &volume;
-            if (@as(c_int, @bitCast(@as(c_uint, volcmd))) < @as(c_int, 75)) {
-                volcmd -%= @as(mm.Byte, @bitCast(@as(i8, @truncate(@as(c_int, 65)))));
-                if (@as(c_int, @bitCast(@as(c_uint, volcmd))) == @as(c_int, 0)) {
-                    volcmd = channel.*.memory[@as(c_uint, @intCast(@as(c_int, 14)))];
+        // IT commands
+        if (volcmd <= 64) {
+            // V: Set volume
+            if (tick == 0) channel.*.volume = volcmd;
+        } else if (volcmd <= 84) {
+            // A, B: Fine volume slide
+            if (tick != 0) return period;
+            var volume: i32 = @intCast(channel.*.volume);
+            if (volcmd < 75) {
+                volcmd -= 65;
+                if (volcmd == 0) {
+                    volcmd = channel.*.memory[MPP_IT_VCMD_MEM];
                 } else {
-                    channel.*.memory[@as(c_uint, @intCast(@as(c_int, 14)))] = volcmd;
+                    channel.*.memory[MPP_IT_VCMD_MEM] = volcmd;
                 }
-                volume += @as(c_int, @bitCast(@as(c_uint, volcmd)));
-                if (volume > @as(c_int, 64)) {
+                volume += volcmd;
+                if (volume > 64) {
                     volume = 64;
                 }
             } else {
-                volcmd -%= @as(mm.Byte, @bitCast(@as(i8, @truncate(@as(c_int, 75)))));
-                if (@as(c_int, @bitCast(@as(c_uint, volcmd))) == @as(c_int, 0)) {
-                    volcmd = channel.*.memory[@as(c_uint, @intCast(@as(c_int, 14)))];
+                // B: Slide down
+                // 75-84 ==> 0-9
+                volcmd -= 75;
+                if (volcmd == 0) {
+                    volcmd = channel.*.memory[MPP_IT_VCMD_MEM];
                 } else {
-                    channel.*.memory[@as(c_uint, @intCast(@as(c_int, 14)))] = volcmd;
+                    channel.*.memory[MPP_IT_VCMD_MEM] = volcmd;
                 }
-                volume -= @as(c_int, @bitCast(@as(c_uint, volcmd)));
-                if (volume < @as(c_int, 0)) {
+                volume -= volcmd;
+                if (volume < 0) {
                     volume = 0;
                 }
             }
             channel.*.volume = @as(mm.Byte, @bitCast(@as(i8, @truncate(volume))));
-        } else if (@as(c_int, @bitCast(@as(c_uint, volcmd))) <= @as(c_int, 104)) {
-            if (@as(c_int, @bitCast(@as(c_uint, tick))) == @as(c_int, 0)) return period;
-            var volume: c_int = @as(c_int, @bitCast(@as(c_uint, channel.*.volume)));
-            _ = &volume;
-            if (@as(c_int, @bitCast(@as(c_uint, volcmd))) < @as(c_int, 95)) {
-                volcmd -%= @as(mm.Byte, @bitCast(@as(i8, @truncate(@as(c_int, 85)))));
-                if (@as(c_int, @bitCast(@as(c_uint, volcmd))) == @as(c_int, 0)) {
-                    volcmd = channel.*.memory[@as(c_uint, @intCast(@as(c_int, 14)))];
+        } else if (volcmd <= 104) {
+            if (tick == 0) return period;
+            var volume: i32 = @intCast(channel.*.volume);
+            if (volcmd < 95) {
+                // C: Slide up
+                // 85-94 ==> 0-9
+                volcmd -= 85;
+                if (volcmd == 0) {
+                    volcmd = channel.*.memory[MPP_IT_VCMD_MEM];
                 } else {
-                    channel.*.memory[@as(c_uint, @intCast(@as(c_int, 14)))] = volcmd;
+                    channel.*.memory[MPP_IT_VCMD_MEM] = volcmd;
                 }
-                volume += @as(c_int, @bitCast(@as(c_uint, volcmd)));
-                if (volume > @as(c_int, 64)) {
+                volume += volcmd;
+                if (volume > 64) {
                     volume = 64;
                 }
             } else {
-                volcmd -%= @as(mm.Byte, @bitCast(@as(i8, @truncate(@as(c_int, 95)))));
-                if (@as(c_int, @bitCast(@as(c_uint, volcmd))) == @as(c_int, 0)) {
-                    volcmd = channel.*.memory[@as(c_uint, @intCast(@as(c_int, 14)))];
+                // D: Slide down
+                // 95-104 ==> 0-9
+                volcmd -= 95;
+                if (volcmd == 0) {
+                    volcmd = channel.*.memory[MPP_IT_VCMD_MEM];
                 } else {
-                    channel.*.memory[@as(c_uint, @intCast(@as(c_int, 14)))] = volcmd;
+                    channel.*.memory[MPP_IT_VCMD_MEM] = volcmd;
                 }
-                volume -= @as(c_int, @bitCast(@as(c_uint, volcmd)));
-                if (volume < @as(c_int, 0)) {
+                volume -= volcmd;
+                if (volume < 0) {
                     volume = 0;
                 }
             }
             channel.*.volume = @as(mm.Byte, @bitCast(@as(i8, @truncate(volume))));
-        } else if (@as(c_int, @bitCast(@as(c_uint, volcmd))) <= @as(c_int, 124)) {
-            if (@as(c_int, @bitCast(@as(c_uint, tick))) == @as(c_int, 0)) return period;
+        } else if (volcmd <= 124) {
+            // E, F: Pitch slide/Portamento up/down
+            if (tick == 0) return period;
             var r0: mm.Word = undefined;
-            _ = &r0;
-            if (@as(c_int, @bitCast(@as(c_uint, volcmd))) >= @as(c_int, 115)) {
-                volcmd = @as(mm.Byte, @bitCast(@as(i8, @truncate((@as(c_int, @bitCast(@as(c_uint, volcmd))) - @as(c_int, 115)) << @intCast(2)))));
-                if (@as(c_int, @bitCast(@as(c_uint, volcmd))) == @as(c_int, 0)) {
-                    volcmd = channel.*.memory[@as(c_uint, @intCast(@as(c_int, 2)))];
+            if (volcmd >= 115) {
+                // F: mppuv_porta_up
+                volcmd = (volcmd - 115) << 2;
+                if (volcmd == 0) {
+                    volcmd = channel.*.memory[MPP_IT_PORTA];
                 }
-                channel.*.memory[@as(c_uint, @intCast(@as(c_int, 2)))] = volcmd;
-                r0 = mpph_PitchSlide_Up(channel.*.period, @as(mm.Word, @bitCast(@as(c_uint, volcmd))), layer);
+                channel.*.memory[MPP_IT_PORTA] = volcmd;
+                r0 = mpph_PitchSlide_Up(channel.*.period, volcmd, layer);
             } else {
-                volcmd = @as(mm.Byte, @bitCast(@as(i8, @truncate((@as(c_int, @bitCast(@as(c_uint, volcmd))) - @as(c_int, 105)) << @intCast(2)))));
-                if (@as(c_int, @bitCast(@as(c_uint, volcmd))) == @as(c_int, 0)) {
-                    volcmd = channel.*.memory[@as(c_uint, @intCast(@as(c_int, 2)))];
+                // E: mppuv_porta_down
+                volcmd = (volcmd - 105) << 2;
+                if (volcmd == 0) {
+                    volcmd = channel.*.memory[MPP_IT_PORTA];
                 }
-                channel.*.memory[@as(c_uint, @intCast(@as(c_int, 2)))] = volcmd;
-                r0 = mpph_PitchSlide_Down(channel.*.period, @as(mm.Word, @bitCast(@as(c_uint, volcmd))), layer);
+                channel.*.memory[MPP_IT_PORTA] = volcmd;
+                r0 = mpph_PitchSlide_Down(channel.*.period, volcmd, layer);
             }
-            var r1: mm.Word = channel.*.period;
-            _ = &r1;
+            const r1: mm.Word = channel.*.period;
             channel.*.period = period;
-            return (period +% r0) -% r1;
-        } else if (@as(c_int, @bitCast(@as(c_uint, volcmd))) <= @as(c_int, 192)) {
-            if (@as(c_int, @bitCast(@as(c_uint, tick))) == @as(c_int, 0)) {
-                var panning: c_int = @as(c_int, @bitCast(@as(c_uint, volcmd))) - @as(c_int, 128);
-                _ = &panning;
-                panning <<= @intCast(@as(c_int, 2));
-                if (panning > @as(c_int, 255)) {
+            return (period + r0) - r1;
+        } else if (volcmd <= 192) {
+            // P: Panning
+            if (tick == 0) {
+                // Map to 0->64
+                var panning: i32 = volcmd - 128;
+                panning <<= 2;
+                if (panning > 255) {
                     panning = 255;
                 }
                 channel.*.panning = @as(mm.Byte, @bitCast(@as(i8, @truncate(panning))));
             }
-        } else if (@as(c_int, @bitCast(@as(c_uint, volcmd))) <= @as(c_int, 202)) {
-            if (@as(c_int, @bitCast(@as(c_uint, tick))) == @as(c_int, 0)) return period;
-            const vcmd_glissando_table: [10]mm.Byte = [10]mm.Byte{
-                0,
-                1,
-                4,
-                8,
-                16,
-                32,
-                64,
-                96,
-                128,
-                255,
-            };
-            _ = &vcmd_glissando_table;
-            volcmd -%= @as(mm.Byte, @bitCast(@as(i8, @truncate(@as(c_int, 193)))));
-            var glis: mm.Word = @as(mm.Word, @bitCast(@as(c_uint, vcmd_glissando_table[volcmd])));
-            _ = &glis;
-            if ((@as(c_int, @bitCast(@as(c_uint, layer.*.flags))) & (@as(c_int, 1) << @intCast(0))) != 0) {
-                if (glis == @as(mm.Word, @bitCast(@as(c_int, 0)))) {
-                    glis = @as(mm.Word, @bitCast(@as(c_uint, channel.*.memory[@as(c_uint, @intCast(@as(c_int, 2)))])));
+        } else if (volcmd <= 202) {
+            // G: Glissando/Portamento to note
+            if (tick == 0) return period;
+            volcmd -%= 193;
+            var glis: mm.Word = @intCast(tables.vcmd_glissando_table[volcmd]);
+            if ((layer.*.flags & MAS_HEADER_FLAG_LINK_GXX) != 0) {
+                // Gxx is shared, IT MODE ONLY!!
+
+                // When this flag is enabled, link effect G's memory with the
+                // memory used by effects E/F
+                if (glis == 0) {
+                    glis = channel.*.memory[MPP_IT_PORTA];
                 }
-                channel.*.memory[@as(c_uint, @intCast(@as(c_int, 2)))] = @as(mm.Byte, @bitCast(@as(u8, @truncate(glis))));
-                channel.*.memory[@as(c_uint, @intCast(@as(c_int, 0)))] = @as(mm.Byte, @bitCast(@as(u8, @truncate(glis))));
-                var mem: mm.Byte = channel.*.memory[@as(c_uint, @intCast(@as(c_int, 0)))];
-                _ = &mem;
-                return mppe_glis_backdoor(@as(mm.Word, @bitCast(@as(c_uint, mem))), period, act_ch, channel, layer);
+                // E/F memory
+                channel.*.memory[MPP_IT_PORTA] = @intCast(glis);
+                channel.*.memory[MPP_XM_IT_GLIS] = @intCast(glis);
+                const mem: mm.Byte = channel.*.memory[MPP_XM_IT_GLIS];
+                return mppe_glis_backdoor(mem, period, act_ch, channel, layer);
             } else {
-                if (glis == @as(mm.Word, @bitCast(@as(c_int, 0)))) {
-                    glis = @as(mm.Word, @bitCast(@as(c_uint, channel.*.memory[@as(c_uint, @intCast(@as(c_int, 0)))])));
+                // Single Gxx
+                if (glis == 0) {
+                    glis = @as(mm.Word, @bitCast(@as(usize, channel.*.memory[MPP_XM_IT_GLIS])));
                 }
-                channel.*.memory[@as(c_uint, @intCast(@as(c_int, 0)))] = @as(mm.Byte, @bitCast(@as(u8, @truncate(glis))));
-                var mem: mm.Byte = channel.*.memory[@as(c_uint, @intCast(@as(c_int, 0)))];
-                _ = &mem;
-                return mppe_glis_backdoor(@as(mm.Word, @bitCast(@as(c_uint, mem))), period, act_ch, channel, layer);
+                channel.*.memory[MPP_XM_IT_GLIS] = @intCast(glis);
+                const mem: mm.Byte = channel.*.memory[MPP_XM_IT_GLIS];
+                return mppe_glis_backdoor(mem, period, act_ch, channel, layer);
             }
-        } else if (@as(c_int, @bitCast(@as(c_uint, volcmd))) <= @as(c_int, 212)) {
-            if (@as(c_int, @bitCast(@as(c_uint, tick))) == @as(c_int, 0)) return period;
-            volcmd = @as(mm.Byte, @bitCast(@as(i8, @truncate(@as(c_int, @bitCast(@as(c_uint, volcmd))) - @as(c_int, 203)))));
-            if (@as(c_int, @bitCast(@as(c_uint, volcmd))) != @as(c_int, 0)) {
-                volcmd = @as(mm.Byte, @bitCast(@as(i8, @truncate(@as(c_int, @bitCast(@as(c_uint, volcmd))) << @intCast(2)))));
+        } else if (volcmd <= 212) {
+            // H: Vibrato (Speed)
+            if (tick == 0) return period;
+            // VCMD vibrato uses the same memory as effects Hxx/Uxx.
+            // Set speed
+            volcmd -= 203;
+            if (volcmd != 0) {
+                volcmd <<= 2;
                 channel.*.vibspd = volcmd;
             }
-            return mppe_DoVibrato(@as(mm.Word, @bitCast(@as(c_uint, volcmd))), channel, layer);
+            return mppe_DoVibrato(volcmd, channel, layer);
         }
     }
     return period;
 }
-pub fn mpp_Process_Effect(layer: [*c]mm.LayerInfo, act_ch: [*c]mm.ActiveChannel, channel: [*c]mm.ModuleChannel, period: mm.Word) mm.Word {
+// Process pattern effect
+pub fn mpp_Process_Effect(layer: [*c]mm.LayerInfo, act_ch: ?[*c]mm.ActiveChannel, channel: [*c]mm.ModuleChannel, period: mm.Word) mm.Word {
+    // First, update effect. If "channel.*.param" is zero, the function will
+    // return the last parameter provided for the effect specified in
+    // "channel.*.effect". Only some effects have memory. If the effect doesn't
+    // have memory this function will return "channel.*.param" right away.
     const param: mm.Word = mpp_Channel_ExchangeMemory(channel.*.effect, channel.*.param, channel, layer);
-    const effect: mm.Word = @as(mm.Word, @bitCast(@as(c_uint, channel.*.effect)));
+    const effect: mm.Word = channel.*.effect;
     while (true) {
         switch (effect) {
-            @as(mm.Word, @bitCast(@as(c_int, 0))) => return period,
-            @as(mm.Word, @bitCast(@as(c_int, 1))) => {
+            0 => return period,
+            1 => {
                 mppe_SetSpeed(param, layer);
                 return period;
             },
-            @as(mm.Word, @bitCast(@as(c_int, 2))) => {
+            2 => {
                 mppe_PositionJump(param, layer);
                 return period;
             },
-            @as(mm.Word, @bitCast(@as(c_int, 3))) => {
+            3 => {
                 mppe_PatternBreak(param, layer);
                 return period;
             },
-            @as(mm.Word, @bitCast(@as(c_int, 4))) => {
+            4 => {
                 const vol_word = mpph_VolumeSlide64(
-                    @as(c_int, @intCast(channel.*.volume)),
+                    channel.*.volume,
                     param,
-                    @as(mm.Word, @bitCast(@as(c_uint, layer.*.tick))),
+                    layer.*.tick,
                     layer,
                 );
-                channel.*.volume = @as(mm.Byte, @intCast(@as(c_int, @intCast(vol_word))));
+                channel.*.volume = @intCast(vol_word);
                 return period;
             },
-            @as(mm.Word, @bitCast(@as(c_int, 5))), @as(mm.Word, @bitCast(@as(c_int, 6))) => return mppe_Portamento(param, period, channel, layer),
-            @as(mm.Word, @bitCast(@as(c_int, 7))) => return mppe_Glissando(param, period, act_ch, channel, layer),
-            @as(mm.Word, @bitCast(@as(c_int, 8))) => return mppe_Vibrato(param, period, channel, layer),
-            @as(mm.Word, @bitCast(@as(c_int, 9))) => return period,
-            @as(mm.Word, @bitCast(@as(c_int, 10))) => return mppe_Arpeggio(param, period, act_ch, channel, layer),
-            @as(mm.Word, @bitCast(@as(c_int, 11))) => return mppe_VibratoVolume(param, period, channel, layer),
-            @as(mm.Word, @bitCast(@as(c_int, 12))) => return mppe_PortaVolume(param, period, act_ch, channel, layer),
-            @as(mm.Word, @bitCast(@as(c_int, 13))) => {
+            5, 6 => return mppe_Portamento(param, period, channel, layer),
+            7 => return mppe_Glissando(param, period, act_ch, channel, layer),
+            8 => return mppe_Vibrato(param, period, channel, layer),
+            9 => {
+                // Tremor
+                // TODO: This isn't implemented. Would it work with the OldTremor code?
+                return period;
+            },
+            10 => return mppe_Arpeggio(param, period, act_ch, channel, layer),
+            11 => return mppe_VibratoVolume(param, period, channel, layer),
+            12 => return mppe_PortaVolume(param, period, act_ch, channel, layer),
+            13 => {
                 mppe_ChannelVolume(param, channel, layer);
                 return period;
             },
-            @as(mm.Word, @bitCast(@as(c_int, 14))) => {
+            14 => {
                 mppe_ChannelVolumeSlide(param, channel, layer);
                 return period;
             },
-            @as(mm.Word, @bitCast(@as(c_int, 15))) => {
+            15 => {
                 mppe_SampleOffset(param, layer);
                 return period;
             },
-            @as(mm.Word, @bitCast(@as(c_int, 16))) => return period,
-            @as(mm.Word, @bitCast(@as(c_int, 17))) => {
+            16 => {
+                // Panning slide
+                // TODO
+                return period;
+            },
+            17 => {
                 mppe_Retrigger(param, act_ch, channel);
                 return period;
             },
-            @as(mm.Word, @bitCast(@as(c_int, 18))) => {
+            18 => {
                 mppe_Tremolo(param, channel, layer);
                 return period;
             },
-            @as(mm.Word, @bitCast(@as(c_int, 19))) => {
+            19 => {
                 mppe_Extended(param, act_ch, channel, layer);
                 return period;
             },
-            @as(mm.Word, @bitCast(@as(c_int, 20))) => {
+            20 => {
                 mppe_SetTempo(param, layer);
                 return period;
             },
-            @as(mm.Word, @bitCast(@as(c_int, 21))) => return mppe_FineVibrato(param, period, channel, layer),
-            @as(mm.Word, @bitCast(@as(c_int, 22))) => {
+            21 => return mppe_FineVibrato(param, period, channel, layer),
+            22 => {
                 mppe_SetGlobalVolume(param, layer);
                 return period;
             },
-            @as(mm.Word, @bitCast(@as(c_int, 23))) => {
+            23 => {
                 mppe_GlobalVolumeSlide(param, layer);
                 return period;
             },
-            @as(mm.Word, @bitCast(@as(c_int, 24))) => {
+            24 => {
                 mppe_SetPanning(param, channel, layer);
                 return period;
             },
-            @as(mm.Word, @bitCast(@as(c_int, 25))) => return period,
-            @as(mm.Word, @bitCast(@as(c_int, 26))) => return period,
-            @as(mm.Word, @bitCast(@as(c_int, 27))) => {
+            25 => {
+                // Panbrello
+                // TODO
+                return period;
+            },
+            26 => {
+                // Set Filter
+                // TODO: Not supported
+                return period;
+            },
+            27 => {
                 mppe_SetVolume(param, channel, layer);
                 return period;
             },
-            @as(mm.Word, @bitCast(@as(c_int, 28))) => {
+            28 => {
                 mppe_KeyOff(param, act_ch, layer);
                 return period;
             },
-            @as(mm.Word, @bitCast(@as(c_int, 29))) => return period,
-            @as(mm.Word, @bitCast(@as(c_int, 30))) => {
+            29 => {
+                // Envelope Pos
+                // TODO
+                return period;
+            },
+            30 => {
                 mppe_OldTremor(param, channel, layer);
                 return period;
             },
@@ -886,17 +858,10 @@ pub fn mpp_Process_Effect(layer: [*c]mm.LayerInfo, act_ch: [*c]mm.ActiveChannel,
     return 0;
 }
 pub fn mpp_Update_ACHN_notest(layer: [*c]mm.LayerInfo, act_ch: [*c]mm.ActiveChannel, period: mm.Word, ch: mm.Word) mm.Word {
-    // Match C ordering exactly:
-    // 1) Envelopes -> updated period/afv/fade (instrument must be valid)
-    // 2) Auto vibrato -> updated period (sample must be valid or skip)
-    // 3) Update/bind mixer (on START)
-    // 4) Set pitch + volume
-    // 5) Disable/panning
-
     var new_period: mm.Word = period;
     new_period = mpp_Update_ACHN_notest_envelopes(layer, act_ch, new_period);
     new_period = mpp_Update_ACHN_notest_auto_vibrato(layer, act_ch, new_period);
-    const mix_ch: [*c]mm.MixerChannel = mpp_Update_ACHN_notest_update_mix(layer, act_ch, ch);
+    const mix_ch: [*c]volatile mm.MixerChannel = mpp_Update_ACHN_notest_update_mix(layer, act_ch, ch);
     const clipped_vol: mm.Word = mpp_Update_ACHN_notest_set_pitch_volume(layer, act_ch, new_period, mix_ch);
     mpp_Update_ACHN_notest_disable_and_panning(clipped_vol, act_ch, mix_ch);
     return new_period;
@@ -917,16 +882,16 @@ pub fn mpp_Channel_NewNote(module_channel: [*c]mm.ModuleChannel, layer: [*c]mm.L
         if (dct == 1) {
             // DCT Note
             const inst_bytes: [*]u8 = @ptrCast(@alignCast(instrument));
-            const nm_ptr_bytes: [*]u8 = inst_bytes + @as(usize, @intCast(instrument.*.note_map_offset));
+            const nm_ptr_bytes: [*]u8 = inst_bytes + instrument.*.note_map_offset;
             const note_map: [*]mm.Hword = @ptrCast(@alignCast(nm_ptr_bytes));
-            const note: mm.Byte = @as(mm.Byte, @truncate(note_map[@as(usize, @intCast(module_channel.*.note - 1))] & 0xFF));
+            const note: mm.Byte = @as(mm.Byte, @truncate(note_map[module_channel.*.note - 1] & 0xFF));
             if (note == module_channel.*.note) do_dca = true;
         } else if (dct == 2) {
             // DCT Sample
             const inst_bytes: [*]u8 = @ptrCast(@alignCast(instrument));
-            const nm_ptr_bytes: [*]u8 = inst_bytes + @as(usize, @intCast(instrument.*.note_map_offset));
+            const nm_ptr_bytes: [*]u8 = inst_bytes + instrument.*.note_map_offset;
             const note_map: [*]mm.Hword = @ptrCast(@alignCast(nm_ptr_bytes));
-            const sample_from_map: mm.Byte = @as(mm.Byte, @truncate(note_map[@as(usize, @intCast(module_channel.*.note - 1))] >> 8));
+            const sample_from_map: mm.Byte = @as(mm.Byte, @truncate(note_map[module_channel.*.note - 1] >> 8));
             if (sample_from_map == act_ch.*.sample) do_dca = true;
         } else if (dct == 3) {
             // DCT Instrument
@@ -939,12 +904,12 @@ pub fn mpp_Channel_NewNote(module_channel: [*c]mm.ModuleChannel, layer: [*c]mm.L
                 return; // use same channel
             }
             if (dca == IT_DCA_OFF) {
-                act_ch.*.flags = @as(mm.Byte, @intCast(@as(c_int, act_ch.*.flags) & ~MCAF_KEYON));
-                act_ch.*._type = @as(mm.Byte, @intCast(ACHN_BACKGROUND));
+                act_ch.*.flags = act_ch.*.flags & ~MCAF_KEYON;
+                act_ch.*._type = ACHN_BACKGROUND;
                 need_alloc = true;
             } else {
-                act_ch.*.flags = @as(mm.Byte, @intCast(@as(c_int, act_ch.*.flags) | MCAF_FADE));
-                act_ch.*._type = @as(mm.Byte, @intCast(ACHN_BACKGROUND));
+                act_ch.*.flags = act_ch.*.flags | MCAF_FADE;
+                act_ch.*._type = ACHN_BACKGROUND;
                 need_alloc = true;
             }
         } else {
@@ -952,15 +917,15 @@ pub fn mpp_Channel_NewNote(module_channel: [*c]mm.ModuleChannel, layer: [*c]mm.L
             if (nna == IT_NNA_CUT) {
                 return; // use same channel
             } else if (nna == IT_NNA_CONT) {
-                act_ch.*._type = @as(mm.Byte, @intCast(ACHN_BACKGROUND));
+                act_ch.*._type = ACHN_BACKGROUND;
                 need_alloc = true;
             } else if (nna == IT_NNA_OFF) {
-                act_ch.*.flags = @as(mm.Byte, @intCast(@as(c_int, act_ch.*.flags) & ~MCAF_KEYON));
-                act_ch.*._type = @as(mm.Byte, @intCast(ACHN_BACKGROUND));
+                act_ch.*.flags = act_ch.*.flags & ~MCAF_KEYON;
+                act_ch.*._type = ACHN_BACKGROUND;
                 need_alloc = true;
             } else if (nna == IT_NNA_FADE) {
-                act_ch.*.flags = @as(mm.Byte, @intCast(@as(c_int, act_ch.*.flags) | MCAF_FADE));
-                act_ch.*._type = @as(mm.Byte, @intCast(ACHN_BACKGROUND));
+                act_ch.*.flags = act_ch.*.flags | MCAF_FADE;
+                act_ch.*._type = ACHN_BACKGROUND;
                 need_alloc = true;
             }
         }
@@ -968,55 +933,57 @@ pub fn mpp_Channel_NewNote(module_channel: [*c]mm.ModuleChannel, layer: [*c]mm.L
 
     if (need_alloc) {
         const alloc: mm.Word = allocChannel();
-        module_channel.*.alloc = @as(mm.Byte, @intCast(alloc));
+        module_channel.*.alloc = @intCast(alloc);
     }
 }
 pub inline fn mpp_SamplePointer(layer: [*c]mm.LayerInfo, sampleN: mm.Word) [*c]SampleInfo {
     var base: [*c]mm.Byte = @as([*c]mm.Byte, @ptrCast(@alignCast(layer.*.songadr)));
-    const idx: usize = @as(usize, @intCast(sampleN -% @as(mm.Word, @bitCast(@as(c_int, 1)))));
+    const idx: usize = @as(usize, @intCast(sampleN -% @as(mm.Word, @bitCast(@as(i32, 1)))));
     const off_ptr: [*]u8 = @constCast(@ptrCast(@alignCast(&base[@as(usize, 0)])));
     const samptbl_bytes: [*]const u8 = @ptrCast(@alignCast(layer.*.samptable));
     const p: [*]const u8 = samptbl_bytes + (idx * 4);
-    const off: usize = @as(usize, @intCast(@as(u32, p[0]) | (@as(u32, p[1]) << 8) | (@as(u32, p[2]) << 16) | (@as(u32, p[3]) << 24)));
+    const off: usize = @as(usize, @intCast(std.mem.readInt(u32, p[0..4], .little)));
     return @as([*c]SampleInfo, @ptrCast(@alignCast(off_ptr + off)));
 }
 pub inline fn instrumentPointer(layer: [*c]mm.LayerInfo, instN: mm.Word) ?*Instrument {
     const base: [*c]mm.Byte = @as([*c]mm.Byte, @ptrCast(@alignCast(layer.*.songadr)));
-    const idx: usize = @as(usize, @intCast(instN -% @as(mm.Word, @bitCast(@as(c_int, 1)))));
+    const idx: usize = @as(usize, @intCast(instN -% @as(mm.Word, @bitCast(@as(i32, 1)))));
     const insttbl_bytes: [*]const u8 = @ptrCast(@alignCast(layer.*.insttable));
     const p: [*]const u8 = insttbl_bytes + (idx * 4);
-    const off: usize = @as(usize, @intCast(@as(u32, p[0]) | (@as(u32, p[1]) << 8) | (@as(u32, p[2]) << 16) | (@as(u32, p[3]) << 24)));
+    const off: usize = @as(usize, @intCast(std.mem.readInt(u32, p[0..4], .little)));
     const ptr: [*]u8 = @ptrCast(@alignCast(base + off));
     return @ptrCast(@alignCast(ptr));
 }
 pub inline fn mpp_PatternPointer(layer: [*c]mm.LayerInfo, entry: mm.Word) [*c]Pattern {
-    const base: [*c]mm.Byte = @as([*c]mm.Byte, @ptrCast(@alignCast(layer.*.songadr)));
-    const idx: usize = @as(usize, @intCast(entry));
-    // The pattern table contains 32-bit offsets, not raw bytes
-    const patttbl_words: [*]const mm.Word = @ptrCast(@alignCast(layer.*.patttable));
-    const offset: mm.Word = patttbl_words[idx];
-    return @as([*c]Pattern, @ptrCast(@alignCast(@as([*]u8, @ptrCast(base)) + @as(usize, @intCast(offset)))));
+    const base: [*c]mm.Byte = @ptrCast(@alignCast(layer.*.songadr));
+    const idx: usize = @intCast(entry);
+    // Read LE32 offset to pattern via raw bytes to avoid alignment issues
+    const patttbl_bytes: [*]const u8 = @ptrCast(@alignCast(layer.*.patttable));
+    const p: [*]const u8 = patttbl_bytes + (idx * 4);
+    const off: usize = @intCast(std.mem.readInt(u32, p[0..4], .little));
+    if (debug_enabled) shim.debug_state.pattern_ptr_offset = off;
+    return @ptrCast(@alignCast(@as([*]u8, @ptrCast(base)) + off));
 }
 pub fn mppe_DoVibrato(period: mm.Word, channel: [*c]mm.ModuleChannel, layer: [*c]mm.LayerInfo) mm.Word {
     var position: mm.Byte = undefined;
-    if ((@as(c_int, @bitCast(@as(c_uint, layer.*.oldeffects))) == @as(c_int, 0)) or (@as(c_int, @bitCast(@as(c_uint, layer.*.tick))) != @as(c_int, 0))) {
-        position = @as(mm.Byte, @bitCast(@as(i8, @truncate(@as(c_int, @bitCast(@as(c_uint, channel.*.vibspd))) + @as(c_int, @bitCast(@as(c_uint, channel.*.vibpos)))))));
+    if (layer.*.oldeffects == 0 or layer.*.tick != 0) {
+        position = @as(mm.Byte, @truncate(channel.*.vibspd + channel.*.vibpos));
         channel.*.vibpos = position;
     } else {
         position = channel.*.vibpos;
     }
-    var value: mm.Sword = @as(mm.Sword, @bitCast(@as(c_int, tables.mpp_TABLE_FineSineData[position])));
-    const depth: mm.Sword = @as(mm.Sword, @bitCast(@as(c_uint, channel.*.vibdep)));
+    var value: mm.Sword = tables.mpp_TABLE_FineSineData[position];
+    const depth: mm.Sword = @as(mm.Sword, @bitCast(@as(usize, channel.*.vibdep)));
     value = (value * depth) >> @intCast(8);
-    if (value < @as(c_int, 0)) return mpph_PitchSlide_Down(period, @as(mm.Word, @bitCast(-value)), layer);
+    if (value < 0) return mpph_PitchSlide_Down(period, @as(mm.Word, @bitCast(-value)), layer);
     return mpph_PitchSlide_Up(period, @as(mm.Word, @bitCast(value)), layer);
 }
-pub fn mppe_glis_backdoor(param: mm.Word, period: mm.Word, act_ch: [*c]mm.ActiveChannel, channel: [*c]mm.ModuleChannel, layer: [*c]mm.LayerInfo) mm.Word {
-    if (act_ch == @as([*c]mm.ActiveChannel, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) return period;
-    const sample: [*c]SampleInfo = mpp_SamplePointer(layer, @as(mm.Word, @bitCast(@as(c_uint, act_ch.*.sample))));
-    const target_period: mm.Word = arm.getPeriod(layer, @as(mm.Word, @bitCast(@as(c_int, @bitCast(@as(c_uint, sample.*.frequency))) * @as(c_int, 4))), channel.*.note);
+pub fn mppe_glis_backdoor(param: mm.Word, period: mm.Word, act_ch: ?[*c]mm.ActiveChannel, channel: [*c]mm.ModuleChannel, layer: [*c]mm.LayerInfo) mm.Word {
+    if (act_ch == null) return period;
+    const sample: [*c]SampleInfo = mpp_SamplePointer(layer, act_ch.?.*.sample);
+    const target_period: mm.Word = arm.getPeriod(layer, sample.*.frequency * 4, channel.*.note);
     var new_period: mm.Word = undefined;
-    if ((@as(c_int, @bitCast(@as(c_uint, layer.*.flags))) & (@as(c_int, 1) << @intCast(2))) != 0) {
+    if (layer.*.flags & MAS_HEADER_FLAG_FREQ_MODE != 0) {
         if (channel.*.period < target_period) {
             new_period = mpph_PitchSlide_Up(channel.*.period, param, layer);
             if (new_period > target_period) {
@@ -1047,101 +1014,90 @@ pub fn mppe_glis_backdoor(param: mm.Word, period: mm.Word, act_ch: [*c]mm.Active
     }
     const old_period: mm.Word = channel.*.period;
     channel.*.period = new_period;
-    const delta: c_int = @as(c_int, @bitCast(new_period -% old_period));
+    const delta: i32 = @as(i32, @bitCast(new_period -% old_period));
     return period +% @as(mm.Word, @bitCast(delta));
 }
 pub fn mpp_Update_ACHN(layer: [*c]mm.LayerInfo, act_ch: [*c]mm.ActiveChannel, period: mm.Word, ch: mm.Word) void {
-    if ((@as(c_int, @bitCast(@as(c_uint, act_ch.*.flags))) & (@as(c_int, 1) << @intCast(3))) != 0) return;
+    if (act_ch.*.flags & MCAF_EFFECT != 0) return;
     _ = mpp_Update_ACHN_notest(layer, act_ch, period, ch);
 }
 pub fn mpp_setbpm(layer_info: [*c]mm.LayerInfo, bpm: mm.Word) void {
-    layer_info.*.bpm = @as(mm.Byte, @bitCast(@as(u8, @truncate(bpm))));
+    layer_info.*.bpm = @intCast(bpm);
     if (mpp_clayer == .main) {
-        const tempo: mm.Word = (mm_mastertempo *% bpm) >> @intCast(10);
+        const tempo: mm.Word = (mm_mastertempo * bpm) >> 10;
         var rate: mm.Word = mixer.mm_bpmdv / tempo;
-        rate &= @as(mm.Word, @bitCast(~@as(c_int, 1)));
-        layer_info.*.tickrate = @as(mm.Hword, @bitCast(@as(c_ushort, @truncate(rate))));
+        rate &= ~@as(mm.Word, 1);
+        layer_info.*.tickrate = @intCast(rate);
     } else {
-        debugPrint("[mpp_setbpm] SUB tickrate={d}\n", .{@as(c_int, @intCast(layer_info.*.tickrate))});
+        layer_info.*.tickrate = @intCast((bpm << 15) / 149);
     }
+    if (debug_enabled) shim.debug_state.tickrate = layer_info.*.tickrate;
 }
 pub fn mpp_suspend(layer: mm_layer_type) void {
-    var act_ch: [*c]mm.ActiveChannel = &mm_gba.achannels[@as(c_uint, @intCast(@as(c_int, 0)))];
-    var mix_ch: [*c]mm.MixerChannel = &mixer.mm_mix_channels[@as(c_uint, @intCast(@as(c_int, 0)))];
-    {
-        var count: mm.Word = mm_gba.num_ach;
-        while (count != @as(mm.Word, @bitCast(@as(c_int, 0)))) : (_ = blk: {
-            _ = blk_1: {
-                count -%= 1;
-                break :blk_1 blk_2: {
-                    const ref = &act_ch;
-                    const tmp = ref.*;
-                    ref.* += 1;
-                    break :blk_2 tmp;
-                };
-            };
-            break :blk blk_1: {
-                const ref = &mix_ch;
+    var act_ch: [*c]mm.ActiveChannel = &mm_gba.achannels[0];
+    var mix_ch: [*c]volatile mm.MixerChannel = &mixer.mm_mix_channels[0];
+    var count: mm.Word = mm_gba.num_ach;
+    while (count != 0) : (_ = blk: {
+        _ = blk_1: {
+            count -%= 1;
+            break :blk_1 blk_2: {
+                const ref = &act_ch;
                 const tmp = ref.*;
                 ref.* += 1;
-                break :blk_1 tmp;
+                break :blk_2 tmp;
             };
-        }) {
-            if (@as(c_uint, @bitCast(@as(c_int, @bitCast(@as(c_uint, act_ch.*.flags))) & ((@as(c_int, 1) << @intCast(6)) | (@as(c_int, 1) << @intCast(7))))) != (layer << @intCast(6))) continue;
-            mix_ch.*.freq = 0;
-        }
+        };
+        break :blk blk_1: {
+            const ref = &mix_ch;
+            const tmp = ref.*;
+            ref.* += 1;
+            break :blk_1 tmp;
+        };
+    }) {
+        if (act_ch.*.flags & (MCAF_SUB | MCAF_EFFECT) >> 6 != @intFromEnum(layer)) continue;
+        mix_ch.*.freq = 0;
     }
 }
 pub fn mpps_backdoor(id: mm.Word, mode: mm_pmode, layer: LayerType) void {
+    // TODO: Use proper struct type
     // Use exported module table pointer and read entry as LE32 to avoid alignment issues
     const moduleTable_ptr: [*]const u32 = @ptrCast(mm_gba.getModuleTable());
     const module_table_bytes: [*]const u8 = @ptrCast(moduleTable_ptr);
     const ptr_off: [*]const u8 = module_table_bytes + (@as(usize, @intCast(id)) * 4);
     const entry_off: mm.Word = @as(mm.Word, @intCast(@as(u32, ptr_off[0]) | (@as(u32, ptr_off[1]) << 8) | (@as(u32, ptr_off[2]) << 16) | (@as(u32, ptr_off[3]) << 24)));
 
-    debugPrint("[mpps_backdoor] moduleTable=0x{x} entry_off={x}\n", .{ @intFromPtr(module_table_bytes), entry_off });
+    // Offsets in the module table point to the start of each MAS file, which
+    // begins with an 8-byte mm_mas_prefix. Skip it to reach the module header.
+    const full_offset: usize = entry_off;
+    const moduleAddress: usize = @intFromPtr(mm_gba.bank_base) + full_offset;
 
-    // Offsets in the module table point to the start of each MAS file,
-    // which begins with an 8-byte mm_mas_prefix. Skip it to reach the
-    // module header, matching the C reference implementation.
-    const moduleAddress: usize = (@as(usize, @intCast(@intFromPtr(mm_gba.mp_solution))) +% entry_off) +% @sizeOf(Prefix);
-    debugPrint("[mpps_backdoor] moduleAddress=0x{x}\n", .{moduleAddress});
+    if (debug_enabled) {
+        shim.debug_state.module_address_offset = full_offset;
+        shim.debug_state.module_address = moduleAddress;
+    }
 
-    mmPlayModule(moduleAddress, @as(mm.Word, @bitCast(mode)), layer);
+    mmPlayModule(moduleAddress, @intCast(mode), layer);
 }
 pub fn mpp_resetchannels(channels: [*c]mm.ModuleChannel, num_ch: mm.Word) void {
-    {
-        var i: mm.Word = 0;
-        _ = &i;
-        while (i < num_ch) : (i +%= 1) {
-            channels[i].alloc = 255;
-        }
+    // Clear channel data to 0 and reset alloc to NO_CHANNEL_AVAILABLE
+    var i: mm.Word = 0;
+    while (i < num_ch) : (i +%= 1) {
+        channels[i] = .{};
+        channels[i].alloc = @intCast(NO_CHANNEL_AVAILABLE);
     }
-    var mix_ch: [*c]mm.MixerChannel = &mixer.mm_mix_channels[@as(c_uint, @intCast(@as(c_int, 0)))];
-    var act_ch: [*c]mm.ActiveChannel = &mm_gba.achannels[@as(c_uint, @intCast(@as(c_int, 0)))];
-    {
-        var i: mm.Word = 0;
-        _ = &i;
-        while (i < mm_gba.num_ach) : (_ = blk: {
-            _ = blk_1: {
-                i +%= 1;
-                break :blk_1 blk_2: {
-                    const ref = &act_ch;
-                    const tmp = ref.*;
-                    ref.* += 1;
-                    break :blk_2 tmp;
-                };
-            };
-            break :blk blk_1: {
-                const ref = &mix_ch;
-                const tmp = ref.*;
-                ref.* += 1;
-                break :blk_1 tmp;
-            };
-        }) {
-            if (@as(c_uint, @bitCast((@as(c_int, @bitCast(@as(c_uint, act_ch.*.flags))) & ((@as(c_int, 1) << @intCast(6)) | (@as(c_int, 1) << @intCast(7)))) >> @intCast(6))) != @intFromEnum(mpp_clayer)) continue;
-            mix_ch.*.src = shim.MIXCH_GBA_SRC_STOPPED;
-        }
+    var curr_mix_ch: usize = 0;
+    var curr_act_ch: usize = 0;
+    var j: mm.Word = 0;
+    while (j < mm_gba.num_ach) : (j += 1) {
+        const act_ch: [*c]mm.ActiveChannel = &mm_gba.achannels[curr_act_ch];
+        const mix_ch: [*c]volatile mm.MixerChannel = &mixer.mm_mix_channels[curr_mix_ch];
+        if (act_ch.*.flags & (MCAF_SUB | MCAF_EFFECT) >> 6 != @intFromEnum(mpp_clayer)) continue;
+
+        act_ch.* = .{};
+        if (debug_enabled) mix_ch.*.src = shim.MIXCH_GBA_SRC_STOPPED;
+
+        curr_act_ch += 1;
+        curr_mix_ch += 1;
     }
 }
 pub fn mppStop() void {
@@ -1150,14 +1106,13 @@ pub fn mppStop() void {
     var num_ch: mm.Word = undefined;
     if (mpp_clayer == .jingle) {
         layer_info = &mmLayerSub;
-        channels = @as([*c]mm.ModuleChannel, @ptrCast(@alignCast(&mm_schannels[@as(usize, @intCast(0))])));
+        channels = @as([*c]mm.ModuleChannel, @ptrCast(@alignCast(&mm_schannels[0])));
         num_ch = 4;
     } else {
         layer_info = &mm_gba.layer_main;
         channels = mm_gba.pchannels;
         num_ch = mm_gba.num_mch;
     }
-    debugPrint("[mppStop] layer={d} isplaying->0 valid->0\n", .{@intFromEnum(mpp_clayer)});
     layer_info.*.isplaying = 0;
     layer_info.*.valid = 0;
     mpp_resetchannels(channels, num_ch);
@@ -1168,339 +1123,402 @@ pub fn mpp_setposition(layer_info: [*c]mm.LayerInfo, position: mm.Word) void {
     var entry: mm.Byte = undefined;
     while (true) {
         layer_info.*.position = @as(mm.Byte, @bitCast(@as(u8, @truncate(pos))));
-        entry = header.*.sequence[pos];
-        // C reference does not log per-step position/entry here
-        if (@as(c_int, @bitCast(@as(c_uint, entry))) == @as(c_int, 254)) {
+        // TODO: Use proper struct type
+        // Read sequence entry via raw bytes to avoid any struct packing drift
+        const hbytes: [*]const u8 = @ptrFromInt(@intFromPtr(header));
+        const seq_off: usize = 9 + 3 + 32 + 32; // fields(9) + reserved(3) + ch_vol(32) + ch_pan(32)
+        entry = @as(mm.Byte, @bitCast(hbytes[seq_off + @as(usize, @intCast(pos))]));
+        // Validate that entry index is within pattern table bounds; if not, try pos+1.
+        const patt_count: u8 = header.*.pattn_count;
+        if (entry >= patt_count) {
             pos +%= 1;
             continue;
         }
-        if (@as(c_int, @bitCast(@as(c_uint, entry))) != @as(c_int, 255)) break;
-        if (@as(c_int, @bitCast(@as(c_uint, layer_info.*.mode))) == MM_PLAY_ONCE) {
+        // Value 254 is written by mmutil when an invalid pattern order is found
+        // (when it's outside of bounds). Skip pattern orders with 254.
+        if (entry == 254) {
+            pos +%= 1;
+            continue;
+        }
+        // The last pattern order of the song is marked as 255. If we haven't
+        // finished the last pattern, keep playing the song.
+        if (entry != 255) break;
+        // We have reached the end of the last pattern. If the song is looping,
+        // go to the loop starting point. If not, stop the playback.
+        if (layer_info.*.mode == MM_PLAY_ONCE) {
+            // It's playing once
             mppStop();
-            if (mmCallback != @as(mm_callback, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) {
-                _ = mmCallback.?(@as(mm.Word, @bitCast(@as(c_int, 43))), mpp_clayer);
+            if (mmCallback != null) {
+                _ = mmCallback.?(MMCB_SONGFINISHED, mpp_clayer);
             }
             return;
         } else {
-            pos = @as(mm.Word, @bitCast(@as(c_uint, header.*.repeat_position)));
+            // If looping, set position to the repeat position
+            pos = header.*.repeat_position;
         }
     }
-    if (@as(c_int, @intCast(header.*.pattn_count)) > @as(c_int, 75)) {
-        // No C reference logs here
+    if (debug_enabled) {
+        shim.debug_state.layer_position = pos;
+        shim.debug_state.pattern_entry = entry;
     }
-    var patt: [*c]Pattern = mpp_PatternPointer(layer_info, @as(mm.Word, @bitCast(@as(c_uint, entry))));
-    _ = &patt;
-    debugPrint("[mpp_setposition] pattern=0x{x} row_count={d}\n", .{ @intFromPtr(patt), @as(c_int, @intCast(patt.*.row_count)) });
-    layer_info.*.nrows = patt.*.row_count;
+    const patt_pat: [*c]Pattern = mpp_PatternPointer(layer_info, entry);
+    // Save pattern size
+    layer_info.*.nrows = patt_pat.*.row_count;
+    if (debug_enabled) shim.debug_state.layer_nrows = layer_info.*.nrows;
+
+    // Reset tick/row
     layer_info.*.tick = 0;
     layer_info.*.row = 0;
     layer_info.*.fpattdelay = 0;
     layer_info.*.pattdelay = 0;
-    layer_info.*.pattread = patt.*.pattern_data();
-    layer_info.*.ploop_adr = patt.*.pattern_data();
+    // Store pattern data address
+    layer_info.*.pattread = patt_pat.*.pattern_data();
+    // Reset pattern loop
+    layer_info.*.ploop_adr = patt_pat.*.pattern_data();
     layer_info.*.ploop_row = 0;
     layer_info.*.ploop_times = 0;
+
+    if (debug_enabled) shim.debug_state.patt_peek = layer_info.*.pattread[0];
 }
 pub fn mpp_resetvars(layer_info: [*c]mm.LayerInfo) void {
     layer_info.*.pattjump = 255;
     layer_info.*.pattjump_row = 0;
 }
 pub fn mpp_Channel_GetACHN(channel: [*c]mm.ModuleChannel) [*c]mm.ActiveChannel {
-    const alloc: mm.Word = @as(mm.Word, @bitCast(@as(c_uint, channel.*.alloc)));
+    const alloc: mm.Word = channel.*.alloc;
     if (alloc == 255) return null;
     return &mm_gba.achannels[alloc];
 }
 pub fn mpph_psu(period: mm.Word, slide_value: mm.Word) mm.Word {
     var per = period;
-    if (slide_value >= @as(mm.Word, @bitCast(@as(c_int, 192)))) {
-        per *%= @as(mm.Word, @bitCast(@as(c_int, 2)));
+    if (slide_value >= 192) {
+        per *= 2;
     }
-    const val: mm.Word = (per >> @intCast(5)) *% @as(mm.Word, @bitCast(@as(c_uint, tables.mpp_TABLE_LinearSlideUpTable[slide_value])));
-    const ret: mm.Word = (val >> @intCast(@as(c_int, 16) - @as(c_int, 5))) +% per;
-    if ((ret >> @intCast(@as(c_int, 16) + @as(c_int, 5))) > @as(mm.Word, @bitCast(@as(c_int, 0)))) return @as(mm.Word, @bitCast(@as(c_int, 1) << @intCast(@as(c_int, 16) + @as(c_int, 5))));
+    const val: mm.Word = (per >> 5) * tables.mpp_TABLE_LinearSlideUpTable[slide_value];
+    const ret: mm.Word = (val >> (16 - 5)) + per;
+    if ((ret >> (16 + 5)) > 0) return 1 << (16 + 5);
     return ret;
 }
 pub fn mpph_psd(period: mm.Word, slide_value: mm.Word) mm.Word {
-    const val: mm.Word = (period >> @intCast(5)) *% @as(mm.Word, @bitCast(@as(c_uint, tables.mpp_TABLE_LinearSlideDownTable[slide_value])));
-    const ret: mm.Word = val >> @intCast(@as(c_int, 16) - @as(c_int, 5));
+    const val: mm.Word = (period >> 5) * tables.mpp_TABLE_LinearSlideDownTable[slide_value];
+    const ret: mm.Word = val >> (16 - 5);
     return ret;
 }
 pub fn mpph_PitchSlide_Up(period: mm.Word, slide_value: mm.Word, layer: [*c]mm.LayerInfo) mm.Word {
-    if ((@as(c_int, @bitCast(@as(c_uint, layer.*.flags))) & (@as(c_int, 1) << @intCast(2))) != 0) {
+    if ((layer.*.flags & MAS_HEADER_FLAG_FREQ_MODE) != 0) {
         return mpph_psu(period, slide_value);
     } else {
-        const delta: mm.Word = slide_value << @intCast(4);
+        const delta: mm.Word = slide_value << 4;
         if (delta > period) return 0;
-        return period -% delta;
+        return period - delta;
     }
     return 0;
 }
 pub fn mpph_LinearPitchSlide_Up(period: mm.Word, slide_value: mm.Word, layer: [*c]mm.LayerInfo) mm.Word {
-    if ((@as(c_int, @bitCast(@as(c_uint, layer.*.flags))) & (@as(c_int, 1) << @intCast(2))) != 0) return mpph_psu(period, slide_value) else return mpph_psd(period, slide_value);
+    if ((layer.*.flags & MAS_HEADER_FLAG_FREQ_MODE) != 0) return mpph_psu(period, slide_value) else return mpph_psd(period, slide_value);
     return 0;
 }
 pub fn mpph_FinePitchSlide_Up(period: mm.Word, slide_value: mm.Word, layer: [*c]mm.LayerInfo) mm.Word {
-    if ((@as(c_int, @bitCast(@as(c_uint, layer.*.flags))) & (@as(c_int, 1) << @intCast(2))) != 0) {
-        const val: mm.Word = (period >> @intCast(5)) *% @as(mm.Word, @bitCast(@as(c_uint, tables.mpp_TABLE_FineLinearSlideUpTable[slide_value])));
-        const ret: mm.Word = (val >> @intCast(@as(c_int, 16) - @as(c_int, 5))) +% period;
-        if ((ret >> @intCast(@as(c_int, 16) + @as(c_int, 5))) > @as(mm.Word, @bitCast(@as(c_int, 0)))) return @as(mm.Word, @bitCast(@as(c_int, 1) << @intCast(@as(c_int, 16) + @as(c_int, 5))));
+    if ((layer.*.flags & MAS_HEADER_FLAG_FREQ_MODE) != 0) {
+        const val: mm.Word = (period >> 5) * tables.mpp_TABLE_FineLinearSlideUpTable[slide_value];
+        const ret: mm.Word = (val >> (16 - 5)) + period;
+        if ((ret >> (16 + 5)) > 0) return 1 << (16 + 5);
         return ret;
     } else {
-        const delta: mm.Word = slide_value << @intCast(2);
+        const delta: mm.Word = slide_value << 2;
         if (delta > period) return 0;
-        return period -% delta;
+        return period - delta;
     }
     return 0;
 }
 pub fn mpph_PitchSlide_Down(period: mm.Word, slide_value: mm.Word, layer: [*c]mm.LayerInfo) mm.Word {
     var per = period;
-    if ((@as(c_int, @bitCast(@as(c_uint, layer.*.flags))) & (@as(c_int, 1) << @intCast(2))) != 0) {
+    if ((layer.*.flags & MAS_HEADER_FLAG_FREQ_MODE) != 0) {
         return mpph_psd(per, slide_value);
     } else {
         const delta: mm.Word = slide_value << @intCast(4);
-        per = per +% delta;
-        if ((per >> @intCast(@as(c_int, 16) + @as(c_int, 5))) > @as(mm.Word, @bitCast(@as(c_int, 0)))) return @as(mm.Word, @bitCast(@as(c_int, 1) << @intCast(@as(c_int, 16) + @as(c_int, 5))));
+        per += delta;
+        if ((per >> (16 + 5)) > 0) return 1 << (16 + 5);
         return per;
     }
     return 0;
 }
 pub fn mpph_LinearPitchSlide_Down(period: mm.Word, slide_value: mm.Word, layer: [*c]mm.LayerInfo) mm.Word {
-    if ((@as(c_int, @bitCast(@as(c_uint, layer.*.flags))) & (@as(c_int, 1) << @intCast(2))) != 0) return mpph_psd(period, slide_value) else return mpph_psu(period, slide_value);
+    if ((layer.*.flags & MAS_HEADER_FLAG_FREQ_MODE) != 0) return mpph_psd(period, slide_value) else return mpph_psu(period, slide_value);
     return 0;
 }
 pub fn mpph_FinePitchSlide_Down(period: mm.Word, slide_value: mm.Word, layer: [*c]mm.LayerInfo) mm.Word {
     var per = period;
-    if ((@as(c_int, @bitCast(@as(c_uint, layer.*.flags))) & (@as(c_int, 1) << @intCast(2))) != 0) {
-        const val: mm.Word = (per >> @intCast(5)) *% @as(mm.Word, @bitCast(@as(c_uint, tables.mpp_TABLE_FineLinearSlideDownTable[slide_value])));
-        const ret: mm.Word = val >> @intCast(@as(c_int, 16) - @as(c_int, 5));
+    if ((layer.*.flags & MAS_HEADER_FLAG_FREQ_MODE) != 0) {
+        const val: mm.Word = (per >> 5) * tables.mpp_TABLE_FineLinearSlideDownTable[slide_value];
+        const ret: mm.Word = val >> (16 - 5);
         return ret;
     } else {
         const delta: mm.Word = slide_value << @intCast(2);
-        per = per +% delta;
-        if ((per >> @intCast(@as(c_int, 16) + @as(c_int, 5))) > @as(mm.Word, @bitCast(@as(c_int, 0)))) return @as(mm.Word, @bitCast(@as(c_int, 1) << @intCast(@as(c_int, 16) + @as(c_int, 5))));
+        per = per + delta;
+        // Clip to 0.0 ~ 1.0
+        if ((per >> (16 + 5)) > 0) return 1 << (16 + 5);
         return per;
     }
     return 0;
 }
 pub fn mpph_FastForward(layer: [*c]mm.LayerInfo, rows_to_skip: mm.Word) void {
     var rows = rows_to_skip;
-    if (rows == @as(mm.Word, @bitCast(@as(c_int, 0)))) return;
-    if (rows > @as(mm.Word, @bitCast(@as(c_uint, layer.*.nrows)))) return;
-    layer.*.row = @as(mm.Byte, @bitCast(@as(u8, @truncate(rows))));
+    if (rows == 0) return;
+    // layer->nrows has the number of rows in the current pattern minus one
+    if (rows > layer.*.nrows) return;
+    layer.*.row = @intCast(rows);
     while (true) {
         const ok = arm.readPattern(layer);
+        // If there was some error (the module uses too many channels, for
+        // example), stop it right away.
         if (!ok) {
             mppStop();
-            if (mmCallback != @as(mm_callback, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) {
-                _ = mmCallback.?(@as(mm.Word, @bitCast(@as(c_int, 44))), mpp_clayer);
+            if (mmCallback != null) {
+                _ = mmCallback.?(MMCB_SONGERROR, mpp_clayer);
             }
             break;
         }
-        rows -%= 1;
-        if (rows == @as(mm.Word, @bitCast(@as(c_int, 0)))) break;
+        rows -= 1;
+        if (rows == 0) break;
     }
 }
 pub fn mpp_Channel_ExchangeMemory(effect: mm.Byte, param: mm.Byte, channel: [*c]mm.ModuleChannel, layer: [*c]mm.LayerInfo) mm.Word {
+    // An effect of 0 means custom behaviour, or disabled
+    if (effect == 0) return param;
+
     var table_entry: mm.Sbyte = undefined;
-    if ((@as(c_int, @bitCast(@as(c_uint, layer.*.flags))) & (@as(c_int, 1) << @intCast(3))) != 0) {
-        table_entry = tables.mpp_effect_memmap_xm[effect];
+    // Check flags for XM mode
+    if ((layer.*.flags & MAS_HEADER_FLAG_XM_MODE) != 0) {
+        table_entry = tables.mpp_effect_memmap_xm[effect - 1];
     } else {
-        table_entry = tables.mpp_effect_memmap_it[effect];
+        // IT Effects
+        table_entry = tables.mpp_effect_memmap_it[effect - 1];
     }
-    if (@as(c_int, @bitCast(@as(c_int, table_entry))) == -@as(c_int, 1)) return @as(mm.Word, @bitCast(@as(c_uint, param)));
-    if (@as(c_int, @bitCast(@as(c_uint, param))) == @as(c_int, 0)) {
-        channel.*.param = channel.*.memory[@as(u8, @intCast(table_entry))];
-        return @as(mm.Word, @bitCast(@as(c_uint, channel.*.param)));
+    // If the effect doesn't use the memory table there's nothing left to do
+    if (table_entry == -1) return param;
+    const table_entry_index: usize = @intCast(table_entry);
+    if (param == 0) {
+        // If the parameter is empty, load it from memory
+        channel.*.param = channel.*.memory[table_entry_index];
+        return channel.*.param;
     } else {
-        channel.*.memory[@as(u8, @intCast(table_entry))] = param;
-        return @as(mm.Word, @bitCast(@as(c_uint, param)));
+        // If the parameter isn't empty, save it to memory
+        channel.*.memory[table_entry_index] = param;
+        return param;
     }
     return 0;
 }
-pub fn mpph_VolumeSlide(volume: c_int, param: mm.Word, tick: mm.Word, max_volume: c_int, layer: [*c]mm.LayerInfo) mm.Word {
+// This is also used for panning slide
+pub fn mpph_VolumeSlide(volume: i32, param: mm.Word, tick: mm.Word, max_volume: i32, layer: [*c]mm.LayerInfo) mm.Word {
     var vol = volume;
-    if ((@as(c_int, @bitCast(@as(c_uint, layer.*.flags))) & (@as(c_int, 1) << @intCast(3))) != 0) {
-        if (tick != @as(mm.Word, @bitCast(@as(c_int, 0)))) {
-            const r3: c_int = @as(c_int, @bitCast(param >> @intCast(4)));
-            const r1: c_int = @as(c_int, @bitCast(param & @as(mm.Word, @bitCast(@as(c_int, 15)))));
-            var new_val: c_int = (vol + r3) - r1;
+    if ((layer.*.flags & MAS_HEADER_FLAG_XM_MODE) != 0) {
+        if (tick != 0) {
+            const r3: i32 = @intCast(param >> 4);
+            const r1: i32 = @intCast(param & 15);
+
+            var new_val: i32 = (vol + r3) - r1;
             if (new_val > max_volume) {
                 new_val = max_volume;
             }
-            if (new_val < @as(c_int, 0)) {
+            if (new_val < 0) {
                 new_val = 0;
             }
+
             vol = new_val;
         }
-        return @as(mm.Word, @bitCast(vol));
-    } else {
-        if (param == @as(mm.Word, @bitCast(@as(c_int, 15)))) {
-            vol -= @as(c_int, 15);
-            if (vol < @as(c_int, 0)) return 0;
-            return @as(mm.Word, @bitCast(vol));
+        return @intCast(vol);
+    } else { // mpph_vs_IT
+        if (param == 0xF) {
+            vol -= 15;
+            if (vol < 0) return 0;
+            return @intCast(vol);
         }
-        if (param == @as(mm.Word, @bitCast(@as(c_int, 240)))) {
-            if (tick != @as(mm.Word, @bitCast(@as(c_int, 0)))) return @as(mm.Word, @bitCast(volume));
-            vol += @as(c_int, 15);
-            if (vol > max_volume) return @as(mm.Word, @bitCast(max_volume));
-            return @as(mm.Word, @bitCast(vol));
+        if (param == 0xF0) {
+            if (tick != 0) return @intCast(volume);
+            vol += 15;
+            if (vol > max_volume) return @intCast(max_volume);
+            return @intCast(vol);
         }
-        if ((param & @as(mm.Word, @bitCast(@as(c_int, 15)))) == @as(mm.Word, @bitCast(@as(c_int, 0)))) {
-            if (tick == @as(mm.Word, @bitCast(@as(c_int, 0)))) return @as(mm.Word, @bitCast(vol));
-            vol += @as(c_int, @bitCast(param >> @intCast(4)));
-            if (vol > max_volume) return @as(mm.Word, @bitCast(max_volume));
-            return @as(mm.Word, @bitCast(vol));
+        // Test for Dx0 : mpph_vs_add
+        if ((param & 15) == 0) {
+            if (tick == 0) return @intCast(vol);
+            vol += @intCast(param >> 4);
+            if (vol > max_volume) return @intCast(max_volume);
+            return @intCast(vol);
         }
-        if ((param >> @intCast(4)) == @as(mm.Word, @bitCast(@as(c_int, 0)))) {
-            if (tick == @as(mm.Word, @bitCast(@as(c_int, 0)))) return @as(mm.Word, @bitCast(vol));
-            vol -= @as(c_int, @bitCast(param & @as(mm.Word, @bitCast(@as(c_int, 15)))));
-            if (vol < @as(c_int, 0)) return 0;
-            return @as(mm.Word, @bitCast(vol));
+        // Test for D0x : mpph_vs_sub
+        if ((param >> @intCast(4)) == 0) {
+            if (tick == 0) return @intCast(vol);
+            vol -= @intCast(param & 15);
+            if (vol < 0) return 0;
+            return @intCast(vol);
         }
-        if (tick != @as(mm.Word, @bitCast(@as(c_int, 0)))) return @as(mm.Word, @bitCast(vol));
-        if ((param & @as(mm.Word, @bitCast(@as(c_int, 15)))) == @as(mm.Word, @bitCast(@as(c_int, 15)))) {
-            vol += @as(c_int, @bitCast(param >> @intCast(4)));
-            if (vol > max_volume) return @as(mm.Word, @bitCast(max_volume));
-            return @as(mm.Word, @bitCast(vol));
+        // Fine slides now... only slide on tick 0
+        if (tick != 0) return @intCast(vol);
+        // Test for DxF
+        if ((param & 15) == 0xF) {
+            vol += @intCast(param >> 4);
+            if (vol > max_volume) return @intCast(max_volume);
+            return @intCast(vol);
         }
-        if ((param >> @intCast(4)) == @as(mm.Word, @bitCast(@as(c_int, 15)))) {
-            vol -= @as(c_int, @bitCast(param & @as(mm.Word, @bitCast(@as(c_int, 15)))));
-            if (vol < @as(c_int, 0)) return 0;
-            return @as(mm.Word, @bitCast(vol));
+        // Test for DFx
+        if ((param >> @intCast(4)) == 0xF) {
+            vol -= @intCast(param & 15);
+            if (vol < 0) return 0;
+            return @intCast(vol);
         }
-        return @as(mm.Word, @bitCast(vol));
+        return @intCast(vol);
     }
     return 0;
 }
-pub fn mpph_VolumeSlide64(volume: c_int, param: mm.Word, tick: mm.Word, layer: [*c]mm.LayerInfo) mm.Word {
+pub fn mpph_VolumeSlide64(volume: i32, param: mm.Word, tick: mm.Word, layer: [*c]mm.LayerInfo) mm.Word {
     const out = mpph_VolumeSlide(volume, param, tick, 64, layer);
-    if (layer.*.row < 6 and layer.*.tick <= 1) {
-        debugPrint("[VOL64] tick={d} param={x} in={d} out={d}\n", .{ @as(c_int, @intCast(tick)), @as(c_int, @intCast(param)), @as(c_int, @intCast(volume)), @as(c_int, @intCast(out)) });
-    }
     return out;
 }
 pub fn mppe_SetSpeed(param: mm.Word, layer: [*c]mm.LayerInfo) void {
-    if (@as(c_int, @bitCast(@as(c_uint, layer.*.tick))) != @as(c_int, 0)) return;
-    if (param != @as(mm.Word, @bitCast(@as(c_int, 0)))) {
-        layer.*.speed = @as(mm.Byte, @bitCast(@as(u8, @truncate(param))));
+    if (layer.*.tick != 0) return;
+    if (param != 0) {
+        layer.*.speed = @intCast(param);
     }
 }
 pub fn mppe_PositionJump(param: mm.Word, layer: [*c]mm.LayerInfo) void {
-    if (@as(c_int, @bitCast(@as(c_uint, layer.*.tick))) != @as(c_int, 0)) return;
-    layer.*.pattjump = @as(mm.Byte, @bitCast(@as(u8, @truncate(param))));
+    if (layer.*.tick != 0) return;
+    layer.*.pattjump = @intCast(param);
 }
 pub fn mppe_PatternBreak(param: mm.Word, layer: [*c]mm.LayerInfo) void {
-    if (@as(c_int, @bitCast(@as(c_uint, layer.*.tick))) != @as(c_int, 0)) return;
-    layer.*.pattjump_row = @as(mm.Byte, @bitCast(@as(u8, @truncate(param))));
-    if (@as(c_int, @bitCast(@as(c_uint, layer.*.pattjump))) == @as(c_int, 255)) {
-        layer.*.pattjump = @as(mm.Byte, @bitCast(@as(i8, @truncate(@as(c_int, @bitCast(@as(c_uint, layer.*.position))) + @as(c_int, 1)))));
+    if (layer.*.tick != 0) return;
+    layer.*.pattjump_row = @intCast(param);
+    // Check if pattjump is empty
+    if (layer.*.pattjump == 255) {
+        layer.*.pattjump = @intCast(layer.*.position + 1);
     }
 }
 pub fn mppe_VolumeSlide(param: mm.Word, channel: [*c]mm.ModuleChannel, layer: [*c]mm.LayerInfo) void {
-    const ch_idx_dbg: c_int = @as(c_int, @intCast((@intFromPtr(channel) - @intFromPtr(mm_gba.mpp_channels)) / @sizeOf(mm.ModuleChannel)));
-    if (ch_idx_dbg >= 0 and ch_idx_dbg < 2 and layer.*.row < 6) {
-        debugPrint("[VOLCMD] ch={d} before vol={d} cvol={d} param={x} tick={d}\n", .{ ch_idx_dbg, @as(c_int, @intCast(channel.*.volume)), @as(c_int, @intCast(channel.*.cvolume)), @as(c_int, @intCast(param)), @as(c_int, @intCast(layer.*.tick)) });
-    }
     const vol_word = mpph_VolumeSlide64(
-        @as(c_int, @intCast(channel.*.volume)),
+        @intCast(channel.*.volume),
         param,
-        @as(mm.Word, @bitCast(@as(c_uint, layer.*.tick))),
+        @intCast(layer.*.tick),
         layer,
     );
-    channel.*.volume = @as(mm.Byte, @intCast(@as(c_int, @intCast(vol_word))));
-    if (ch_idx_dbg >= 0 and ch_idx_dbg < 2 and layer.*.row < 6) {
-        debugPrint("[VOLCMD] ch={d} after vol={d}\n", .{ ch_idx_dbg, @as(c_int, @intCast(channel.*.volume)) });
-    }
+    channel.*.volume = @intCast(vol_word);
 }
 pub fn mppe_Portamento(param: mm.Word, period: mm.Word, channel: [*c]mm.ModuleChannel, layer: [*c]mm.LayerInfo) mm.Word {
     var par = param;
     var is_fine: bool = false;
-    if ((par >> @intCast(4)) == @as(mm.Word, @bitCast(@as(c_int, 14)))) {
-        if (@as(c_int, @bitCast(@as(c_uint, layer.*.tick))) != @as(c_int, 0)) return period;
-        par &= @as(mm.Word, @bitCast(@as(c_int, 15)));
+    // Test for Ex param (Extra fine slide)
+    if ((par >> 4) == 0xE) {
+        // Extra fine slide: only slide on tick 0
+        if (layer.*.tick != 0) return period;
+        // Mask out slide value
+        par &= 15;
         is_fine = true;
-    } else if ((par >> @intCast(4)) == @as(mm.Word, @bitCast(@as(c_int, 15)))) {
-        if (@as(c_int, @bitCast(@as(c_uint, layer.*.tick))) != @as(c_int, 0)) return period;
-        par &= @as(mm.Word, @bitCast(@as(c_int, 15)));
+    } else if ((par >> 4) == 0xF) {
+        // Test for Fx param (Fine slide)
+        // Fine slide: only slide on tick 0
+        if (layer.*.tick != 0) return period;
+        // Mask out slide value
+        par &= 15;
     } else {
-        if (@as(c_int, @bitCast(@as(c_uint, layer.*.tick))) == @as(c_int, 0)) return period;
+        // Regular slide
+        if (layer.*.tick == 0) return period;
     }
+    // Check slide direction
     var new_period: mm.Word = undefined;
-    _ = &new_period;
-    if (@as(c_int, @bitCast(@as(c_uint, channel.*.effect))) == @as(c_int, 5)) {
+    // 5 = portamento down
+    if (channel.*.effect == 5) {
+        // Slide down
         if (is_fine) {
             new_period = mpph_FinePitchSlide_Down(channel.*.period, par, layer);
         } else {
             new_period = mpph_PitchSlide_Down(channel.*.period, par, layer);
         }
     } else {
+        // Slide up
         if (is_fine) {
             new_period = mpph_FinePitchSlide_Up(channel.*.period, par, layer);
         } else {
             new_period = mpph_PitchSlide_Up(channel.*.period, par, layer);
         }
+        // TODO: This doesn't seem to have any check to prevent overflows
     }
-    const old_period: c_int = @as(c_int, @bitCast(channel.*.period));
+    const old_period: i32 = @intCast(channel.*.period);
     channel.*.period = new_period;
-    const delta: c_int = @as(c_int, @bitCast(new_period -% @as(mm.Word, @bitCast(old_period))));
-    return period +% @as(mm.Word, @bitCast(delta));
+    const delta: i32 = @as(i32, @intCast(new_period)) - old_period;
+    return @intCast(@as(i32, @intCast(period)) + delta);
 }
-pub fn mppe_Glissando(param: mm.Word, period: mm.Word, act_ch: [*c]mm.ActiveChannel, channel: [*c]mm.ModuleChannel, layer: [*c]mm.LayerInfo) mm.Word {
+pub fn mppe_Glissando(param: mm.Word, period: mm.Word, act_ch: ?[*c]mm.ActiveChannel, channel: [*c]mm.ModuleChannel, layer: [*c]mm.LayerInfo) mm.Word {
     var par = param;
     var per = period;
-    if (@as(c_int, @bitCast(@as(c_uint, layer.*.tick))) == @as(c_int, 0)) {
-        if ((@as(c_int, @bitCast(@as(c_uint, layer.*.flags))) & (@as(c_int, 1) << @intCast(0))) != 0) {
-            if (par == @as(mm.Word, @bitCast(@as(c_int, 0)))) {
-                par = @as(mm.Word, @bitCast(@as(c_uint, channel.*.memory[@as(c_uint, @intCast(@as(c_int, 2)))])));
-                channel.*.param = @as(mm.Byte, @bitCast(@as(u8, @truncate(par))));
+    if (layer.*.tick == 0) {
+        if ((layer.*.flags & MAS_HEADER_FLAG_LINK_GXX) != 0) {
+            // Gxx is shared, IT MODE ONLY!!
+            if (par == 0) {
+                par = channel.*.memory[MPP_IT_PORTA];
+                channel.*.param = @intCast(par);
             }
-            channel.*.memory[@as(c_uint, @intCast(@as(c_int, 2)))] = @as(mm.Byte, @bitCast(@as(u8, @truncate(par))));
-            channel.*.memory[@as(c_uint, @intCast(@as(c_int, 0)))] = @as(mm.Byte, @bitCast(@as(u8, @truncate(par))));
+            channel.*.memory[MPP_IT_PORTA] = @intCast(par);
+            // For simplification later
+            channel.*.memory[MPP_XM_IT_GLIS] = @intCast(par);
         } else {
-            if (par == @as(mm.Word, @bitCast(@as(c_int, 0)))) {
-                par = @as(mm.Word, @bitCast(@as(c_uint, channel.*.memory[@as(c_uint, @intCast(@as(c_int, 0)))])));
-                channel.*.param = @as(mm.Byte, @bitCast(@as(u8, @truncate(par))));
+            // Gxx is separate
+            if (par == 0) {
+                par = channel.*.memory[MPP_XM_IT_GLIS];
+                channel.*.param = @intCast(par);
             }
-            channel.*.memory[@as(c_uint, @intCast(@as(c_int, 0)))] = @as(mm.Byte, @bitCast(@as(u8, @truncate(par))));
+            channel.*.memory[MPP_XM_IT_GLIS] = @intCast(par);
             return period;
         }
     }
-    par = @as(mm.Word, @bitCast(@as(c_uint, channel.*.memory[@as(c_uint, @intCast(@as(c_int, 0)))])));
+    par = channel.*.memory[MPP_XM_IT_GLIS];
     per = mppe_glis_backdoor(par, per, act_ch, channel, layer);
     return per;
 }
 pub fn mppe_Vibrato(param: mm.Word, period: mm.Word, channel: [*c]mm.ModuleChannel, layer: [*c]mm.LayerInfo) mm.Word {
-    if (@as(c_int, @bitCast(@as(c_uint, layer.*.tick))) != @as(c_int, 0)) return mppe_DoVibrato(period, channel, layer);
+    if (layer.*.tick != 0) return mppe_DoVibrato(period, channel, layer);
     const x: mm.Word = param >> @intCast(4);
-    const y: mm.Word = param & @as(mm.Word, @bitCast(@as(c_int, 15)));
-    if (x != @as(mm.Word, @bitCast(@as(c_int, 0)))) {
-        channel.*.vibspd = @as(mm.Byte, @bitCast(@as(u8, @truncate(x *% @as(mm.Word, @bitCast(@as(c_int, 4)))))));
+    const y: mm.Word = param & 15;
+    if (x != 0) {
+        channel.*.vibspd = @intCast(x * 4);
     }
-    if (y != @as(mm.Word, @bitCast(@as(c_int, 0)))) {
-        var depth: mm.Word = y *% @as(mm.Word, @bitCast(@as(c_int, 4)));
-        _ = &depth;
-        channel.*.vibdep = @as(mm.Byte, @bitCast(@as(u8, @truncate(depth << @intCast(@as(c_int, @bitCast(@as(c_uint, layer.*.oldeffects))))))));
+    if (y != 0) {
+        const depth: mm.Word = y * 4;
+        channel.*.vibdep = @intCast(depth << @intCast(layer.*.oldeffects));
         return mppe_DoVibrato(period, channel, layer);
     }
     return period;
 }
-pub fn mppe_Arpeggio(param: mm.Word, period: mm.Word, act_ch: [*c]mm.ActiveChannel, channel: [*c]mm.ModuleChannel, layer: [*c]mm.LayerInfo) mm.Word {
-    if (@as(c_int, @bitCast(@as(c_uint, layer.*.tick))) == @as(c_int, 0)) {
+pub fn mppe_Arpeggio(param: mm.Word, period: mm.Word, act_ch: ?[*c]mm.ActiveChannel, channel: [*c]mm.ModuleChannel, layer: [*c]mm.LayerInfo) mm.Word {
+    if (layer.*.tick == 0) {
         channel.*.fxmem = 0;
     }
-    if (act_ch == @as([*c]mm.ActiveChannel, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) return period;
+    if (act_ch == null) return period;
     var semitones: mm.Word = undefined;
-    if (@as(c_int, @bitCast(@as(c_uint, channel.*.fxmem))) > @as(c_int, 1)) {
+    if (channel.*.fxmem > 1) {
+        // Set next tick to 0
         channel.*.fxmem = 0;
-        semitones = param & @as(mm.Word, @bitCast(@as(c_int, 15)));
-    } else if (@as(c_int, @bitCast(@as(c_uint, channel.*.fxmem))) == @as(c_int, 1)) {
+        // Mask out low nibble of param
+        semitones = param & 15;
+    } else if (channel.*.fxmem == 1) {
+        // Set next tick to 2
         channel.*.fxmem = 2;
-        semitones = param >> @intCast(4);
+        // Mask out high nibble of param
+        semitones = param >> 4;
     } else {
+        // Do nothing! :)
         channel.*.fxmem = 1;
         return period;
     }
-    semitones *%= @as(mm.Word, @bitCast(@as(c_int, 16)));
+    // The assembly code had the following conditional, but the register used to
+    // store the period was overwritten by mpph_LinearPitchSlide_Up() right
+    // after jumping to it, even in the original assembly code before the C port
+    // started. Is this a bug, or do we need to enable it?
+    //
+    // See if its >= 12. Double period if so... (set an octave higher)
+    //if (semitones >= 12)
+    //    period *= 2;
+    semitones *%= 16;
+
     const per = mpph_LinearPitchSlide_Up(period, semitones, layer);
     return per;
 }
@@ -1509,298 +1527,316 @@ pub fn mppe_VibratoVolume(param: mm.Word, period: mm.Word, channel: [*c]mm.Modul
     mppe_VolumeSlide(param, channel, layer);
     return new_period;
 }
-pub fn mppe_PortaVolume(param: mm.Word, period: mm.Word, act_ch: [*c]mm.ActiveChannel, channel: [*c]mm.ModuleChannel, layer: [*c]mm.LayerInfo) mm.Word {
-    const mem: mm.Word = @as(mm.Word, @bitCast(@as(c_uint, channel.*.memory[@as(c_uint, @intCast(@as(c_int, 0)))])));
+pub fn mppe_PortaVolume(param: mm.Word, period: mm.Word, act_ch: ?[*c]mm.ActiveChannel, channel: [*c]mm.ModuleChannel, layer: [*c]mm.LayerInfo) mm.Word {
+    const mem: mm.Word = channel.*.memory[0];
     const per = mppe_Glissando(mem, period, act_ch, channel, layer);
     mppe_VolumeSlide(param, channel, layer);
     return per;
 }
 pub fn mppe_ChannelVolume(param: mm.Word, channel: [*c]mm.ModuleChannel, layer: [*c]mm.LayerInfo) void {
-    if (@as(c_int, @bitCast(@as(c_uint, layer.*.tick))) != @as(c_int, 0)) return;
-    if (param > @as(mm.Word, @bitCast(@as(c_int, 64)))) return;
-    channel.*.cvolume = @as(mm.Byte, @bitCast(@as(u8, @truncate(param))));
+    if (layer.*.tick != 0) return;
+    if (param > 64) return;
+    channel.*.cvolume = @intCast(param);
 }
 pub fn mppe_ChannelVolumeSlide(param: mm.Word, channel: [*c]mm.ModuleChannel, layer: [*c]mm.LayerInfo) void {
-    channel.*.cvolume = @as(mm.Byte, @bitCast(@as(u8, @truncate(mpph_VolumeSlide64(@as(c_int, @bitCast(@as(c_uint, channel.*.cvolume))), param, @as(mm.Word, @bitCast(@as(c_uint, layer.*.tick))), layer)))));
+    channel.*.cvolume = @intCast(mpph_VolumeSlide64(@intCast(channel.*.cvolume), param, @intCast(layer.*.tick), layer));
 }
 pub fn mppe_SampleOffset(param: mm.Word, layer: [*c]mm.LayerInfo) void {
-    if (@as(c_int, @bitCast(@as(c_uint, layer.*.tick))) != @as(c_int, 0)) return;
-    mpp_vars.sampoff = @as(mm.Byte, @bitCast(@as(u8, @truncate(param))));
+    if (layer.*.tick != 0) return;
+    mpp_vars.sampoff = @intCast(param);
 }
-pub fn mppe_Retrigger(param: mm.Word, act_ch: [*c]mm.ActiveChannel, channel: [*c]mm.ModuleChannel) void {
-    var mem: mm.Word = @as(mm.Word, @bitCast(@as(c_uint, channel.*.fxmem)));
-    if (mem == @as(mm.Word, @bitCast(@as(c_int, 0)))) {
-        channel.*.fxmem = @as(mm.Byte, @bitCast(@as(u8, @truncate((param & @as(mm.Word, @bitCast(@as(c_int, 15)))) +% @as(mm.Word, @bitCast(@as(c_int, 1)))))));
+pub fn mppe_Retrigger(param: mm.Word, act_ch: ?[*c]mm.ActiveChannel, channel: [*c]mm.ModuleChannel) void {
+    // We don't check layer->tick here. We set channel->fxmem to the parameter
+    // and every time this function gets called it goes down by one. When it
+    // reaches 1, the command is executed.
+    //
+    // Note that we can't use 0 as a countdown target. That would be interpreted
+    // as "fxmem hasn't been set", so we need to store the count plus 1.
+
+    var mem: mm.Word = channel.*.fxmem;
+    if (mem == 0) {
+        channel.*.fxmem = @intCast((param & 15) + 1);
         return;
     }
     mem -%= 1;
-    if (mem != @as(mm.Word, @bitCast(@as(c_int, 1)))) {
-        channel.*.fxmem = @as(mm.Byte, @bitCast(@as(u8, @truncate(mem))));
+    if (mem != 1) {
+        channel.*.fxmem = @intCast(mem);
         return;
     }
-    channel.*.fxmem = @as(mm.Byte, @bitCast(@as(u8, @truncate((param & @as(mm.Word, @bitCast(@as(c_int, 15)))) +% @as(mm.Word, @bitCast(@as(c_int, 1)))))));
-    var vol: c_int = @as(c_int, @bitCast(@as(c_uint, channel.*.volume)));
+    channel.*.fxmem = @intCast((param & 15) + 1);
+    // Handle subcommand
+    var vol: i32 = @intCast(channel.*.volume);
     const arg: mm.Word = param >> @intCast(4);
-    if (arg == @as(mm.Word, @bitCast(@as(c_int, 0)))) {} else if (arg <= @as(mm.Word, @bitCast(@as(c_int, 5)))) {
-        vol -= @as(c_int, 1) << @intCast(arg -% @as(mm.Word, @bitCast(@as(c_int, 1))));
-        if (vol < @as(c_int, 0)) {
+    if (arg == 0) {} else if (arg <= 5) {
+        // -1, -2, -4, -8, -16
+        vol -= @as(i32, 1) << @intCast(arg - 1);
+        if (vol < 0) {
             vol = 0;
         }
-    } else if (arg == @as(mm.Word, @bitCast(@as(c_int, 6)))) {
-        vol = (vol * @as(c_int, 171)) >> @intCast(8);
-    } else if (arg == @as(mm.Word, @bitCast(@as(c_int, 7)))) {
-        vol >>= @intCast(@as(c_int, 1));
-    } else if (arg == @as(mm.Word, @bitCast(@as(c_int, 8)))) {} else if (arg <= @as(mm.Word, @bitCast(@as(c_int, 13)))) {
-        vol += @as(c_int, 1) << @intCast(arg -% @as(mm.Word, @bitCast(@as(c_int, 9))));
-        if (vol > @as(c_int, 64)) {
+    } else if (arg == 6) {
+        vol = (vol * 171) >> 8;
+    } else if (arg == 7) {
+        vol >>= 1;
+    } else if (arg == 8) {} else if (arg <= 13) {
+        // +1, +2, +4, +8, +16
+        vol += @as(i32, 1) << @intCast(arg - 9);
+        if (vol > 64) {
             vol = 64;
         }
-    } else if (arg == @as(mm.Word, @bitCast(@as(c_int, 14)))) {
-        vol = (vol * @as(c_int, 192)) >> @intCast(7);
+    } else if (arg == 14) {
+        vol = (vol * 192) >> 7;
     } else {
-        vol <<= @intCast(@as(c_int, 1));
-        if (vol > @as(c_int, 64)) {
+        vol <<= 1;
+        if (vol > 64) {
             vol = 64;
         }
     }
-    channel.*.volume = @as(mm.Byte, @bitCast(@as(i8, @truncate(vol))));
-    if (act_ch != @as([*c]mm.ActiveChannel, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) {
-        act_ch.*.flags |= @as(mm.Byte, @bitCast(@as(i8, @truncate(@as(c_int, 1) << @intCast(2)))));
+    channel.*.volume = @intCast(vol);
+    if (act_ch != null) {
+        act_ch.?.*.flags |= 1 << 2;
     }
 }
 pub fn mppe_Tremolo(param: mm.Word, channel: [*c]mm.ModuleChannel, layer: [*c]mm.LayerInfo) void {
-    if (@as(c_int, @bitCast(@as(c_uint, layer.*.tick))) != @as(c_int, 0)) {
-        var position: mm.Word = @as(mm.Word, @bitCast(@as(c_uint, channel.*.fxmem)));
-        _ = &position;
-        var speed: mm.Word = param >> @intCast(4);
-        _ = &speed;
-        position +%= speed *% @as(mm.Word, @bitCast(@as(c_int, 4)));
-        channel.*.fxmem = @as(mm.Byte, @bitCast(@as(u8, @truncate(position))));
+    // X = speed, Y = depth
+    if (layer.*.tick != 0) {
+        // Get sine position
+        var position: mm.Word = channel.*.fxmem;
+        const speed: mm.Word = param >> 4;
+        // Mask out SPEED, multiply by 4 to compensate for larger sine table
+        position += speed * 4;
+        // Save (value & 255)
+        channel.*.fxmem = @intCast(position & 255);
     }
-    const position: mm.Word = @as(mm.Word, @bitCast(@as(c_uint, channel.*.fxmem)));
-    const sine: mm.Sword = @as(mm.Sword, @bitCast(@as(c_int, tables.mpp_TABLE_FineSineData[position])));
-    const depth: mm.Word = param & @as(mm.Word, @bitCast(@as(c_int, 15)));
-    var result: mm.Sword = @as(mm.Sword, @bitCast((@as(mm.Word, @bitCast(sine)) *% depth) >> @intCast(6)));
-    if ((@as(c_int, @bitCast(@as(c_uint, layer.*.flags))) & (@as(c_int, 1) << @intCast(3))) != 0) {
-        result >>= @intCast(@as(c_int, 1));
+    // Get sine position
+    const position: mm.Word = channel.*.fxmem;
+    // Load sine table value
+    const sine: mm.Sword = tables.mpp_TABLE_FineSineData[position];
+    const depth: mm.Word = param & 15;
+    // Sine * depth / 64
+    var result: mm.Sword = @bitCast((sine * @as(mm.Sword, @intCast(depth))) >> 6);
+    if ((layer.*.flags & MAS_HEADER_FLAG_XM_MODE) != 0) {
+        result >>= 1;
     }
-    mpp_vars.volplus = @as(mm.Sbyte, @bitCast(@as(i8, @truncate(result))));
+    mpp_vars.volplus = @intCast(result);
 }
 pub fn mppe_SetTempo(param: mm.Word, layer: [*c]mm.LayerInfo) void {
-    if (param < @as(mm.Word, @bitCast(@as(c_int, 16)))) {
-        if (@as(c_int, @bitCast(@as(c_uint, layer.*.tick))) == @as(c_int, 0)) return;
-        var bpm: c_int = @as(c_int, @bitCast(@as(mm.Word, @bitCast(@as(c_uint, layer.*.bpm))) -% param));
-        _ = &bpm;
-        if (bpm < @as(c_int, 32)) {
+    if (param < 16) {
+        if (layer.*.tick == 0) return;
+        var bpm: i32 = @intCast(layer.*.bpm - param);
+        if (bpm < 32) {
             bpm = 32;
         }
-        mpp_setbpm(layer, @as(mm.Word, @bitCast(bpm)));
-    } else if (param < @as(mm.Word, @bitCast(@as(c_int, 32)))) {
-        if (@as(c_int, @bitCast(@as(c_uint, layer.*.tick))) == @as(c_int, 0)) return;
-        var bpm: c_int = @as(c_int, @bitCast(@as(mm.Word, @bitCast(@as(c_uint, layer.*.bpm))) +% (param & @as(mm.Word, @bitCast(@as(c_int, 15))))));
-        _ = &bpm;
-        if (bpm > @as(c_int, 255)) {
+        mpp_setbpm(layer, @intCast(bpm));
+    } else if (param < 32) {
+        if (layer.*.tick == 0) return;
+        var bpm: i32 = @intCast(layer.*.bpm + (param & 15));
+        if (bpm > 255) {
             bpm = 255;
         }
-        mpp_setbpm(layer, @as(mm.Word, @bitCast(bpm)));
+        mpp_setbpm(layer, @intCast(bpm));
     } else {
-        if (@as(c_int, @bitCast(@as(c_uint, layer.*.tick))) != @as(c_int, 0)) return;
+        if (layer.*.tick != 0) return;
         mpp_setbpm(layer, param);
     }
 }
 pub fn mppe_FineVibrato(param: mm.Word, period: mm.Word, channel: [*c]mm.ModuleChannel, layer: [*c]mm.LayerInfo) mm.Word {
-    if (@as(c_int, @bitCast(@as(c_uint, layer.*.tick))) == @as(c_int, 0)) {
+    if (layer.*.tick == 0) {
         const x: mm.Word = param >> @intCast(4);
-        const y: mm.Word = param & @as(mm.Word, @bitCast(@as(c_int, 15)));
-        if (x != @as(mm.Word, @bitCast(@as(c_int, 0)))) {
-            channel.*.vibspd = @as(mm.Byte, @bitCast(@as(u8, @truncate(x *% @as(mm.Word, @bitCast(@as(c_int, 4)))))));
+        const y: mm.Word = param & 15;
+        if (x != 0) {
+            channel.*.vibspd = @intCast(x * 4);
         }
-        if (y != @as(mm.Word, @bitCast(@as(c_int, 0)))) {
-            var depth: mm.Word = y *% @as(mm.Word, @bitCast(@as(c_int, 4)));
+        if (y != 0) {
+            var depth: mm.Word = y * 4;
             _ = &depth;
-            channel.*.vibdep = @as(mm.Byte, @bitCast(@as(u8, @truncate(depth << @intCast(@as(c_int, @bitCast(@as(c_uint, layer.*.oldeffects))))))));
+            channel.*.vibdep = @intCast(depth << @intCast(layer.*.oldeffects));
         }
     }
     return mppe_DoVibrato(period, channel, layer);
 }
 pub fn mppe_SetGlobalVolume(param: mm.Word, layer: [*c]mm.LayerInfo) void {
-    if (@as(c_int, @bitCast(@as(c_uint, layer.*.tick))) != @as(c_int, 0)) return;
-    const mask: mm.Word = @as(mm.Word, @bitCast((@as(c_int, 1) << @intCast(3)) | (@as(c_int, 1) << @intCast(5))));
+    if (layer.*.tick != 0) return;
+    const mask: mm.Word = MAS_HEADER_FLAG_XM_MODE | MAS_HEADER_FLAG_OLD_MODE;
     var maxvol: mm.Word = undefined;
-    if ((@as(mm.Word, @bitCast(@as(c_uint, layer.*.flags))) & mask) != 0) {
+    if ((layer.*.flags & mask) != 0) {
         maxvol = 64;
     } else {
         maxvol = 128;
     }
-    layer.*.global_volume = @as(mm.Byte, @bitCast(@as(u8, @truncate(if (param < maxvol) param else maxvol))));
+    layer.*.global_volume = @intCast(if (param < maxvol) param else maxvol);
 }
 pub fn mppe_GlobalVolumeSlide(param: mm.Word, layer: [*c]mm.LayerInfo) void {
     var maxvol: mm.Word = undefined;
-    if ((@as(c_int, @bitCast(@as(c_uint, layer.*.flags))) & (@as(c_int, 1) << @intCast(3))) != 0) {
+    if ((layer.*.flags & MAS_HEADER_FLAG_XM_MODE) != 0) {
         maxvol = 64;
     } else {
         maxvol = 128;
     }
-    layer.*.global_volume = @as(mm.Byte, @bitCast(@as(u8, @truncate(mpph_VolumeSlide(@as(c_int, @bitCast(@as(c_uint, layer.*.global_volume))), param, @as(mm.Word, @bitCast(@as(c_uint, layer.*.tick))), @as(c_int, @bitCast(maxvol)), layer)))));
+    layer.*.global_volume = @intCast(mpph_VolumeSlide(@intCast(layer.*.global_volume), param, @intCast(layer.*.tick), @intCast(maxvol), layer));
 }
 pub fn mppe_SetPanning(param: mm.Word, channel: [*c]mm.ModuleChannel, layer: [*c]mm.LayerInfo) void {
-    if (@as(c_int, @bitCast(@as(c_uint, layer.*.tick))) == @as(c_int, 0)) {
-        channel.*.panning = @as(mm.Byte, @bitCast(@as(u8, @truncate(param))));
+    if (layer.*.tick == 0) {
+        channel.*.panning = @intCast(param);
     }
 }
 pub fn mppex_XM_FVolSlideUp(param: mm.Word, channel: [*c]mm.ModuleChannel, layer: [*c]mm.LayerInfo) void {
-    if (@as(c_int, @bitCast(@as(c_uint, layer.*.tick))) != @as(c_int, 0)) return;
-    var volume: c_int = @as(c_int, @bitCast(@as(mm.Word, @bitCast(@as(c_uint, channel.*.volume))) +% (param & @as(mm.Word, @bitCast(@as(c_int, 15))))));
-    if (volume > @as(c_int, 64)) {
+    if (layer.*.tick != 0) return;
+    var volume: i32 = @as(i32, @bitCast(@as(mm.Word, @bitCast(@as(usize, channel.*.volume))) +% (param & 15)));
+    if (volume > 64) {
         volume = 64;
     }
-    channel.*.volume = @as(mm.Byte, @bitCast(@as(i8, @truncate(volume))));
+    channel.*.volume = @intCast(volume);
 }
 pub fn mppex_XM_FVolSlideDown(param: mm.Word, channel: [*c]mm.ModuleChannel, layer: [*c]mm.LayerInfo) void {
-    if (@as(c_int, @bitCast(@as(c_uint, layer.*.tick))) != @as(c_int, 0)) return;
-    var volume: c_int = @as(c_int, @bitCast(@as(mm.Word, @bitCast(@as(c_uint, channel.*.volume))) -% (param & @as(mm.Word, @bitCast(@as(c_int, 15))))));
-    _ = &volume;
-    if (volume < @as(c_int, 0)) {
+    if (layer.*.tick != 0) return;
+    var volume: i32 = @as(i32, @bitCast(@as(mm.Word, @bitCast(@as(usize, channel.*.volume))) -% (param & 15)));
+    if (volume < 0) {
         volume = 0;
     }
-    channel.*.volume = @as(mm.Byte, @bitCast(@as(i8, @truncate(volume))));
+    channel.*.volume = @intCast(volume);
 }
-pub fn mppex_OldRetrig(param: mm.Word, act_ch: [*c]mm.ActiveChannel, channel: [*c]mm.ModuleChannel, layer: [*c]mm.LayerInfo) void {
-    if (@as(c_int, @bitCast(@as(c_uint, layer.*.tick))) == @as(c_int, 0)) {
-        channel.*.fxmem = @as(mm.Byte, @bitCast(@as(u8, @truncate(param & @as(mm.Word, @bitCast(@as(c_int, 15)))))));
+pub fn mppex_OldRetrig(param: mm.Word, act_ch: ?[*c]mm.ActiveChannel, channel: [*c]mm.ModuleChannel, layer: [*c]mm.LayerInfo) void {
+    if (layer.*.tick == 0) {
+        channel.*.fxmem = @as(mm.Byte, @bitCast(@as(u8, @truncate(param & @as(mm.Word, @bitCast(@as(i32, 15)))))));
         return;
     }
     channel.*.fxmem -%= 1;
-    if (@as(c_int, @bitCast(@as(c_uint, channel.*.fxmem))) == @as(c_int, 0)) {
-        channel.*.fxmem = @as(mm.Byte, @bitCast(@as(u8, @truncate(param & @as(mm.Word, @bitCast(@as(c_int, 15)))))));
-        if (act_ch != @as([*c]mm.ActiveChannel, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) {
-            act_ch.*.flags |= @as(mm.Byte, @bitCast(@as(i8, @truncate(@as(c_int, 1) << @intCast(2)))));
+    if (channel.*.fxmem == 0) {
+        channel.*.fxmem = @intCast(param & 15);
+        if (act_ch != null) {
+            act_ch.?.*.flags |= MCAF_START;
         }
     }
 }
 pub fn mppex_FPattDelay(param: mm.Word, layer: [*c]mm.LayerInfo) void {
-    if (@as(c_int, @bitCast(@as(c_uint, layer.*.tick))) != @as(c_int, 0)) return;
-    layer.*.fpattdelay = @as(mm.Byte, @bitCast(@as(u8, @truncate(param & @as(mm.Word, 15)))));
+    if (layer.*.tick != 0) return;
+    layer.*.fpattdelay = @intCast(param & 15);
 }
-pub fn mppex_InstControl(param: mm.Word, act_ch: [*c]mm.ActiveChannel, channel: [*c]mm.ModuleChannel, layer: [*c]mm.LayerInfo) void {
-    if (@as(c_int, @bitCast(@as(c_uint, layer.*.tick))) != @as(c_int, 0)) return;
-    const subparam: mm.Word = param & @as(mm.Word, @bitCast(@as(c_int, 15)));
-    if (subparam <= @as(mm.Word, @bitCast(@as(c_int, 2)))) {} else if (subparam <= @as(mm.Word, 6)) {
-        channel.*.bflags &= @as(mm.Hword, @bitCast(@as(c_short, @truncate(~(@as(c_int, 3) << @intCast(6))))));
-        channel.*.bflags |= @as(mm.Hword, @bitCast(@as(c_ushort, @truncate(((subparam -% @as(mm.Word, @bitCast(@as(c_int, 3)))) << @intCast(6)) & @as(mm.Word, @bitCast(@as(c_int, 3) << @intCast(6)))))));
-    } else if (subparam <= @as(mm.Word, @bitCast(@as(c_int, 8)))) {
-        if (act_ch != @as([*c]mm.ActiveChannel, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) {
-            var val: c_int = @as(c_int, @bitCast(subparam -% @as(mm.Word, @bitCast(@as(c_int, 7)))));
-            _ = &val;
+pub fn mppex_InstControl(param: mm.Word, act_ch: ?[*c]mm.ActiveChannel, channel: [*c]mm.ModuleChannel, layer: [*c]mm.LayerInfo) void {
+    if (layer.*.tick != 0) return;
+    const subparam: mm.Word = param & 15;
+    // mppex_ic_pastnotes
+    if (subparam <= 2) {
+        // TODO
+    } else if (subparam <= 6) {
+        // Overwrite NNA
+        channel.*.bflags &= ~MCH_BFLAGS_NNA_MASK;
+        channel.*.bflags |= @intCast(arm.MCH_BFLAGS_NNA_SET(subparam - 3));
+    } else if (subparam <= 8) {
+        if (act_ch != null) {
+            // val can be 0 or 1
+            const val: i32 = @as(i32, @intCast(subparam)) - 7;
             if (val != 0) {
-                act_ch.*.flags |= @as(mm.Byte, @bitCast(@as(i8, @truncate(@as(c_int, 1) << @intCast(5)))));
+                act_ch.?.*.flags |= MCAF_VOLENV;
             } else {
-                act_ch.*.flags &= @as(mm.Byte, @bitCast(@as(i8, @truncate(~(@as(c_int, 1) << @intCast(5))))));
+                act_ch.?.*.flags &= ~MCAF_VOLENV;
             }
         }
     }
 }
 pub fn mppex_SetPanning(param: mm.Word, channel: [*c]mm.ModuleChannel) void {
-    channel.*.panning = @as(mm.Byte, @bitCast(@as(u8, @truncate(param << @intCast(4)))));
+    channel.*.panning = @intCast(param << 4);
 }
 pub fn mppex_SoundControl(param: mm.Word) void {
-    if (param != @as(mm.Word, @bitCast(@as(c_int, 145)))) return;
+    if (param != 145) return;
+    // Set surround
+    // TODO
 }
 pub fn mppex_PatternLoop(param: mm.Word, layer: [*c]mm.LayerInfo) void {
-    if (@as(c_int, @bitCast(@as(c_uint, layer.*.tick))) != @as(c_int, 0)) return;
-    const subparam: mm.Word = param & @as(mm.Word, @bitCast(@as(c_int, 15)));
-    if (subparam == @as(mm.Word, @bitCast(@as(c_int, 0)))) {
+    if (layer.*.tick != 0) return;
+    const subparam: mm.Word = param & 15;
+    if (subparam == 0) {
         layer.*.ploop_row = layer.*.row;
         layer.*.ploop_adr = mpp_vars.pattread_p;
         return;
     }
-    const counter: mm.Word = @as(mm.Word, @bitCast(@as(c_uint, layer.*.ploop_times)));
-    if (counter == @as(mm.Word, @bitCast(@as(c_int, 0)))) {
-        layer.*.ploop_times = @as(mm.Byte, @bitCast(@as(u8, @truncate(subparam))));
+    const counter: mm.Word = layer.*.ploop_times;
+    if (counter == 0) {
+        layer.*.ploop_times = @intCast(subparam);
         layer.*.ploop_jump = 1;
     } else {
-        layer.*.ploop_times = @as(mm.Byte, @bitCast(@as(u8, @truncate(counter -% @as(mm.Word, @bitCast(@as(c_int, 1)))))));
-        if (@as(c_int, @bitCast(@as(c_uint, layer.*.ploop_times))) != @as(c_int, 0)) {
+        layer.*.ploop_times = @intCast(counter - 1);
+        if (layer.*.ploop_times != 0) {
             layer.*.ploop_jump = 1;
         }
     }
 }
 pub fn mppex_NoteCut(param: mm.Word, channel: [*c]mm.ModuleChannel, layer: [*c]mm.LayerInfo) void {
-    const reference: mm.Word = param & @as(mm.Word, @bitCast(@as(c_int, 15)));
-    if (@as(mm.Word, @bitCast(@as(c_uint, layer.*.tick))) != reference) return;
+    const reference: mm.Word = param & 15;
+    if (layer.*.tick != reference) return;
     channel.*.volume = 0;
 }
 pub fn mppex_NoteDelay(param: mm.Word, layer: [*c]mm.LayerInfo) void {
-    const reference: mm.Word = param & @as(mm.Word, @bitCast(@as(c_int, 15)));
-    if (@as(mm.Word, @bitCast(@as(c_uint, layer.*.tick))) >= reference) return;
-    mpp_vars.notedelay = @as(mm.Byte, @bitCast(@as(u8, @truncate(reference))));
+    const reference: mm.Word = param & 15;
+    if (layer.*.tick >= reference) return;
+    mpp_vars.notedelay = @intCast(reference);
 }
 pub fn mppex_PatternDelay(param: mm.Word, layer: [*c]mm.LayerInfo) void {
-    if (@as(c_int, @bitCast(@as(c_uint, layer.*.tick))) != @as(c_int, 0)) return;
-    if (@as(c_int, @bitCast(@as(c_uint, layer.*.pattdelay))) == @as(c_int, 0)) {
-        layer.*.pattdelay = @as(mm.Byte, @bitCast(@as(u8, @truncate((param & @as(mm.Word, @bitCast(@as(c_int, 15)))) +% @as(mm.Word, @bitCast(@as(c_int, 1)))))));
+    if (layer.*.tick != 0) return;
+    if (layer.*.pattdelay == 0) {
+        layer.*.pattdelay = @intCast((param & 15) + 1);
     }
 }
 pub fn mppex_SongMessage(param: mm.Word, layer: [*c]mm.LayerInfo) void {
-    if (@as(c_int, @bitCast(@as(c_uint, layer.*.tick))) != @as(c_int, 0)) return;
-    if (mmCallback != @as(mm_callback, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(0)))))) {
-        const layer_type = param & @as(mm.Word, 15) | (@as(mm.Word, @intFromEnum(mpp_clayer)) << 4);
-        _ = mmCallback.?(@as(mm.Word, @bitCast(@as(c_int, 42))), @enumFromInt(layer_type));
+    if (layer.*.tick != 0) return;
+    if (mmCallback != null) {
+        const layer_type = (param & 15) | (@as(mm.Word, @intFromEnum(mpp_clayer)) << 4);
+        _ = mmCallback.?(@intCast(42), @enumFromInt(layer_type));
     }
 }
-pub fn mppe_Extended(param: mm.Word, act_ch: [*c]mm.ActiveChannel, channel: [*c]mm.ModuleChannel, layer: [*c]mm.LayerInfo) void {
+pub fn mppe_Extended(param: mm.Word, act_ch: ?[*c]mm.ActiveChannel, channel: [*c]mm.ModuleChannel, layer: [*c]mm.LayerInfo) void {
     const subcmd: mm.Word = param >> @intCast(4);
     while (true) {
         switch (subcmd) {
-            @as(mm.Word, @bitCast(@as(c_int, 0))) => {
+            0 => {
                 mppex_XM_FVolSlideUp(param, channel, layer);
                 break;
             },
-            @as(mm.Word, @bitCast(@as(c_int, 1))) => {
+            1 => {
                 mppex_XM_FVolSlideDown(param, channel, layer);
                 break;
             },
-            @as(mm.Word, @bitCast(@as(c_int, 2))) => {
+            2 => {
                 mppex_OldRetrig(param, act_ch, channel, layer);
                 break;
             },
-            @as(mm.Word, @bitCast(@as(c_int, 3))) => break,
-            @as(mm.Word, @bitCast(@as(c_int, 4))) => break,
-            @as(mm.Word, @bitCast(@as(c_int, 5))) => break,
-            @as(mm.Word, @bitCast(@as(c_int, 6))) => {
+            3 => break,
+            4 => break,
+            5 => break,
+            6 => {
                 mppex_FPattDelay(param, layer);
                 break;
             },
-            @as(mm.Word, @bitCast(@as(c_int, 7))) => {
+            7 => {
                 mppex_InstControl(param, act_ch, channel, layer);
                 break;
             },
-            @as(mm.Word, @bitCast(@as(c_int, 8))) => {
+            8 => {
                 mppex_SetPanning(param, channel);
                 break;
             },
-            @as(mm.Word, @bitCast(@as(c_int, 9))) => {
+            9 => {
                 mppex_SoundControl(param);
                 break;
             },
-            @as(mm.Word, @bitCast(@as(c_int, 10))) => break,
-            @as(mm.Word, @bitCast(@as(c_int, 11))) => {
+            10 => break,
+            11 => {
                 mppex_PatternLoop(param, layer);
                 break;
             },
-            @as(mm.Word, @bitCast(@as(c_int, 12))) => {
+            12 => {
                 mppex_NoteCut(param, channel, layer);
                 break;
             },
-            @as(mm.Word, @bitCast(@as(c_int, 13))) => {
+            13 => {
                 mppex_NoteDelay(param, layer);
                 break;
             },
-            @as(mm.Word, @bitCast(@as(c_int, 14))) => {
+            14 => {
                 mppex_PatternDelay(param, layer);
                 break;
             },
-            @as(mm.Word, @bitCast(@as(c_int, 15))) => {
+            15 => {
                 mppex_SongMessage(param, layer);
                 break;
             },
@@ -1810,161 +1846,144 @@ pub fn mppe_Extended(param: mm.Word, act_ch: [*c]mm.ActiveChannel, channel: [*c]
     }
 }
 pub fn mppe_SetVolume(param: mm.Word, channel: [*c]mm.ModuleChannel, layer: [*c]mm.LayerInfo) void {
-    if (@as(c_int, @bitCast(@as(c_uint, layer.*.tick))) == @as(c_int, 0)) {
-        channel.*.volume = @as(mm.Byte, @bitCast(@as(u8, @truncate(param))));
+    if (layer.*.tick == 0) {
+        channel.*.volume = @intCast(param);
     }
 }
-pub fn mppe_KeyOff(param: mm.Word, act_ch: [*c]mm.ActiveChannel, layer: [*c]mm.LayerInfo) void {
-    if (@as(mm.Word, @bitCast(@as(c_uint, layer.*.tick))) != param) return;
-    if (act_ch != @as([*c]mm.ActiveChannel, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(@as(c_int, 0))))))) {
-        act_ch.*.flags &= @as(mm.Byte, @bitCast(@as(i8, @truncate(~(@as(c_int, 1) << @intCast(0))))));
+pub fn mppe_KeyOff(param: mm.Word, act_ch: ?[*c]mm.ActiveChannel, layer: [*c]mm.LayerInfo) void {
+    if (layer.*.tick != param) return;
+    if (act_ch != null) {
+        act_ch.?.*.flags &= ~MCAF_KEYON;
     }
 }
 pub fn mppe_OldTremor(param: mm.Word, channel: [*c]mm.ModuleChannel, layer: [*c]mm.LayerInfo) void {
-    if (@as(c_int, @bitCast(@as(c_uint, layer.*.tick))) == @as(c_int, 0)) return;
-    const mem: c_int = @as(c_int, @bitCast(@as(c_uint, channel.*.fxmem)));
-    if (mem == @as(c_int, 0)) {
-        channel.*.fxmem = @as(mm.Byte, @bitCast(@as(i8, @truncate(mem - @as(c_int, 1)))));
+    if (layer.*.tick == 0) return;
+    const mem: i32 = @intCast(channel.*.fxmem);
+    if (mem == 0) {
+        // Old
+        channel.*.fxmem = @intCast(mem - 1);
     } else {
-        channel.*.bflags ^= @as(mm.Hword, @bitCast(@as(c_short, @truncate((@as(c_int, 1) << @intCast(9)) | (@as(c_int, 1) << @intCast(10))))));
-        if ((@as(c_int, @bitCast(@as(c_uint, channel.*.bflags))) & (@as(c_int, 1) << @intCast(10))) != 0) {
-            channel.*.fxmem = @as(mm.Byte, @bitCast(@as(u8, @truncate((param >> @intCast(4)) +% @as(mm.Word, @bitCast(@as(c_int, 1)))))));
+        // New
+        channel.*.bflags ^= MCH_BFLAGS_TREMOR | MCH_BFLAGS_CUT_VOLUME;
+        if ((channel.*.bflags & MCH_BFLAGS_CUT_VOLUME) != 0) {
+            channel.*.fxmem = @intCast((param >> 4) + 1);
         } else {
-            channel.*.fxmem = @as(mm.Byte, @bitCast(@as(u8, @truncate((param & @as(mm.Word, @bitCast(@as(c_int, 15)))) +% @as(mm.Word, @bitCast(@as(c_int, 1)))))));
+            channel.*.fxmem = @intCast((param & 15) + 1);
         }
     }
-    if ((@as(c_int, @bitCast(@as(c_uint, channel.*.bflags))) & (@as(c_int, 1) << @intCast(10))) == @as(c_int, 0)) {
-        mpp_vars.volplus = @as(mm.Sbyte, @bitCast(@as(i8, @truncate(-@as(c_int, 64)))));
+    if ((channel.*.bflags & MCH_BFLAGS_CUT_VOLUME) == 0) {
+        // Cut note
+        mpp_vars.volplus = -64;
     }
 }
 pub fn mpph_ProcessEnvelope(count_: [*c]mm.Hword, node_: [*c]mm.Byte, envelope: [*c]Envelope, act_ch: [*c]mm.ActiveChannel, value_mul_64: [*c]mm.Word) mm.Word {
     var count: mm.Hword = count_.*;
     var node: mm.Byte = node_.*;
-    // Node array immediately follows the fixed header; compute pointer manually.
-    const nodes_base: [*]mm.Byte = @as([*]mm.Byte, @ptrCast(@alignCast(envelope))) + @sizeOf(Envelope);
-    const nodes_ptr: [*]EnvelopeNode = @ptrCast(@alignCast(nodes_base));
-    const node_info: *EnvelopeNode = &nodes_ptr[@as(usize, @intCast(node))];
-    value_mul_64.* = @as(mm.Word, @intCast(@as(c_int, envNodeBase(node_info.*)) * @as(c_int, 64)));
-    if (@as(c_int, @bitCast(@as(c_uint, count))) == @as(c_int, 0)) {
-        if (@as(c_int, @bitCast(@as(c_uint, node))) == @as(c_int, @bitCast(@as(c_uint, envelope.*.loop_end)))) {
+
+    const nodes_bytes: [*]const u8 = @as([*]const u8, @ptrCast(@alignCast(envelope))) + @sizeOf(Envelope);
+    const stride: usize = 4;
+    const node_offset = stride * @as(usize, @intCast(node));
+    const node_bytes: [*]const u8 = nodes_bytes + node_offset;
+
+    const delta_raw: i16 = std.mem.readInt(i16, node_bytes[0..2], .little);
+    const base_range_raw: u16 = std.mem.readInt(u16, node_bytes[2..4], .little);
+    const node_base: mm.Hword = @intCast(base_range_raw & 0x7F);
+    const node_range: mm.Hword = @intCast((base_range_raw >> 7) & 0x1FF);
+
+    value_mul_64.* = @intCast(node_base * 64);
+
+    if (count == 0) {
+        if (node == envelope.*.loop_end) {
             count_.* = count;
             node_.* = envelope.*.loop_start;
             return 2;
         }
-        if ((@as(c_int, @bitCast(@as(c_uint, act_ch.*.flags))) & (@as(c_int, 1) << @intCast(0))) != 0) {
-            if (@as(c_int, @bitCast(@as(c_uint, node))) == @as(c_int, @bitCast(@as(c_uint, envelope.*.sus_end)))) {
+        if ((act_ch.*.flags & MCAF_KEYON) != 0) {
+            if (node == envelope.*.sus_end) {
                 count_.* = count;
                 node_.* = envelope.*.sus_start;
                 return 0;
             }
         }
-        var last_node: mm.Hword = @as(mm.Hword, @bitCast(@as(c_short, @truncate(@as(c_int, @bitCast(@as(c_uint, @as(mm.Hword, @bitCast(@as(c_ushort, envelope.*.node_count)))))) - @as(c_int, 1)))));
-        _ = &last_node;
-        if (@as(c_int, @bitCast(@as(c_uint, node))) == @as(c_int, @bitCast(@as(c_uint, last_node)))) {
+        const last_node: mm.Hword = if (envelope.*.node_count == 0) 0 else envelope.*.node_count - 1;
+        if (node == last_node) {
             count_.* = count;
             node_.* = node;
             return 2;
         }
     } else {
-        var delta: mm.Sword = node_info.delta;
-        _ = &delta;
-        value_mul_64.* +%= @as(mm.Word, @bitCast(@as(mm.Sword, @bitCast(delta * @as(c_int, @bitCast(@as(c_uint, count))))) >> @intCast(3)));
+        const interp: i32 = (@as(i32, delta_raw) * @as(i32, @intCast(count))) >> 3;
+        const current: i32 = @intCast(value_mul_64.*);
+        value_mul_64.* = @intCast(current + interp);
     }
+
     count +%= 1;
-    if (@as(c_int, @bitCast(@as(c_uint, count))) == @as(c_int, @bitCast(@as(c_uint, envelope.*.node_count)))) {
+    if (node_range != 0 and count == node_range) {
         count = 0;
-        node = @as(mm.Byte, @bitCast(@as(i8, @truncate(@as(c_int, @bitCast(@as(c_uint, node))) + @as(c_int, 1)))));
+        node = @intCast((node + 1) & 0xFF);
     }
+
     count_.* = count;
     node_.* = node;
     return 2;
 }
-
 pub fn mpp_Update_ACHN_notest_envelopes(layer: [*c]mm.LayerInfo, act_ch: [*c]mm.ActiveChannel, period: mm.Word) mm.Word {
-    const instrument: *Instrument = instrumentPointer(layer, @as(mm.Word, @intCast(act_ch.*.inst))) orelse return period;
+    const instrument: *Instrument = instrumentPointer(layer, act_ch.*.inst) orelse return period;
     // Instrument envelopes and note map data are stored immediately after the
-    // fixed-size instrument header in the MAS blob. The translate-c struct
-    // does not expose the trailing union, so compute the pointer manually.
+    //  fixed-size instrument header in the MAS blob. The translate-c struct
+    //  does not expose the trailing union, so compute the pointer manually.
     const INSTR_HDR_SIZE: usize = 12;
     var env_ptr: [*]mm.Byte = @as([*]mm.Byte, @ptrCast(@alignCast(instrument))) + INSTR_HDR_SIZE;
 
-    // Emit ENVDBG2 like C for first two channels at tick 0 regardless of existence
-    if (mm_gba.layer_p.*.tick == 0) {
-        const act_addr_dbg2: usize = @intFromPtr(act_ch);
-        const base_addr_dbg2: usize = @intFromPtr(&mm_gba.achannels[0]);
-        const ch_idx_dbg2: c_int = @as(c_int, @intCast((act_addr_dbg2 - base_addr_dbg2) / @sizeOf(mm.ActiveChannel)));
-        if (ch_idx_dbg2 >= 0 and ch_idx_dbg2 < 2) {
-            const vol_enabled_dbg: c_int = @as(c_int, @intCast(@intFromBool((@as(c_int, @intCast(instrument.*.env_flags)) & MAS_INSTR_FLAG_VOL_ENV_ENABLED) != 0)));
-            debugPrint(
-                "[ENVDBG2] ch={d} env_flags=0x{x} vol_enabled={d}\n",
-                .{ ch_idx_dbg2, @as(c_int, @intCast(instrument.*.env_flags)), vol_enabled_dbg },
-            );
-        }
-    }
-
-    if ((@as(c_int, @intCast(instrument.*.env_flags)) & MAS_INSTR_FLAG_VOL_ENV_EXISTS) != 0) {
-        const vol_enabled: bool = ((@as(c_int, @intCast(instrument.*.env_flags)) & MAS_INSTR_FLAG_VOL_ENV_ENABLED) != 0);
+    var vol_env_active = false;
+    if ((instrument.*.env_flags & MAS_INSTR_FLAG_VOL_ENV_EXISTS) != 0) {
         var value_mul_64: mm.Word = 0;
         const env: *Envelope = @ptrCast(@alignCast(env_ptr));
         env_ptr += env_ptr[0];
-        // No extra ENVDUMP in C reference
-        // (ENVDBG2 already printed above once per channel at tick 0)
-        if (vol_enabled) {
+        if ((act_ch.*.flags & @as(mm.Byte, @intCast(MCAF_VOLENV))) != 0) {
+            vol_env_active = true;
             const exit_value = mpph_ProcessEnvelope(&act_ch.*.envc_vol, &act_ch.*.envn_vol, env, act_ch, &value_mul_64);
-            if (mm_gba.layer_p.*.tick == 0) {
-                const act_addr_dbg: usize = @intFromPtr(act_ch);
-                const base_addr_dbg: usize = @intFromPtr(&mm_gba.achannels[0]);
-                const ch_idx_dbg: c_int = @as(c_int, @intCast((act_addr_dbg - base_addr_dbg) / @sizeOf(mm.ActiveChannel)));
-                if (ch_idx_dbg >= 0 and ch_idx_dbg < 2) {
-                    debugPrint("[ENVDBG] ch={d} exit={d} flags=0x{x}\n", .{ ch_idx_dbg, @as(c_int, @intCast(exit_value)), @as(c_int, @intCast(act_ch.*.flags)) });
-                }
-            }
             if (layer.*.tick != 0) {
-                if (exit_value == @as(mm.Word, @intCast(1))) {
-                    if ((@as(c_int, @intCast(layer.*.flags)) & MAS_HEADER_FLAG_XM_MODE) != 0) {
-                        act_ch.*.flags |= @as(mm.Byte, @intCast(MCAF_ENVEND));
+                if (exit_value == 1) {
+                    if ((layer.*.flags & MAS_HEADER_FLAG_XM_MODE) != 0) {
+                        act_ch.*.flags |= MCAF_ENVEND;
                     } else {
-                        act_ch.*.flags |= @as(mm.Byte, @intCast(MCAF_ENVEND | MCAF_FADE));
+                        act_ch.*.flags |= MCAF_ENVEND | MCAF_FADE;
                     }
-                } else if (exit_value == @as(mm.Word, @intCast(2))) {
-                    if ((@as(c_int, @intCast(act_ch.*.flags)) & MCAF_KEYON) == 0) {
-                        act_ch.*.flags |= @as(mm.Byte, @intCast(MCAF_FADE));
+                } else if (exit_value == 2) {
+                    if ((act_ch.*.flags & MCAF_KEYON) == 0) {
+                        act_ch.*.flags |= MCAF_FADE;
                     }
                 }
             }
-            // Always scale AFV by envelope factor (parity with C)
-            const afv: mm.Sword = @as(mm.Sword, @intCast(mpp_vars.afvol));
-            mpp_vars.afvol = @as(mm.Byte, @intCast((@as(c_int, @intCast(afv)) * @as(c_int, @intCast(value_mul_64))) >> (6 + 6)));
-            // At tick 0, mark VOLENV only (C does not set UPDATED here)
-            if (layer.*.tick == 0) {
-                act_ch.*.flags |= @as(mm.Byte, @intCast(MCAF_VOLENV));
-            }
+            const afv: mm.Sword = @intCast(mpp_vars.afvol);
+            mpp_vars.afvol = @intCast((afv * @as(i32, @intCast(value_mul_64))) >> (6 + 6));
         }
     }
 
-    if ((@as(c_int, @intCast(act_ch.*.flags)) & MCAF_KEYON) == 0) {
+    if (!vol_env_active and (act_ch.*.flags & @as(mm.Byte, @intCast(MCAF_KEYON))) == 0) {
         act_ch.*.flags |= @as(mm.Byte, @intCast(MCAF_FADE | MCAF_ENVEND));
-        if ((@as(c_int, @intCast(layer.*.flags)) & MAS_HEADER_FLAG_XM_MODE) != 0) {
+        if ((@as(i32, @intCast(layer.*.flags)) & MAS_HEADER_FLAG_XM_MODE) != 0) {
             act_ch.*.fade = 0;
         }
     }
 
-    if ((@as(c_int, @intCast(instrument.*.env_flags)) & MAS_INSTR_FLAG_PAN_ENV_EXISTS) != 0) {
+    if ((@as(i32, @intCast(instrument.*.env_flags)) & MAS_INSTR_FLAG_PAN_ENV_EXISTS) != 0) {
         var value_mul_64_pan: mm.Word = 0;
         const env_pan: *Envelope = @ptrCast(@alignCast(env_ptr));
         env_ptr += env_ptr[0];
         _ = mpph_ProcessEnvelope(&act_ch.*.envc_pan, &act_ch.*.envn_pan, env_pan, act_ch, &value_mul_64_pan);
-        mpp_vars.panplus += @as(mm.Hword, @intCast((@as(c_int, @intCast(value_mul_64_pan)) >> 4) - 128));
+        mpp_vars.panplus += @as(mm.Hword, @intCast((@as(i32, @intCast(value_mul_64_pan)) >> 4) - 128));
     }
 
     var per = period;
 
-    if ((@as(c_int, @intCast(instrument.*.env_flags)) & MAS_INSTR_FLAG_PITCH_ENV_EXISTS) != 0) {
+    if ((@as(i32, @intCast(instrument.*.env_flags)) & MAS_INSTR_FLAG_PITCH_ENV_EXISTS) != 0) {
         var value_mul_64_pic: mm.Word = 0;
         const env_pic: *Envelope = @ptrCast(@alignCast(env_ptr));
         if (env_pic.*.is_filter == 0) {
             _ = mpph_ProcessEnvelope(&act_ch.*.envc_pic, &act_ch.*.envn_pic, env_pic, act_ch, &value_mul_64_pic);
-            const value: mm.Sword = @as(mm.Sword, @intCast((@as(c_int, @intCast(value_mul_64_pic)) >> 3) - 256));
+            const value: mm.Sword = @as(mm.Sword, @intCast((@as(i32, @intCast(value_mul_64_pic)) >> 3) - 256));
             if (value < 0) {
                 per = mpph_LinearPitchSlide_Down(per, @as(mm.Word, @intCast(-value)), layer);
             } else {
@@ -1973,7 +1992,7 @@ pub fn mpp_Update_ACHN_notest_envelopes(layer: [*c]mm.LayerInfo, act_ch: [*c]mm.
         }
     }
 
-    if ((@as(c_int, @intCast(act_ch.*.flags)) & MCAF_FADE) != 0) {
+    if ((@as(i32, @intCast(act_ch.*.flags)) & MCAF_FADE) != 0) {
         var value: mm.Sword = @as(mm.Sword, @intCast(act_ch.*.fade)) - @as(mm.Sword, @intCast(instrument.*.fadeout));
         if (value < 0) value = 0;
         act_ch.*.fade = @as(mm.Hword, @intCast(value));
@@ -1983,299 +2002,265 @@ pub fn mpp_Update_ACHN_notest_envelopes(layer: [*c]mm.LayerInfo, act_ch: [*c]mm.
 }
 pub fn mpp_Update_ACHN_notest_auto_vibrato(layer: [*c]mm.LayerInfo, act_ch: [*c]mm.ActiveChannel, period: mm.Word) mm.Word {
     var per = period;
-    const sample: [*c]SampleInfo = mpp_SamplePointer(layer, @as(mm.Word, @bitCast(@as(c_uint, act_ch.*.sample))));
+    // Get av-rate, check if auto vibrato is enabled
+    const sample: [*c]SampleInfo = mpp_SamplePointer(layer, act_ch.*.sample);
     const av_rate: mm.Hword = sample.*.av_rate;
-    if (@as(c_int, @bitCast(@as(c_uint, av_rate))) != @as(c_int, 0)) {
-        var new_rate: mm.Word = @as(mm.Word, @bitCast(@as(c_int, @bitCast(@as(c_uint, act_ch.*.avib_dep))) + @as(c_int, @bitCast(@as(c_uint, av_rate)))));
-        _ = &new_rate;
-        if (new_rate > @as(mm.Word, @bitCast(@as(c_int, 32768)))) {
-            new_rate = @as(mm.Word, @bitCast(@as(c_int, 32768)));
+    if (av_rate != 0) {
+        // Handle depth counter
+        var new_rate: mm.Word = @as(mm.Word, @intCast(act_ch.*.avib_dep)) + av_rate;
+        if (new_rate > 32768) {
+            new_rate = 32768;
         }
-        act_ch.*.avib_dep = @as(mm.Hword, @bitCast(@as(c_ushort, @truncate(new_rate))));
-        const new_depth: mm.Sword = @as(mm.Sword, @bitCast(@as(mm.Word, @bitCast(@as(c_uint, sample.*.av_depth))) *% new_rate));
-        act_ch.*.avib_pos = @as(mm.Hword, @bitCast(@as(c_short, @truncate((@as(c_int, @bitCast(@as(c_uint, act_ch.*.avib_pos))) + @as(c_int, @bitCast(@as(c_uint, sample.*.av_speed)))) & @as(c_int, 255)))));
-        var slide_val: mm.Sword = @as(mm.Sword, @bitCast(@as(c_int, tables.mpp_TABLE_FineSineData[act_ch.*.avib_pos])));
-        slide_val = (slide_val * new_depth) >> @intCast(23);
-        if (slide_val >= @as(c_int, 0)) {
-            per = mpph_PitchSlide_Up(period, @as(mm.Word, @bitCast(slide_val)), layer);
+        act_ch.*.avib_dep = @intCast(new_rate);
+        // Get av-depth
+        const new_depth: mm.Sword = @intCast(sample.*.av_depth * new_rate);
+        // Add av-speed to table position and wrap to 0->255
+        act_ch.*.avib_pos = (act_ch.*.avib_pos + sample.*.av_speed) & 255;
+        // Load table value at the current position
+        var slide_val: mm.Sword = tables.mpp_TABLE_FineSineData[act_ch.*.avib_pos];
+        slide_val = (slide_val * new_depth) >> 23;
+        // Perform slide
+        if (slide_val >= 0) {
+            per = mpph_PitchSlide_Up(period, @bitCast(slide_val), layer);
         } else {
-            per = mpph_PitchSlide_Down(period, @as(mm.Word, @bitCast(-slide_val)), layer);
+            per = mpph_PitchSlide_Down(period, @bitCast(-slide_val), layer);
         }
     }
     return per;
 }
+pub fn mpp_Update_ACHN_notest_update_mix(layer: [*c]mm.LayerInfo, act_ch: [*c]mm.ActiveChannel, channel: mm.Word) [*c]volatile mm.MixerChannel {
+    const mix_ch: [*c]volatile mm.MixerChannel = &mixer.mm_mix_channels[channel];
+    var dbg_msl_id: u16 = 0;
+    var dbg_sample_offset: u32 = 0;
+    const ch_idx: usize = @intCast(channel);
 
-pub fn mpp_Update_ACHN_notest_update_mix(layer: [*c]mm.LayerInfo, act_ch: [*c]mm.ActiveChannel, channel: mm.Word) [*c]mm.MixerChannel {
-    const mix_ch: [*c]mm.MixerChannel = &mixer.mm_mix_channels[@as(usize, @intCast(channel))];
-    // UMIX trace: snapshot before possible (re)bind
-    if (umixAllowLogCh(layer, @as(c_int, @intCast(channel)))) {
-        debugPrint("[UMIX] ch={d} flags={x:0>2} sample={d} src0={x:0>8} read0={d}\n", .{
-            @as(c_uint, @intCast(channel)),
-            @as(c_uint, @intCast(act_ch.*.flags)),
-            @as(c_uint, @intCast(act_ch.*.sample)),
-            @as(c_uint, @intCast(mix_ch.*.src)),
-            @as(c_uint, @intCast(mix_ch.*.read)),
-        });
-    }
-    var should_umix_log: bool = false; // will enable only on bind
-
-    var umix_len_for_log: u32 = 0;
-    var umix_loop_for_log: u32 = 0;
     var did_bind: bool = false;
-    if ((@as(c_int, @intCast(act_ch.*.flags)) & MCAF_START) != 0) {
-        // Mirror C: clear START immediately on entering start path
-        act_ch.*.flags = @as(mm.Byte, @intCast(@as(c_int, @intCast(act_ch.*.flags)) & ~MCAF_START));
+    // Update mixing information
+    if ((act_ch.*.flags & MCAF_START) != 0) {
+        // Start note
+        act_ch.*.flags = act_ch.*.flags & ~MCAF_START;
+        if (ch_idx < mm_gba.mix_stop_pending.len) {
+            mm_gba.mix_stop_pending[ch_idx] = false;
+        }
         // must have a valid sample
         if (act_ch.*.sample != 0) {
-            const sample: [*c]SampleInfo = mpp_SamplePointer(layer, @as(mm.Word, @intCast(act_ch.*.sample)));
+            const sample: [*c]SampleInfo = mpp_SamplePointer(layer, act_ch.*.sample);
+            dbg_msl_id = @intCast(sample.*.msl_id);
             // Compute MAS GBA header address without relying on aligned struct loads
             var hdr_addr: usize = 0;
-            if (@as(c_uint, @intCast(sample.*.msl_id)) == 0xFFFF) {
+            if (sample.*.msl_id == 0xFFFF) {
                 // Embedded sample in module: header starts at sample->data
-                hdr_addr = @as(usize, @intCast(@intFromPtr(sample.*.data())));
+                hdr_addr = @intCast(@intFromPtr(sample.*.data()));
             } else {
                 // External sample in bank: mp_solution base + sampleTable[msl_id] + MAS prefix
                 const samp_tbl_words: [*]const mm.Word = mm_gba.getSampleTable();
                 const samp_tbl_bytes: [*]const u8 = @ptrCast(samp_tbl_words);
-                const idx: usize = @as(usize, @intCast(sample.*.msl_id));
+                const idx: usize = @intCast(sample.*.msl_id);
                 const p: [*]const u8 = samp_tbl_bytes + (idx * 4);
-                const off: usize = @as(usize, @intCast(@as(u32, p[0]) | (@as(u32, p[1]) << 8) | (@as(u32, p[2]) << 16) | (@as(u32, p[3]) << 24)));
-                hdr_addr = (@as(usize, @intCast(@intFromPtr(mm_gba.mp_solution))) + off) + @sizeOf(Prefix);
+                const off: usize = @intCast(std.mem.readInt(u32, p[0..4], .little));
+                dbg_sample_offset = @intCast(off);
+                hdr_addr = (@as(usize, @intCast(@intFromPtr(mm_gba.bank_base))) + off) + @sizeOf(Prefix);
             }
-            const hb: [*]const u8 = @ptrFromInt(hdr_addr);
-            // Read header fields as little-endian to avoid unaligned word loads
-            const len_le: u32 = @as(u32, hb[0]) | (@as(u32, hb[1]) << 8) | (@as(u32, hb[2]) << 16) | (@as(u32, hb[3]) << 24);
-            const loop_le: u32 = @as(u32, hb[4]) | (@as(u32, hb[5]) << 8) | (@as(u32, hb[6]) << 16) | (@as(u32, hb[7]) << 24);
-            umix_len_for_log = len_le;
-            umix_loop_for_log = loop_le;
-            const fmt_b: u8 = hb[8];
-            const def_le: u16 = @as(u16, hb[10]) | (@as(u16, hb[11]) << 8);
             // initialize read pointer and source to header+12
-            mix_ch.*.src = @as(mm.Word, @intCast(hdr_addr + 12));
+            mix_ch.*.src = hdr_addr + 12;
             did_bind = true;
-            // Gate BIND/HDR like C (only on bind and only early channels/first tick)
-            should_umix_log = (mm_gba.layer_p.*.tick == 0 and channel < 2);
-            if (should_umix_log) {
-                debugPrint("[BIND] ch={d} id={d} src={x} def_freq={d} len={d}\n", .{ @as(c_int, @intCast(channel)), @as(c_int, @intCast(sample.*.msl_id)), @as(c_int, @intCast(mix_ch.*.src)), @as(c_int, @intCast(def_le)), @as(c_int, @intCast(len_le)) });
-                const w0: u32 = @as(u32, hb[0]) | (@as(u32, hb[1]) << 8) | (@as(u32, hb[2]) << 16) | (@as(u32, hb[3]) << 24);
-                const w1: u32 = @as(u32, hb[4]) | (@as(u32, hb[5]) << 8) | (@as(u32, hb[6]) << 16) | (@as(u32, hb[7]) << 24);
-                const w2: u32 = @as(u32, hb[8]) | (@as(u32, hb[9]) << 8) | (@as(u32, hb[10]) << 16) | (@as(u32, hb[11]) << 24);
-                debugPrint("[HDR] w0={x} w1={x} w2={x} len={d} loop={d} fmt={d} def={d}\n", .{ w0, w1, w2, @as(c_int, @intCast(len_le)), @as(c_int, @intCast(loop_le)), @as(c_int, @intCast(fmt_b)), @as(c_int, @intCast(def_le)) });
-            }
             // initialize read pointer
-            mix_ch.*.read = @as(mm.Word, @intCast(@as(u32, mpp_vars.sampoff))) << (MP_SAMPFRAC + 8);
+            mix_ch.*.read = @as(u32, mpp_vars.sampoff) << (MP_SAMPFRAC + 8);
         }
-    }
-
-    if (did_bind and should_umix_log) {
-        const umix_idx_for_log: u32 = @as(u32, @intCast(mix_ch.*.read)) >> @intCast(MP_SAMPFRAC + 8);
-        debugPrint("[UMIX] -> src={x:0>8} read={d} idx={d} len={d} loop={d}\n", .{ @as(u32, @intCast(mix_ch.*.src)), @as(u32, @intCast(mix_ch.*.read)), umix_idx_for_log, umix_len_for_log, umix_loop_for_log });
     }
     return mix_ch;
 }
-pub fn mpp_Update_ACHN_notest_set_pitch_volume(layer: [*c]mm.LayerInfo, act_ch: [*c]mm.ActiveChannel, period: mm.Word, mix_ch: [*c]mm.MixerChannel) mm.Word {
-    if (@as(c_int, @bitCast(@as(c_uint, act_ch.*.sample))) == @as(c_int, 0)) {
+// Returns the resulting volume of the channel
+pub fn mpp_Update_ACHN_notest_set_pitch_volume(
+    layer: [*c]mm.LayerInfo,
+    act_ch: [*c]mm.ActiveChannel,
+    period: mm.Word,
+    mix_ch: [*c]volatile mm.MixerChannel,
+) mm.Word {
+    // Set pitch
+
+    // Check sample number
+    if (act_ch.*.sample == 0) {
+        // Mute channel if invalid sample
         act_ch.*.fvol = 0;
         return 0;
     }
-    var sample: [*c]SampleInfo = mpp_SamplePointer(layer, @as(mm.Word, @bitCast(@as(c_uint, act_ch.*.sample))));
-    _ = &sample;
-    // Match C translate path exactly: compute value based on mode
-    var log_freq: mm.Word = 0;
-    if ((@as(c_int, @bitCast(@as(c_uint, layer.*.flags))) & (@as(c_int, 1) << @intCast(2))) != 0) {
-        // XM mode
-        // Use sample->frequency as C5 speed (C reference), read as LE bytes to avoid struct packing drift
-        const sample_bytes: [*]const u8 = @ptrCast(sample);
-        const c5speed: u16 = @as(u16, sample_bytes[2]) | (@as(u16, sample_bytes[3]) << 8);
-        var value: mm.Word = (((period >> @intCast(8)) *% (@as(mm.Word, @intCast(@as(u32, c5speed))) << @intCast(2))) >> @intCast(8));
+    const sample: [*c]SampleInfo = mpp_SamplePointer(layer, act_ch.*.sample);
+    if ((layer.*.flags & MAS_HEADER_FLAG_FREQ_MODE) != 0) {
+        // Linear frequencies
+        const speed: mm.Hword = sample.*.frequency;
+        var value: mm.Word = ((period >> 8) * (speed << 2)) >> 8;
         if (mpp_clayer == .main) {
-            value = (value *% mm_masterpitch) >> @intCast(10);
+            value = (value * mm_masterpitch) >> 10;
         }
-        // Store scaled mixer rate like C: (scale * value) >> 16
-        const scale_xm: mm.Word = @as(mm.Word, @bitCast(@divTrunc(@as(c_int, 4096) * @as(c_int, 65536), @as(c_int, 15768))));
-        const rate_xm: mm.Word = (scale_xm *% value) >> @intCast(16);
-        mix_ch.*.freq = rate_xm;
-        log_freq = value; // For logging, use unscaled value to match C
-        // Instrument ch2 early rows to verify rate path
-        // No extra RATEZ in C reference
-        // Defer logging until after fvol is computed
+        const scale_xm: mm.Word = 4096 * 65536 / 15768;
+        mix_ch.*.freq = (scale_xm * value) >> 16;
     } else {
-        if (period != @as(mm.Word, @bitCast(@as(c_int, 0)))) {
-            var value: mm.Word = @as(mm.Word, @bitCast(@as(c_int, 56750314))) / period;
+        // Amiga frequencies
+        if (period != 0) {
+            var value: mm.Word = MOD_FREQ_DIVIDER_PAL / period;
             if (mpp_clayer == .main) {
-                value = (value *% mm_masterpitch) >> @intCast(10);
+                value = (value * mm_masterpitch) >> 10;
             }
-            const scale: mm.Word = @as(mm.Word, @bitCast(@divTrunc(@as(c_int, 4096) * @as(c_int, 65536), @as(c_int, 15768))));
-            const rate_out: mm.Word = (scale *% value) >> @intCast(16);
-            mix_ch.*.freq = rate_out;
-            log_freq = value;
-            // Defer logging until after fvol is computed
+            const scale: mm.Word = 4096 * 65536 / 15768;
+            mix_ch.*.freq = (scale * value) >> 16;
         }
     }
-    if (@as(c_int, @bitCast(@as(c_uint, act_ch.*.inst))) == @as(c_int, 0)) {
+    // Set volume
+    if (act_ch.*.inst == 0) {
+        // Mute channel if invalid instrument
         act_ch.*.fvol = 0;
         return 0;
     }
-    var inst: ?*Instrument = instrumentPointer(layer, @as(mm.Word, @bitCast(@as(c_uint, act_ch.*.inst))));
-    _ = &inst;
-    if (inst == null) {
-        act_ch.*.fvol = 0;
-        return 0;
-    }
-    // Omit SAMP dump for parity with C
-    var vol: mm.Word = @as(mm.Word, @bitCast(@as(c_uint, sample.*.global_volume))); // SV
-    _ = &vol;
-    const iv: mm.Word = @as(mm.Word, @bitCast(@as(c_uint, (inst.?).*.global_volume))); // IV
-    const afv: mm.Word = @as(mm.Word, @bitCast(@as(c_uint, mpp_vars.afvol))); // AFVOL
-    const gv_pre: mm.Word = @as(mm.Word, @bitCast(@as(c_uint, layer.*.global_volume))); // GV
-    const xm_mode: c_int = (@as(c_int, @bitCast(@as(c_uint, layer.*.flags))) & (@as(c_int, 1) << @intCast(3)));
+    const inst: ?*Instrument = instrumentPointer(layer, act_ch.*.inst);
+    var vol: mm.Word = @intCast(sample.*.global_volume); // SV
+    const iv: mm.Word = @intCast((inst.?).*.global_volume); // IV
+    const afv: mm.Word = @intCast(mpp_vars.afvol); // AFVOL
+    const gv_pre: mm.Word = @intCast(layer.*.global_volume); // GV
+    const xm_mode = (layer.*.flags & MAS_HEADER_FLAG_XM_MODE) != 0;
     vol *%= iv;
     vol *%= afv;
     var global_volume: mm.Word = gv_pre;
-    _ = &global_volume;
-    if (xm_mode != 0) {
-        global_volume <<= @intCast(@as(c_int, 1));
+    if (xm_mode) {
+        global_volume <<= 1;
     }
-    // no VOLDBG: skip retaining this intermediate explicitly
-    vol = (vol *% global_volume) >> @intCast(10);
-    const fade_word: mm.Word = @as(mm.Word, @bitCast(@as(c_uint, act_ch.*.fade)));
-    // no VOLDBG: skip retaining this intermediate explicitly
-    vol = (vol *% fade_word) >> @intCast(10);
-    const layer_vol: mm.Word = @as(mm.Word, @bitCast(@as(c_uint, layer.*.volume)));
-    vol *%= layer_vol;
-    // Debug the operands and intermediate volume for the first two mixer channels at tick 0
-    {
-        // No extra VOLDBG in C reference
-    }
-    const out: mm.Word = vol >> @intCast(19);
-    var clipped: mm.Word = out;
-    if (clipped > @as(mm.Word, @intCast(255))) clipped = 255;
-    act_ch.*.fvol = @as(mm.Byte, @intCast(clipped));
-    // Ordered per-tick logging after fvol is computed (gate like C)
-    {
-        const tnow: u8 = mm_gba.layer_p.*.tick;
-        // Mixer channel index
-        const mix_idx: c_int = @as(c_int, @intCast((@intFromPtr(mix_ch) - @intFromPtr(mixer.mm_mix_channels)) / @sizeOf(mm.MixerChannel)));
-        // Gate like C: only tick==0 and first two mixer channels
-        if (tnow == 0 and mix_idx >= 0 and mix_idx < 2) {
-            debugPrint("[UMIX] set_pitch period={d} freq={d} fvol={d}\n", .{ @as(c_int, @intCast(period)), @as(c_int, @intCast(mix_ch.*.freq)), @as(c_int, @intCast(act_ch.*.fvol)) });
+    vol = (vol * global_volume) >> 10;
+    vol = (vol *% act_ch.*.fade) >> 10;
+    vol *%= layer.*.volume;
+
+    vol = vol >> 19;
+    if (vol > 255) vol = 255;
+    act_ch.*.fvol = @intCast(vol);
+
+    return vol;
+}
+pub fn mpp_Update_ACHN_notest_disable_and_panning(
+    volume: mm.Word,
+    act_ch: [*c]mm.ActiveChannel,
+    mix_ch: [*c]volatile mm.MixerChannel,
+) void {
+    const mix_idx_entry: i32 = @intCast((@intFromPtr(mix_ch) - @intFromPtr(mixer.mm_mix_channels)) / @sizeOf(mm.MixerChannel));
+    var stop_pending = false;
+    if (mix_idx_entry >= 0 and mix_idx_entry < mm_gba.mix_stop_pending.len) {
+        const mix_idx_entry_usize: usize = @intCast(mix_idx_entry);
+        if (mm_gba.mix_stop_pending[mix_idx_entry_usize]) {
+            stop_pending = true;
+            mm_gba.mix_stop_pending[mix_idx_entry_usize] = false;
         }
     }
-    // Do not set mix_ch.vol here; the C path applies panning/disable logic before volume write
-    return clipped;
-}
-
-pub fn mpp_Update_ACHN_notest_disable_and_panning(volume: mm.Word, act_ch: [*c]mm.ActiveChannel, mix_ch: [*c]mm.MixerChannel) void {
     if (volume == 0) {
-        const env_end = ((@as(c_int, @intCast(act_ch.*.flags)) & MCAF_ENVEND) != 0);
-        const key_on = ((@as(c_int, @intCast(act_ch.*.flags)) & MCAF_KEYON) != 0);
+        const env_end = (act_ch.*.flags & MCAF_ENVEND) != 0;
+        const key_on = (act_ch.*.flags & MCAF_KEYON) != 0;
         if (env_end and !key_on) {
             mix_ch.*.src = shim.MIXCH_GBA_SRC_STOPPED;
             if (act_ch.*._type == ACHN_FOREGROUND) {
-                mm_gba.mpp_channels[act_ch.*.parent].alloc = NO_CHANNEL_AVAILABLE;
+                const parent_idx: usize = @intCast(act_ch.*.parent);
+                if (parent_idx < mm_gba.mpp_nchannels) {
+                    const parent_mod: [*c]mm.ModuleChannel = &mm_gba.mpp_channels[parent_idx];
+                    parent_mod.*.alloc = NO_CHANNEL_AVAILABLE;
+                    parent_mod.*.flags &= ~@as(mm.Byte, MF_START | MF_NEWINSTR);
+                }
             }
             act_ch.*._type = ACHN_DISABLED;
             return;
         }
     }
 
-    // audible path
-    mix_ch.*.vol = @as(mm.Byte, @intCast(if (volume > @as(mm.Word, @intCast(255))) 255 else volume));
+    mix_ch.*.vol = @intCast(volume);
 
-    // AUDIO TIMING CRITICAL: The GBA audio hardware requires precise timing between volume updates
-    // and subsequent operations. Without this delay, the audio mixer fails to properly process
-    // the volume change, resulting in incorrect sample playback (e.g., cymbals repeating when
-    // they shouldn't, or samples sounding like "shh-shh" instead of crisp drums). This delay
-    // provides the necessary timing gap that was previously provided by debug print formatting
-    // operations, ensuring the hardware has time to stabilize between critical audio register
-    // writes. The specific delay values (5/6) were determined empirically to match the timing
-    // characteristics of the original C code's debug prints.
-    artificialDelay(5);
-
-    // If mixer channel ended, disable foreground channel
-    if ((mix_ch.*.src & shim.MIXCH_GBA_SRC_STOPPED) != 0) {
-        if (act_ch.*._type == ACHN_FOREGROUND) {
-            mm_gba.mpp_channels[act_ch.*.parent].alloc = NO_CHANNEL_AVAILABLE;
+    if (stop_pending or (mix_ch.*.src & shim.MIXCH_GBA_SRC_STOPPED) != 0) {
+        if (stop_pending and (mix_ch.*.src & shim.MIXCH_GBA_SRC_STOPPED) == 0) {
+            mix_ch.*.src = shim.MIXCH_GBA_SRC_STOPPED;
         }
+        if (act_ch.*._type == ACHN_FOREGROUND) {
+            // Stop channel if channel ended
+            const parent_idx: usize = @intCast(act_ch.*.parent);
+            if (parent_idx < mm_gba.mpp_nchannels) {
+                const parent_mod: [*c]mm.ModuleChannel = &mm_gba.mpp_channels[parent_idx];
+                parent_mod.*.alloc = NO_CHANNEL_AVAILABLE;
+                parent_mod.*.flags &= ~@as(mm.Byte, MF_START | MF_NEWINSTR);
+            }
+        }
+        mix_ch.*.src = shim.MIXCH_GBA_SRC_STOPPED;
         act_ch.*._type = ACHN_DISABLED;
         return;
     }
 
-    // Apply panning with panplus
-    const panplus: mm.Shword = @as(mm.Shword, @bitCast(mpp_vars.panplus));
-    const old_panning: mm.Word = act_ch.*.panning;
-    var newpan: c_int = @as(c_int, @intCast(old_panning)) + @as(c_int, @intCast(panplus));
-    if (newpan < 0) {
-        newpan = 0;
-    } else if (newpan > 255) {
-        newpan = 255;
-    }
-    mix_ch.*.pan = @as(mm.Byte, @intCast(newpan));
-    const stopped: c_int = if ((mix_ch.*.src & shim.MIXCH_GBA_SRC_STOPPED) != 0) 1 else 0;
-    if (umixAllowLogCh(mm_gba.layer_p, umixChannelIndexFromMix(mix_ch))) {
-        debugPrint(
-            "[UMIX] audible ch={d} vol={d} pan={d} stopped={d}\n",
-            .{ @as(c_int, @intCast(act_ch.*.parent)), @as(c_int, @intCast(mix_ch.*.vol)), @as(c_int, @intCast(mix_ch.*.pan)), stopped },
-        );
-    }
-    // AUDIO TIMING CRITICAL: Second delay required after panning updates to ensure proper
-    // audio mixer state synchronization. This delay complements the volume delay above,
-    // providing the complete timing sequence needed for accurate GBA audio playback.
-    artificialDelay(6);
+    // Set panning
+    const panplus: i32 = @intCast(mpp_vars.panplus);
+    const old_panning: i32 = @intCast(act_ch.*.panning);
+    var newpan: i32 = old_panning + panplus;
+    if (newpan < 0) newpan = 0 else if (newpan > 255) newpan = 255;
+    mix_ch.*.pan = @intCast(newpan);
 }
 
-// artificialDelay uses string formatting in bufPrint to delay execution. Without these delays, audio regresses.
-// I don't understand how to fix it so this hack isn't requied. It's truly disappointing.
-var buf: [32]u8 = [_]u8{0} ** 32;
-inline fn artificialDelay(delay: usize) void {
-    if (delay == 5) {
-        _ = std.fmt.bufPrint(
-            &buf,
-            "delay 5 {d}{d}{d}{d}{d}\n",
-            .{ 1, 1, 1, 1, 1 },
-        ) catch return;
-    } else if (delay == 6) {
-        _ = std.fmt.bufPrint(
-            &buf,
-            "delay 6 {d}{d}{d}{d}{d}{d}\n",
-            .{ 0, 1, 1, 1, 1, 1 },
-        ) catch return;
-    }
-}
-
-pub const MAS_HEADER_FLAG_XM_MODE = @as(c_int, 1) << @as(c_int, 3);
-pub const MAS_INSTR_FLAG_VOL_ENV_EXISTS = @as(c_int, 1) << @as(c_int, 0);
-pub const MAS_INSTR_FLAG_PAN_ENV_EXISTS = @as(c_int, 1) << @as(c_int, 1);
-pub const MAS_INSTR_FLAG_PITCH_ENV_EXISTS = @as(c_int, 1) << @as(c_int, 2);
-pub const MAS_INSTR_FLAG_VOL_ENV_ENABLED = @as(c_int, 1) << @as(c_int, 3);
-pub const MF_START = @as(c_int, 1);
-pub const MCH_BFLAGS_NNA_SHIFT = @as(c_int, 6);
-pub const MCH_BFLAGS_NNA_MASK = @as(c_int, 3) << MCH_BFLAGS_NNA_SHIFT;
+pub const MAS_HEADER_FLAG_XM_MODE = 1 << 3;
+const MAS_HEADER_FLAG_LINK_GXX = 1 << 0;
+pub const MAS_INSTR_FLAG_VOL_ENV_EXISTS = 1 << 0;
+pub const MAS_INSTR_FLAG_PAN_ENV_EXISTS = 1 << 1;
+pub const MAS_INSTR_FLAG_PITCH_ENV_EXISTS = 1 << 2;
+pub const MAS_INSTR_FLAG_VOL_ENV_ENABLED = 1 << 3;
+pub const MF_START = 1;
+pub const MF_DVOL = 2;
+pub const MF_HASVCMD = 4;
+pub const GLISSANDO_EFFECT = 7;
+const MPP_XM_VCMD_MEM_VS = 12;
+const MPP_XM_VCMD_MEM_FVS = 13;
+const MPP_XM_VCMD_MEM_PANSL = 7;
+const MPP_XM_VCMD_MEM_GLIS = 14;
+const MPP_IT_VCMD_MEM = 14;
+const MPP_XM_IT_GLIS = 0;
+const MPP_IT_PORTA = 2;
+// 1 = Linear freqs, 0 = Amiga freqs
+pub const MAS_HEADER_FLAG_FREQ_MODE = 1 << 2;
+pub const MF_HASFX = 8;
+pub const MF_NEWINSTR = 16;
+pub const MF_NOTEOFF = 64;
+// cut channel volume
+pub const MCH_BFLAGS_CUT_VOLUME = 1 << 10;
+pub const MCH_BFLAGS_TREMOR = 1 << 9;
+// 1 = MOD/S3M, 0 = Other
+pub const MAS_HEADER_FLAG_OLD_MODE = 1 << 5;
+pub const MF_NOTECUT = 128;
+pub const MCH_BFLAGS_NNA_SHIFT = 6;
+pub const MCH_BFLAGS_NNA_MASK: u16 = 3 << MCH_BFLAGS_NNA_SHIFT;
 pub inline fn MCH_BFLAGS_NNA_GET(x: anytype) @TypeOf((x & MCH_BFLAGS_NNA_MASK) >> MCH_BFLAGS_NNA_SHIFT) {
     _ = &x;
     return (x & MCH_BFLAGS_NNA_MASK) >> MCH_BFLAGS_NNA_SHIFT;
 }
-pub const IT_NNA_CUT = @as(c_int, 0);
-pub const IT_NNA_CONT = @as(c_int, 1);
-pub const IT_NNA_OFF = @as(c_int, 2);
-pub const IT_NNA_FADE = @as(c_int, 3);
-pub const IT_DCA_CUT = @as(c_int, 0);
-pub const IT_DCA_OFF = @as(c_int, 1);
-pub const MCAF_KEYON = @as(c_int, 1) << @as(c_int, 0);
-pub const MCAF_FADE = @as(c_int, 1) << @as(c_int, 1);
-pub const MCAF_START = @as(c_int, 1) << @as(c_int, 2);
-pub const MCAF_UPDATED = @as(c_int, 1) << @as(c_int, 3);
-pub const MCAF_ENVEND = @as(c_int, 1) << @as(c_int, 4);
-pub const MCAF_VOLENV = @as(c_int, 1) << @as(c_int, 5);
-pub const ACHN_DISABLED = @as(c_int, 0);
-pub const ACHN_BACKGROUND = @as(c_int, 2);
-pub const ACHN_FOREGROUND = @as(c_int, 3);
-pub const NO_CHANNEL_AVAILABLE = @as(c_int, 255);
-pub const MP_SAMPFRAC = @as(c_int, 12);
+pub const IT_NNA_CUT = 0;
+pub const IT_NNA_CONT = 1;
+pub const IT_NNA_OFF = 2;
+pub const IT_NNA_FADE = 3;
+pub const IT_DCA_CUT = 0;
+pub const IT_DCA_OFF = 1;
+pub const MCAF_KEYON: u8 = 1 << 0;
+pub const MCAF_FADE = 1 << 1;
+pub const MCAF_START: u8 = 1 << 2;
+pub const MCAF_UPDATED = 1 << 3;
+pub const MCAF_ENVEND = 1 << 4;
+pub const MCAF_VOLENV: u8 = 1 << 5;
+// 1 = Channel is used for an effect, not module or jingle
+pub const MCAF_EFFECT = 1 << 7;
+// 1 = Channel used for jingle. 0 = Used for main module
+pub const MCAF_SUB = 1 << 6;
+pub const ACHN_DISABLED = 0;
+pub const ACHN_BACKGROUND = 2;
+pub const ACHN_CUSTOM = 4;
+pub const ACHN_FOREGROUND = 3;
+pub const NO_CHANNEL_AVAILABLE = 255;
+// Fractionary part of the sample read offset
+pub const MP_SAMPFRAC = 12;
+pub const GLISSANDO_IT_VOLCMD_START = 193;
+pub const GLISSANDO_IT_VOLCMD_END = 202;
+pub const GLISSANDO_MX_VOLCMD_START = 0xF0;
+const MOD_FREQ_DIVIDER_PAL = 56750314;
+const MMCB_SONGFINISHED = 43;
+const MMCB_SONGERROR = 44;
 
 const Prefix = extern struct {
     size: mm.Word = 0,
     type: mm.Byte = 0,
     version: mm.Byte = 0,
-    reserved: [2]mm.Byte = @import("std").mem.zeroes([2]mm.Byte),
+    reserved: mm.Hword = 0,
 };
