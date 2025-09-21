@@ -1,0 +1,24 @@
+// .vscode/tasks.json
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "build",
+            "type": "shell",
+            "command": "zig build xm -- ${workspaceFolder}/assets/zelda_3_-_fairy_theme.xm"
+        },
+        {
+            "label": "run",
+            "type": "shell",
+            "command": "timeout 3 mgba ${workspaceFolder}/zig-out/bin/xm.gba || true",
+            "dependsOn": [
+                "build"
+            ],
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        }
+    ]
+  }
