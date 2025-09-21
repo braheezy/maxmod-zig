@@ -33,7 +33,7 @@ var mixbuffer: [@intFromEnum(MixLen._16khz) / @sizeOf(u32)]u32 = @import("std").
 var mm_init_default_buffer: mm.Addr = @as(?*anyopaque, @ptrFromInt(0));
 var mix_debug_budget: u32 = 100;
 var stop_log_budget: u32 = 16;
-inline fn debugLogMix(stage: []const u8, samples: c_int) void {
+inline fn debugLogMix(stage: []const u8, samples: i32) void {
     if (!debug_enabled) return;
     if (mix_debug_budget == 0) return;
     mix_debug_budget -= 1;
@@ -243,7 +243,7 @@ const MixLen = enum(u16) {
     _31khz = 2112,
 };
 
-const MixMode = enum(c_uint) {
+const MixMode = enum(u8) {
     _8khz,
     _10khz,
     _13khz,

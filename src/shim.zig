@@ -374,7 +374,7 @@ pub inline fn umixUpdateCapture(
         );
     }
 }
-pub inline fn mixCapture(stage: u8, samples: c_int, values: [8]u32) void {
+pub inline fn mixCapture(stage: u8, samples: i32, values: [8]u32) void {
     if (!debug_enabled) return;
     if (debug_state.mix_len >= debug_state.mix_events.len) return;
     debug_state.mix_events[debug_state.mix_len] = .{

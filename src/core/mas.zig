@@ -966,7 +966,7 @@ pub inline fn mpp_PatternPointer(layer: [*c]mm.LayerInfo, entry: mm.Word) [*c]Pa
 }
 pub fn mppe_DoVibrato(period: mm.Word, channel: [*c]mm.ModuleChannel, layer: [*c]mm.LayerInfo) mm.Word {
     var position: mm.Byte = undefined;
-    if ((@as(i32, @bitCast(@as(usize, layer.*.oldeffects))) == 0) or (@as(i32, @bitCast(@as(usize, layer.*.tick))) != 0)) {
+    if ((@as(i32, @bitCast(@as(usize, layer.*.oldeffects))) == 0) or (layer.*.tick != 0)) {
         position = @as(mm.Byte, @bitCast(@as(i8, @truncate(@as(i32, @bitCast(@as(usize, channel.*.vibspd))) + @as(i32, @bitCast(@as(usize, channel.*.vibpos)))))));
         channel.*.vibpos = position;
     } else {
@@ -1349,17 +1349,17 @@ pub fn mpph_VolumeSlide64(volume: i32, param: mm.Word, tick: mm.Word, layer: [*c
     return out;
 }
 pub fn mppe_SetSpeed(param: mm.Word, layer: [*c]mm.LayerInfo) void {
-    if (@as(i32, @bitCast(@as(usize, layer.*.tick))) != 0) return;
+    if (layer.*.tick != 0) return;
     if (param != 0) {
         layer.*.speed = @as(mm.Byte, @bitCast(@as(u8, @truncate(param))));
     }
 }
 pub fn mppe_PositionJump(param: mm.Word, layer: [*c]mm.LayerInfo) void {
-    if (@as(i32, @bitCast(@as(usize, layer.*.tick))) != 0) return;
+    if (layer.*.tick != 0) return;
     layer.*.pattjump = @as(mm.Byte, @bitCast(@as(u8, @truncate(param))));
 }
 pub fn mppe_PatternBreak(param: mm.Word, layer: [*c]mm.LayerInfo) void {
-    if (@as(i32, @bitCast(@as(usize, layer.*.tick))) != 0) return;
+    if (layer.*.tick != 0) return;
     layer.*.pattjump_row = @as(mm.Byte, @bitCast(@as(u8, @truncate(param))));
     if (@as(i32, @bitCast(@as(usize, layer.*.pattjump))) == @as(i32, 255)) {
         layer.*.pattjump = @as(mm.Byte, @bitCast(@as(i8, @truncate(@as(i32, @bitCast(@as(usize, layer.*.position))) + @as(i32, 1)))));
@@ -1378,14 +1378,14 @@ pub fn mppe_Portamento(param: mm.Word, period: mm.Word, channel: [*c]mm.ModuleCh
     var par = param;
     var is_fine: bool = false;
     if ((par >> @intCast(4)) == @as(mm.Word, @bitCast(@as(i32, 14)))) {
-        if (@as(i32, @bitCast(@as(usize, layer.*.tick))) != 0) return period;
+        if (layer.*.tick != 0) return period;
         par &= @as(mm.Word, @bitCast(@as(i32, 15)));
         is_fine = true;
     } else if ((par >> @intCast(4)) == @as(mm.Word, @bitCast(@as(i32, 15)))) {
-        if (@as(i32, @bitCast(@as(usize, layer.*.tick))) != 0) return period;
+        if (layer.*.tick != 0) return period;
         par &= @as(mm.Word, @bitCast(@as(i32, 15)));
     } else {
-        if (@as(i32, @bitCast(@as(usize, layer.*.tick))) == 0) return period;
+        if (layer.*.tick == 0) return period;
     }
     var new_period: mm.Word = undefined;
     _ = &new_period;
@@ -1410,7 +1410,7 @@ pub fn mppe_Portamento(param: mm.Word, period: mm.Word, channel: [*c]mm.ModuleCh
 pub fn mppe_Glissando(param: mm.Word, period: mm.Word, act_ch: ?[*c]mm.ActiveChannel, channel: [*c]mm.ModuleChannel, layer: [*c]mm.LayerInfo) mm.Word {
     var par = param;
     var per = period;
-    if (@as(i32, @bitCast(@as(usize, layer.*.tick))) == 0) {
+    if (layer.*.tick == 0) {
         if ((@as(i32, @bitCast(@as(usize, layer.*.flags))) & (@as(i32, 1) << @intCast(0))) != 0) {
             if (par == 0) {
                 par = @as(mm.Word, @bitCast(@as(usize, channel.*.memory[MPP_IT_PORTA])));
@@ -1432,7 +1432,7 @@ pub fn mppe_Glissando(param: mm.Word, period: mm.Word, act_ch: ?[*c]mm.ActiveCha
     return per;
 }
 pub fn mppe_Vibrato(param: mm.Word, period: mm.Word, channel: [*c]mm.ModuleChannel, layer: [*c]mm.LayerInfo) mm.Word {
-    if (@as(i32, @bitCast(@as(usize, layer.*.tick))) != 0) return mppe_DoVibrato(period, channel, layer);
+    if (layer.*.tick != 0) return mppe_DoVibrato(period, channel, layer);
     const x: mm.Word = param >> @intCast(4);
     const y: mm.Word = param & @as(mm.Word, @bitCast(@as(i32, 15)));
     if (x != 0) {
@@ -1447,7 +1447,7 @@ pub fn mppe_Vibrato(param: mm.Word, period: mm.Word, channel: [*c]mm.ModuleChann
     return period;
 }
 pub fn mppe_Arpeggio(param: mm.Word, period: mm.Word, act_ch: ?[*c]mm.ActiveChannel, channel: [*c]mm.ModuleChannel, layer: [*c]mm.LayerInfo) mm.Word {
-    if (@as(i32, @bitCast(@as(usize, layer.*.tick))) == 0) {
+    if (layer.*.tick == 0) {
         channel.*.fxmem = 0;
     }
     if (act_ch == null) return period;
@@ -1478,7 +1478,7 @@ pub fn mppe_PortaVolume(param: mm.Word, period: mm.Word, act_ch: ?[*c]mm.ActiveC
     return per;
 }
 pub fn mppe_ChannelVolume(param: mm.Word, channel: [*c]mm.ModuleChannel, layer: [*c]mm.LayerInfo) void {
-    if (@as(i32, @bitCast(@as(usize, layer.*.tick))) != 0) return;
+    if (layer.*.tick != 0) return;
     if (param > @as(mm.Word, @bitCast(@as(i32, 64)))) return;
     channel.*.cvolume = @as(mm.Byte, @bitCast(@as(u8, @truncate(param))));
 }
@@ -1486,7 +1486,7 @@ pub fn mppe_ChannelVolumeSlide(param: mm.Word, channel: [*c]mm.ModuleChannel, la
     channel.*.cvolume = @as(mm.Byte, @bitCast(@as(u8, @truncate(mpph_VolumeSlide64(@as(i32, @bitCast(@as(usize, channel.*.cvolume))), param, @as(mm.Word, @bitCast(@as(usize, layer.*.tick))), layer)))));
 }
 pub fn mppe_SampleOffset(param: mm.Word, layer: [*c]mm.LayerInfo) void {
-    if (@as(i32, @bitCast(@as(usize, layer.*.tick))) != 0) return;
+    if (layer.*.tick != 0) return;
     mpp_vars.sampoff = @as(mm.Byte, @bitCast(@as(u8, @truncate(param))));
 }
 pub fn mppe_Retrigger(param: mm.Word, act_ch: ?[*c]mm.ActiveChannel, channel: [*c]mm.ModuleChannel) void {
@@ -1531,7 +1531,7 @@ pub fn mppe_Retrigger(param: mm.Word, act_ch: ?[*c]mm.ActiveChannel, channel: [*
     }
 }
 pub fn mppe_Tremolo(param: mm.Word, channel: [*c]mm.ModuleChannel, layer: [*c]mm.LayerInfo) void {
-    if (@as(i32, @bitCast(@as(usize, layer.*.tick))) != 0) {
+    if (layer.*.tick != 0) {
         var position: mm.Word = @as(mm.Word, @bitCast(@as(usize, channel.*.fxmem)));
         _ = &position;
         var speed: mm.Word = param >> @intCast(4);
@@ -1550,7 +1550,7 @@ pub fn mppe_Tremolo(param: mm.Word, channel: [*c]mm.ModuleChannel, layer: [*c]mm
 }
 pub fn mppe_SetTempo(param: mm.Word, layer: [*c]mm.LayerInfo) void {
     if (param < @as(mm.Word, @bitCast(@as(i32, 16)))) {
-        if (@as(i32, @bitCast(@as(usize, layer.*.tick))) == 0) return;
+        if (layer.*.tick == 0) return;
         var bpm: i32 = @as(i32, @bitCast(@as(mm.Word, @bitCast(@as(usize, layer.*.bpm))) -% param));
         _ = &bpm;
         if (bpm < @as(i32, 32)) {
@@ -1558,7 +1558,7 @@ pub fn mppe_SetTempo(param: mm.Word, layer: [*c]mm.LayerInfo) void {
         }
         mpp_setbpm(layer, @as(mm.Word, @bitCast(bpm)));
     } else if (param < @as(mm.Word, @bitCast(@as(i32, 32)))) {
-        if (@as(i32, @bitCast(@as(usize, layer.*.tick))) == 0) return;
+        if (layer.*.tick == 0) return;
         var bpm: i32 = @as(i32, @bitCast(@as(mm.Word, @bitCast(@as(usize, layer.*.bpm))) +% (param & @as(mm.Word, @bitCast(@as(i32, 15))))));
         _ = &bpm;
         if (bpm > @as(i32, 255)) {
@@ -1566,12 +1566,12 @@ pub fn mppe_SetTempo(param: mm.Word, layer: [*c]mm.LayerInfo) void {
         }
         mpp_setbpm(layer, @as(mm.Word, @bitCast(bpm)));
     } else {
-        if (@as(i32, @bitCast(@as(usize, layer.*.tick))) != 0) return;
+        if (layer.*.tick != 0) return;
         mpp_setbpm(layer, param);
     }
 }
 pub fn mppe_FineVibrato(param: mm.Word, period: mm.Word, channel: [*c]mm.ModuleChannel, layer: [*c]mm.LayerInfo) mm.Word {
-    if (@as(i32, @bitCast(@as(usize, layer.*.tick))) == 0) {
+    if (layer.*.tick == 0) {
         const x: mm.Word = param >> @intCast(4);
         const y: mm.Word = param & @as(mm.Word, @bitCast(@as(i32, 15)));
         if (x != 0) {
@@ -1586,7 +1586,7 @@ pub fn mppe_FineVibrato(param: mm.Word, period: mm.Word, channel: [*c]mm.ModuleC
     return mppe_DoVibrato(period, channel, layer);
 }
 pub fn mppe_SetGlobalVolume(param: mm.Word, layer: [*c]mm.LayerInfo) void {
-    if (@as(i32, @bitCast(@as(usize, layer.*.tick))) != 0) return;
+    if (layer.*.tick != 0) return;
     const mask: mm.Word = @as(mm.Word, @bitCast((@as(i32, 1) << @intCast(3)) | (@as(i32, 1) << @intCast(5))));
     var maxvol: mm.Word = undefined;
     if ((@as(mm.Word, @bitCast(@as(usize, layer.*.flags))) & mask) != 0) {
@@ -1606,12 +1606,12 @@ pub fn mppe_GlobalVolumeSlide(param: mm.Word, layer: [*c]mm.LayerInfo) void {
     layer.*.global_volume = @as(mm.Byte, @bitCast(@as(u8, @truncate(mpph_VolumeSlide(@as(i32, @bitCast(@as(usize, layer.*.global_volume))), param, @as(mm.Word, @bitCast(@as(usize, layer.*.tick))), @as(i32, @bitCast(maxvol)), layer)))));
 }
 pub fn mppe_SetPanning(param: mm.Word, channel: [*c]mm.ModuleChannel, layer: [*c]mm.LayerInfo) void {
-    if (@as(i32, @bitCast(@as(usize, layer.*.tick))) == 0) {
+    if (layer.*.tick == 0) {
         channel.*.panning = @as(mm.Byte, @bitCast(@as(u8, @truncate(param))));
     }
 }
 pub fn mppex_XM_FVolSlideUp(param: mm.Word, channel: [*c]mm.ModuleChannel, layer: [*c]mm.LayerInfo) void {
-    if (@as(i32, @bitCast(@as(usize, layer.*.tick))) != 0) return;
+    if (layer.*.tick != 0) return;
     var volume: i32 = @as(i32, @bitCast(@as(mm.Word, @bitCast(@as(usize, channel.*.volume))) +% (param & @as(mm.Word, @bitCast(@as(i32, 15))))));
     if (volume > @as(i32, 64)) {
         volume = 64;
@@ -1619,7 +1619,7 @@ pub fn mppex_XM_FVolSlideUp(param: mm.Word, channel: [*c]mm.ModuleChannel, layer
     channel.*.volume = @as(mm.Byte, @bitCast(@as(i8, @truncate(volume))));
 }
 pub fn mppex_XM_FVolSlideDown(param: mm.Word, channel: [*c]mm.ModuleChannel, layer: [*c]mm.LayerInfo) void {
-    if (@as(i32, @bitCast(@as(usize, layer.*.tick))) != 0) return;
+    if (layer.*.tick != 0) return;
     var volume: i32 = @as(i32, @bitCast(@as(mm.Word, @bitCast(@as(usize, channel.*.volume))) -% (param & @as(mm.Word, @bitCast(@as(i32, 15))))));
     _ = &volume;
     if (volume < 0) {
@@ -1628,7 +1628,7 @@ pub fn mppex_XM_FVolSlideDown(param: mm.Word, channel: [*c]mm.ModuleChannel, lay
     channel.*.volume = @as(mm.Byte, @bitCast(@as(i8, @truncate(volume))));
 }
 pub fn mppex_OldRetrig(param: mm.Word, act_ch: ?[*c]mm.ActiveChannel, channel: [*c]mm.ModuleChannel, layer: [*c]mm.LayerInfo) void {
-    if (@as(i32, @bitCast(@as(usize, layer.*.tick))) == 0) {
+    if (layer.*.tick == 0) {
         channel.*.fxmem = @as(mm.Byte, @bitCast(@as(u8, @truncate(param & @as(mm.Word, @bitCast(@as(i32, 15)))))));
         return;
     }
@@ -1641,22 +1641,27 @@ pub fn mppex_OldRetrig(param: mm.Word, act_ch: ?[*c]mm.ActiveChannel, channel: [
     }
 }
 pub fn mppex_FPattDelay(param: mm.Word, layer: [*c]mm.LayerInfo) void {
-    if (@as(i32, @bitCast(@as(usize, layer.*.tick))) != 0) return;
+    if (layer.*.tick != 0) return;
     layer.*.fpattdelay = @as(mm.Byte, @bitCast(@as(u8, @truncate(param & @as(mm.Word, 15)))));
 }
 pub fn mppex_InstControl(param: mm.Word, act_ch: ?[*c]mm.ActiveChannel, channel: [*c]mm.ModuleChannel, layer: [*c]mm.LayerInfo) void {
-    if (@as(i32, @bitCast(@as(usize, layer.*.tick))) != 0) return;
-    const subparam: mm.Word = param & @as(mm.Word, @bitCast(@as(i32, 15)));
-    if (subparam <= @as(mm.Word, @bitCast(@as(i32, 2)))) {} else if (subparam <= @as(mm.Word, 6)) {
-        channel.*.bflags &= @as(mm.Hword, @bitCast(@as(c_short, @truncate(~(@as(i32, 3) << @intCast(6))))));
-        channel.*.bflags |= @as(mm.Hword, @bitCast(@as(c_ushort, @truncate(((subparam -% @as(mm.Word, @bitCast(@as(i32, 3)))) << @intCast(6)) & @as(mm.Word, @bitCast(@as(i32, 3) << @intCast(6)))))));
-    } else if (subparam <= @as(mm.Word, @bitCast(@as(i32, 8)))) {
+    if (layer.*.tick != 0) return;
+    const subparam: mm.Word = param & 15;
+    // mppex_ic_pastnotes
+    if (subparam <= 2) {
+        // TODO
+    } else if (subparam <= 6) {
+        // Overwrite NNA
+        channel.*.bflags &= ~MCH_BFLAGS_NNA_MASK;
+        channel.*.bflags |= @intCast(arm.MCH_BFLAGS_NNA_SET(subparam - 3));
+    } else if (subparam <= 8) {
         if (act_ch != null) {
-            const val: i32 = @as(i32, @bitCast(subparam -% @as(mm.Word, @bitCast(@as(i32, 7)))));
+            // val can be 0 or 1
+            const val: i32 = @as(i32, @intCast(subparam)) - 7;
             if (val != 0) {
-                act_ch.?.*.flags |= @as(mm.Byte, @bitCast(@as(i8, @truncate(@as(i32, 1) << @intCast(5)))));
+                act_ch.?.*.flags |= MCAF_VOLENV;
             } else {
-                act_ch.?.*.flags &= @as(mm.Byte, @bitCast(@as(i8, @truncate(~(@as(i32, 1) << @intCast(5))))));
+                act_ch.?.*.flags &= ~MCAF_VOLENV;
             }
         }
     }
@@ -1668,7 +1673,7 @@ pub fn mppex_SoundControl(param: mm.Word) void {
     if (param != @as(mm.Word, @bitCast(@as(i32, 145)))) return;
 }
 pub fn mppex_PatternLoop(param: mm.Word, layer: [*c]mm.LayerInfo) void {
-    if (@as(i32, @bitCast(@as(usize, layer.*.tick))) != 0) return;
+    if (layer.*.tick != 0) return;
     const subparam: mm.Word = param & @as(mm.Word, @bitCast(@as(i32, 15)));
     if (subparam == 0) {
         layer.*.ploop_row = layer.*.row;
@@ -1697,13 +1702,13 @@ pub fn mppex_NoteDelay(param: mm.Word, layer: [*c]mm.LayerInfo) void {
     mpp_vars.notedelay = @as(mm.Byte, @bitCast(@as(u8, @truncate(reference))));
 }
 pub fn mppex_PatternDelay(param: mm.Word, layer: [*c]mm.LayerInfo) void {
-    if (@as(i32, @bitCast(@as(usize, layer.*.tick))) != 0) return;
+    if (layer.*.tick != 0) return;
     if (@as(i32, @bitCast(@as(usize, layer.*.pattdelay))) == 0) {
         layer.*.pattdelay = @as(mm.Byte, @bitCast(@as(u8, @truncate((param & @as(mm.Word, @bitCast(@as(i32, 15)))) +% @as(mm.Word, @bitCast(@as(i32, 1)))))));
     }
 }
 pub fn mppex_SongMessage(param: mm.Word, layer: [*c]mm.LayerInfo) void {
-    if (@as(i32, @bitCast(@as(usize, layer.*.tick))) != 0) return;
+    if (layer.*.tick != 0) return;
     if (mmCallback != @as(mm_callback, @ptrCast(@alignCast(@as(?*anyopaque, @ptrFromInt(0)))))) {
         const layer_type = param & @as(mm.Word, 15) | (@as(mm.Word, @intFromEnum(mpp_clayer)) << 4);
         _ = mmCallback.?(@as(mm.Word, @bitCast(@as(i32, 42))), @enumFromInt(layer_type));
@@ -1771,7 +1776,7 @@ pub fn mppe_Extended(param: mm.Word, act_ch: ?[*c]mm.ActiveChannel, channel: [*c
     }
 }
 pub fn mppe_SetVolume(param: mm.Word, channel: [*c]mm.ModuleChannel, layer: [*c]mm.LayerInfo) void {
-    if (@as(i32, @bitCast(@as(usize, layer.*.tick))) == 0) {
+    if (layer.*.tick == 0) {
         channel.*.volume = @as(mm.Byte, @bitCast(@as(u8, @truncate(param))));
     }
 }
@@ -1782,20 +1787,23 @@ pub fn mppe_KeyOff(param: mm.Word, act_ch: ?[*c]mm.ActiveChannel, layer: [*c]mm.
     }
 }
 pub fn mppe_OldTremor(param: mm.Word, channel: [*c]mm.ModuleChannel, layer: [*c]mm.LayerInfo) void {
-    if (@as(i32, @bitCast(@as(usize, layer.*.tick))) == 0) return;
-    const mem: i32 = @as(i32, @bitCast(@as(usize, channel.*.fxmem)));
+    if (layer.*.tick == 0) return;
+    const mem: i32 = @intCast(channel.*.fxmem);
     if (mem == 0) {
-        channel.*.fxmem = @as(mm.Byte, @bitCast(@as(i8, @truncate(mem - @as(i32, 1)))));
+        // Old
+        channel.*.fxmem = @intCast(mem - 1);
     } else {
-        channel.*.bflags ^= @as(mm.Hword, @bitCast(@as(c_short, @truncate((@as(i32, 1) << @intCast(9)) | (@as(i32, 1) << @intCast(10))))));
-        if ((@as(i32, @bitCast(@as(usize, channel.*.bflags))) & (@as(i32, 1) << @intCast(10))) != 0) {
-            channel.*.fxmem = @as(mm.Byte, @bitCast(@as(u8, @truncate((param >> @intCast(4)) +% @as(mm.Word, @bitCast(@as(i32, 1)))))));
+        // New
+        channel.*.bflags ^= MCH_BFLAGS_TREMOR | MCH_BFLAGS_CUT_VOLUME;
+        if ((channel.*.bflags & MCH_BFLAGS_CUT_VOLUME) != 0) {
+            channel.*.fxmem = @intCast((param >> 4) + 1);
         } else {
-            channel.*.fxmem = @as(mm.Byte, @bitCast(@as(u8, @truncate((param & @as(mm.Word, @bitCast(@as(i32, 15)))) +% @as(mm.Word, @bitCast(@as(i32, 1)))))));
+            channel.*.fxmem = @intCast((param & 15) + 1);
         }
     }
-    if ((@as(i32, @bitCast(@as(usize, channel.*.bflags))) & (@as(i32, 1) << @intCast(10))) == 0) {
-        mpp_vars.volplus = @as(mm.Sbyte, @bitCast(@as(i8, @truncate(-@as(i32, 64)))));
+    if ((channel.*.bflags & MCH_BFLAGS_CUT_VOLUME) == 0) {
+        // Cut note
+        mpp_vars.volplus = -64;
     }
 }
 pub fn mpph_ProcessEnvelope(count_: [*c]mm.Hword, node_: [*c]mm.Byte, envelope: [*c]Envelope, act_ch: [*c]mm.ActiveChannel, value_mul_64: [*c]mm.Word) mm.Word {
@@ -1925,23 +1933,28 @@ pub fn mpp_Update_ACHN_notest_envelopes(layer: [*c]mm.LayerInfo, act_ch: [*c]mm.
 }
 pub fn mpp_Update_ACHN_notest_auto_vibrato(layer: [*c]mm.LayerInfo, act_ch: [*c]mm.ActiveChannel, period: mm.Word) mm.Word {
     var per = period;
-    const sample: [*c]SampleInfo = mpp_SamplePointer(layer, @as(mm.Word, @bitCast(@as(usize, act_ch.*.sample))));
+    // Get av-rate, check if auto vibrato is enabled
+    const sample: [*c]SampleInfo = mpp_SamplePointer(layer, act_ch.*.sample);
     const av_rate: mm.Hword = sample.*.av_rate;
-    if (@as(i32, @bitCast(@as(usize, av_rate))) != 0) {
-        var new_rate: mm.Word = @as(mm.Word, @bitCast(@as(i32, @bitCast(@as(usize, act_ch.*.avib_dep))) + @as(i32, @bitCast(@as(usize, av_rate)))));
-        _ = &new_rate;
-        if (new_rate > @as(mm.Word, @bitCast(@as(i32, 32768)))) {
-            new_rate = @as(mm.Word, @bitCast(@as(i32, 32768)));
+    if (av_rate != 0) {
+        // Handle depth counter
+        var new_rate: mm.Word = @as(mm.Word, @intCast(act_ch.*.avib_dep)) + av_rate;
+        if (new_rate > 32768) {
+            new_rate = 32768;
         }
-        act_ch.*.avib_dep = @as(mm.Hword, @bitCast(@as(c_ushort, @truncate(new_rate))));
-        const new_depth: mm.Sword = @as(mm.Sword, @bitCast(@as(mm.Word, @bitCast(@as(usize, sample.*.av_depth))) *% new_rate));
-        act_ch.*.avib_pos = @as(mm.Hword, @bitCast(@as(c_short, @truncate((@as(i32, @bitCast(@as(usize, act_ch.*.avib_pos))) + @as(i32, @bitCast(@as(usize, sample.*.av_speed)))) & @as(i32, 255)))));
-        var slide_val: mm.Sword = @as(mm.Sword, @bitCast(@as(i32, tables.mpp_TABLE_FineSineData[act_ch.*.avib_pos])));
-        slide_val = (slide_val * new_depth) >> @intCast(23);
+        act_ch.*.avib_dep = @intCast(new_rate);
+        // Get av-depth
+        const new_depth: mm.Sword = @intCast(sample.*.av_depth * new_rate);
+        // Add av-speed to table position and wrap to 0->255
+        act_ch.*.avib_pos = (act_ch.*.avib_pos + sample.*.av_speed) & 255;
+        // Load table value at the current position
+        var slide_val: mm.Sword = tables.mpp_TABLE_FineSineData[act_ch.*.avib_pos];
+        slide_val = (slide_val * new_depth) >> 23;
+        // Perform slide
         if (slide_val >= 0) {
-            per = mpph_PitchSlide_Up(period, @as(mm.Word, @bitCast(slide_val)), layer);
+            per = mpph_PitchSlide_Up(period, @bitCast(slide_val), layer);
         } else {
-            per = mpph_PitchSlide_Down(period, @as(mm.Word, @bitCast(-slide_val)), layer);
+            per = mpph_PitchSlide_Down(period, @bitCast(-slide_val), layer);
         }
     }
     return per;
@@ -2236,7 +2249,7 @@ pub const MCH_BFLAGS_TREMOR = 1 << 9;
 pub const MAS_HEADER_FLAG_OLD_MODE = 1 << 5;
 pub const MF_NOTECUT = 128;
 pub const MCH_BFLAGS_NNA_SHIFT = 6;
-pub const MCH_BFLAGS_NNA_MASK = 3 << MCH_BFLAGS_NNA_SHIFT;
+pub const MCH_BFLAGS_NNA_MASK: u16 = 3 << MCH_BFLAGS_NNA_SHIFT;
 pub inline fn MCH_BFLAGS_NNA_GET(x: anytype) @TypeOf((x & MCH_BFLAGS_NNA_MASK) >> MCH_BFLAGS_NNA_SHIFT) {
     _ = &x;
     return (x & MCH_BFLAGS_NNA_MASK) >> MCH_BFLAGS_NNA_SHIFT;
@@ -2252,7 +2265,7 @@ pub const MCAF_FADE = 1 << 1;
 pub const MCAF_START: u8 = 1 << 2;
 pub const MCAF_UPDATED = 1 << 3;
 pub const MCAF_ENVEND = 1 << 4;
-pub const MCAF_VOLENV = 1 << 5;
+pub const MCAF_VOLENV: u8 = 1 << 5;
 // 1 = Channel is used for an effect, not module or jingle
 pub const MCAF_EFFECT = 1 << 7;
 // 1 = Channel used for jingle. 0 = Used for main module

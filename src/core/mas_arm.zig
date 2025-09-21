@@ -112,7 +112,7 @@ pub fn updateChannel_TN(module_channel: [*c]mm.ModuleChannel, mpp_layer: [*c]mm.
     }
     mas.mpp_vars.afvol = @intCast(volume);
     if (mas.mpp_vars.notedelay != 0) {
-        act_ch.?.*.flags |= @as(mm.Byte, @bitCast(@as(i8, @truncate(@as(c_int, 1) << @intCast(3)))));
+        act_ch.?.*.flags |= mas.MCAF_UPDATED;
         return;
     }
     // Copy panning and period
@@ -274,19 +274,6 @@ const ChannelState = enum {
 
 // Determine initial state based on C logic
 fn determineInitialState(module_channel: [*c]mm.ModuleChannel, mpp_layer: [*c]mm.LayerInfo) ChannelState {
-    if (debug_enabled) {
-        const row_dbg = @as(c_int, @intCast(mpp_layer.*.row));
-        if (row_dbg >= 6 and row_dbg <= 20) {
-            const ch_dbg = @as(c_int, @intCast((@intFromPtr(module_channel) - @intFromPtr(mm_gba.mpp_channels)) / @sizeOf(mm.ModuleChannel)));
-            if (ch_dbg <= 7 and (@as(c_int, @intCast(mpp_layer.*.tick)) == 0)) {
-                const act_dbg = mas.mpp_Channel_GetACHN(module_channel);
-                var act_flags: u8 = 0;
-                if (act_dbg != null) {
-                    act_flags = act_dbg.?.*.flags;
-                }
-            }
-        }
-    }
     // Test start flag
     if ((module_channel.*.flags & mas.MF_START) == 0) {
         return .dont_start;
@@ -332,7 +319,7 @@ fn determineInitialState(module_channel: [*c]mm.ModuleChannel, mpp_layer: [*c]mm
     return .glissando_affected;
 }
 // New note action (NNA)
-inline fn MCH_BFLAGS_NNA_SET(x: anytype) @TypeOf((x << mas.MCH_BFLAGS_NNA_SHIFT) & mas.MCH_BFLAGS_NNA_MASK) {
+pub inline fn MCH_BFLAGS_NNA_SET(x: anytype) @TypeOf((x << mas.MCH_BFLAGS_NNA_SHIFT) & mas.MCH_BFLAGS_NNA_MASK) {
     return (x << mas.MCH_BFLAGS_NNA_SHIFT) & mas.MCH_BFLAGS_NNA_MASK;
 }
 // Process channel started state
@@ -434,7 +421,7 @@ fn channelStartACHN(module_channel: [*c]mm.ModuleChannel, active_channel: [*c]mm
     if (module_channel.*.inst == 0) return @intCast(module_channel.*.bflags);
 
     // Get instrument pointer
-    const instrument: *mas.Instrument = mas.instrumentPointer(mpp_layer, @as(mm.Word, @bitCast(@as(c_uint, module_channel.*.inst)))) orelse unreachable;
+    const instrument: *mas.Instrument = mas.instrumentPointer(mpp_layer, module_channel.*.inst) orelse unreachable;
 
     // TODO: Use Instrument struct properly
     // Read raw bytes at offset 8 (after 8 mm.Byte fields) and decode manually.
