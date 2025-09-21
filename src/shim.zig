@@ -31,6 +31,9 @@ pub fn free(ptr: ?*anyopaque) void {
     _ = ptr;
 }
 
+// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+// ! Cursed Debug Land !!!!!!!!!
+// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 const gba = @import("gba");
 // Event type for T0 tracing
 pub const T0Event = struct {
