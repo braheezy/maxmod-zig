@@ -34,7 +34,6 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
     maxmod_zig.addImport("gba", gba_mod);
-    maxmod_zig.addObjectFile(b.path("src/mixer_asm.o"));
 
     // Handle file argument
     const file_args = b.args orelse &[_][]const u8{};
@@ -83,6 +82,11 @@ fn createXmExample(
 
     const mod_maxmod_zig = b.createModule(.{ .root_source_file = b.path("src/maxmod.zig"), .target = gba_target, .optimize = optimize });
     mod_maxmod_zig.addImport("gba", gba_mod);
+
+    xm_exe.addCSourceFile(.{
+        .file = b.path("src/mixer_decomp.c"),
+        .flags = &.{"-std=c11"},
+    });
 
     // Add translate-c step for mas_arm.c (using native toolchain to avoid freestanding libc issues)
     const translate_c_step = b.step("c", "Translate mas_arm.c to Zig");
