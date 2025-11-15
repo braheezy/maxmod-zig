@@ -4,6 +4,13 @@ pub const gba = @import("gba/main_gba.zig");
 pub const mixer = @import("gba/mixer.zig");
 pub const shim = @import("shim.zig");
 
+// Conditionally pull in pure Zig mixer implementation
+comptime {
+    if (@import("build_options").use_zig_mixer) {
+        _ = @import("mixer.zig");
+    }
+}
+
 pub const Word = u32;
 pub const Hword = u16;
 pub const Sword = i32;

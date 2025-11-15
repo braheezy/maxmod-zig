@@ -31,6 +31,25 @@ pub fn free(ptr: ?*anyopaque) void {
     _ = ptr;
 }
 
+// Debug helper for C mixer
+var wrap_counter: u32 = 0;
+export fn mixerDebugLog(channel_idx: u32, read_pos: u32, sample_len: u32, loop_len: i32, is_past_end: bool) void {
+    const debug_enabled_val = @import("build_options").xm_debug;
+    if (!debug_enabled_val) return;
+
+    wrap_counter += 1;
+    if (wrap_counter > 100) return; // Stop spamming after 100 wraps
+
+    gba.debug.print("[C-MIX] ch={d} read=0x{x:0>8} (int={d}) len={d} loop={d} past={}\n", .{
+        channel_idx,
+        read_pos,
+        read_pos >> 12,
+        sample_len,
+        loop_len,
+        is_past_end,
+    }) catch {};
+}
+
 // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 // ! Cursed Debug Land !!!!!!!!!
 // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
