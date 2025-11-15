@@ -81,8 +81,8 @@ pub fn initDefault(soundbank: mm.Addr, number_of_channels: mm.Word) !void {
     }
 
     const module_channels = @as(mm.Addr, @ptrFromInt(@as(mm.Word, @intCast(@intFromPtr(wave_memory))) + module_offset));
-    const active_channels: mm.Addr = @ptrFromInt(@as(mm.Word, @intCast(@intFromPtr(module_channels))) + active_offset);
-    const mixing_channels: mm.Addr = @ptrFromInt(@as(mm.Word, @intCast(@intFromPtr(active_channels))) + mixing_offset);
+    const active_channels: mm.Addr = @ptrFromInt(@as(mm.Word, @intCast(@intFromPtr(module_channels))) + (number_of_channels *% @sizeOf(mm.ModuleChannel)));
+    const mixing_channels: mm.Addr = @ptrFromInt(@as(mm.Word, @intCast(@intFromPtr(active_channels))) + (number_of_channels *% @sizeOf(mm.ActiveChannel)));
     var setup: GBASystem = GBASystem{
         .mixing_mode = ._16khz,
         .mod_channel_count = number_of_channels,

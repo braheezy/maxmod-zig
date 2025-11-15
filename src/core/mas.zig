@@ -936,14 +936,15 @@ pub fn mpp_Channel_NewNote(module_channel: [*c]mm.ModuleChannel, layer: [*c]mm.L
         module_channel.*.alloc = @intCast(alloc);
     }
 }
-pub inline fn mpp_SamplePointer(layer: [*c]mm.LayerInfo, sampleN: mm.Word) [*c]SampleInfo {
+pub inline fn mpp_SamplePointer(layer: [*c]mm.LayerInfo, sampleN: mm.Word) [*c]align(1) SampleInfo {
     var base: [*c]mm.Byte = @as([*c]mm.Byte, @ptrCast(@alignCast(layer.*.songadr)));
     const idx: usize = @as(usize, @intCast(sampleN -% @as(mm.Word, @bitCast(@as(i32, 1)))));
     const off_ptr: [*]u8 = @constCast(@ptrCast(@alignCast(&base[@as(usize, 0)])));
     const samptbl_bytes: [*]const u8 = @ptrCast(@alignCast(layer.*.samptable));
     const p: [*]const u8 = samptbl_bytes + (idx * 4);
     const off: usize = @as(usize, @intCast(std.mem.readInt(u32, p[0..4], .little)));
-    return @as([*c]SampleInfo, @ptrCast(@alignCast(off_ptr + off)));
+    // Return unaligned pointer - SampleInfo may not be properly aligned in soundbank
+    return @as([*c]align(1) SampleInfo, @ptrCast(off_ptr + off));
 }
 pub inline fn instrumentPointer(layer: [*c]mm.LayerInfo, instN: mm.Word) ?*Instrument {
     const base: [*c]mm.Byte = @as([*c]mm.Byte, @ptrCast(@alignCast(layer.*.songadr)));
@@ -980,7 +981,7 @@ pub fn mppe_DoVibrato(period: mm.Word, channel: [*c]mm.ModuleChannel, layer: [*c
 }
 pub fn mppe_glis_backdoor(param: mm.Word, period: mm.Word, act_ch: ?[*c]mm.ActiveChannel, channel: [*c]mm.ModuleChannel, layer: [*c]mm.LayerInfo) mm.Word {
     if (act_ch == null) return period;
-    const sample: [*c]SampleInfo = mpp_SamplePointer(layer, act_ch.?.*.sample);
+    const sample: [*c]align(1) SampleInfo = mpp_SamplePointer(layer, act_ch.?.*.sample);
     const target_period: mm.Word = arm.getPeriod(layer, sample.*.frequency * 4, channel.*.note);
     var new_period: mm.Word = undefined;
     if (layer.*.flags & MAS_HEADER_FLAG_FREQ_MODE != 0) {
@@ -2003,7 +2004,7 @@ pub fn mpp_Update_ACHN_notest_envelopes(layer: [*c]mm.LayerInfo, act_ch: [*c]mm.
 pub fn mpp_Update_ACHN_notest_auto_vibrato(layer: [*c]mm.LayerInfo, act_ch: [*c]mm.ActiveChannel, period: mm.Word) mm.Word {
     var per = period;
     // Get av-rate, check if auto vibrato is enabled
-    const sample: [*c]SampleInfo = mpp_SamplePointer(layer, act_ch.*.sample);
+    const sample: [*c]align(1) SampleInfo = mpp_SamplePointer(layer, act_ch.*.sample);
     const av_rate: mm.Hword = sample.*.av_rate;
     if (av_rate != 0) {
         // Handle depth counter
@@ -2044,7 +2045,7 @@ pub fn mpp_Update_ACHN_notest_update_mix(layer: [*c]mm.LayerInfo, act_ch: [*c]mm
         }
         // must have a valid sample
         if (act_ch.*.sample != 0) {
-            const sample: [*c]SampleInfo = mpp_SamplePointer(layer, act_ch.*.sample);
+            const sample: [*c]align(1) SampleInfo = mpp_SamplePointer(layer, act_ch.*.sample);
             dbg_msl_id = @intCast(sample.*.msl_id);
             // Compute MAS GBA header address without relying on aligned struct loads
             var hdr_addr: usize = 0;
@@ -2085,10 +2086,18 @@ pub fn mpp_Update_ACHN_notest_set_pitch_volume(
         act_ch.*.fvol = 0;
         return 0;
     }
-    const sample: [*c]SampleInfo = mpp_SamplePointer(layer, act_ch.*.sample);
+    const sample: [*c]align(1) SampleInfo = mpp_SamplePointer(layer, act_ch.*.sample);
+
+    // Work around struct misalignment: read frequency field manually as little-endian u16
+    // The soundbank layout causes the SampleInfo struct to be misaligned, resulting in the
+    // frequency u16 field only reading 1 byte instead of 2
+    // IMPORTANT: Don't use @alignCast - it would round the pointer to wrong address!
+    const sample_ptr: [*]const u8 = @ptrCast(sample);
+    const freq_corrected: mm.Hword = @as(mm.Hword, sample_ptr[2]) | (@as(mm.Hword, sample_ptr[3]) << 8);
+
     if ((layer.*.flags & MAS_HEADER_FLAG_FREQ_MODE) != 0) {
         // Linear frequencies
-        const speed: mm.Hword = sample.*.frequency;
+        const speed: mm.Hword = freq_corrected;
         var value: mm.Word = ((period >> 8) * (speed << 2)) >> 8;
         if (mpp_clayer == .main) {
             value = (value * mm_masterpitch) >> 10;

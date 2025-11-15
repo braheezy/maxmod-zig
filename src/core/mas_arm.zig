@@ -56,7 +56,7 @@ pub fn updateChannel_T0(module_channel: [*c]mm.ModuleChannel, mpp_layer: [*c]mm.
                 }
                 const note = channelStartACHN(module_channel, act_ch.?, mpp_layer, channel_counter);
                 if (act_ch.?.*.sample != 0) {
-                    const sample: [*c]mas.SampleInfo = mas.mpp_SamplePointer(mpp_layer, @as(mm.Word, @intCast(act_ch.?.*.sample)));
+                    const sample: [*c]align(1) mas.SampleInfo = mas.mpp_SamplePointer(mpp_layer, @as(mm.Word, @intCast(act_ch.?.*.sample)));
                     module_channel.*.period = getPeriod(mpp_layer, sample.*.frequency << 2, note);
                     act_ch.?.*.flags |= mas.MCAF_START;
                 }
@@ -350,7 +350,7 @@ fn processChannelStarted(module_channel: [*c]mm.ModuleChannel, mpp_layer: [*c]mm
 
         if (act_ch.?.*.sample != 0) {
             // Get sample pointer
-            const sample: [*c]mas.SampleInfo = mas.mpp_SamplePointer(mpp_layer, @as(mm.Word, @intCast(act_ch.?.*.sample)));
+            const sample: [*c]align(1) mas.SampleInfo = mas.mpp_SamplePointer(mpp_layer, @as(mm.Word, @intCast(act_ch.?.*.sample)));
             module_channel.*.volume = sample.*.default_volume;
 
             // The MSB determines if we need to set a new panning value
