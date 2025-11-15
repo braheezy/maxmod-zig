@@ -58,6 +58,8 @@ fn createXmExample(
     maxmod_zig: *std.Build.Module,
 ) void {
     const xm_debug = b.option(bool, "xmdebug", "Enable XM debug mode") orelse false;
+    // const use_asm_mixer = b.option(bool, "asm", "Use assembly mixer (.o) instead of C/Zig") orelse false;
+    // const use_c_mas = b.option(bool, "cmas", "Use C MAS implementation instead of Zig") orelse false;
     const xm_step = b.step("xm", "Build XM demo ROM");
 
     // Create XM soundbank generation step using mmutil
@@ -75,6 +77,8 @@ fn createXmExample(
     const xm_opts = b.addOptions();
     xm_opts.addOption([]const u8, "xm_name", std.fs.path.basename(selected_xm_file));
     xm_opts.addOption(bool, "xm_debug", xm_debug);
+    // xm_opts.addOption(bool, "use_c_mas", use_c_mas);
+    xm_opts.addOption(bool, "use_zig_mixer", true);
     const build_options_mod = xm_opts.createModule();
     maxmod_zig.addImport("build_options", build_options_mod);
 
@@ -83,31 +87,19 @@ fn createXmExample(
     const mod_maxmod_zig = b.createModule(.{ .root_source_file = b.path("src/maxmod.zig"), .target = gba_target, .optimize = optimize });
     mod_maxmod_zig.addImport("gba", gba_mod);
 
-    xm_exe.addCSourceFile(.{
-        .file = b.path("src/mixer_decomp.c"),
-        .flags = &.{"-std=c11"},
-    });
-
-    // Add translate-c step for mas_arm.c (using native toolchain to avoid freestanding libc issues)
-    const translate_c_step = b.step("c", "Translate mas_arm.c to Zig");
-    const host_target = b.resolveTargetQuery(.{});
-    const xlate = b.addTranslateC(.{
-        .root_source_file = b.path("maxmod/source/core/mas_arm.c"),
-        .target = host_target, // translate using host so std headers resolve
-        .optimize = optimize,
-    });
-    // Match include layout expected by the C source
-    xlate.addIncludePath(b.path("maxmod/source"));
-    xlate.addIncludePath(b.path("maxmod/include"));
-    xlate.addIncludePath(b.path("maxmod/source/gba"));
-    xlate.addIncludePath(b.path("examples/xm_c_ref/vendor/libmm/include"));
-    // Neutralize platform-specific attributes/macros so translation succeeds on host
-    xlate.defineCMacro("IWRAM_CODE", "");
-    xlate.defineCMacro("ARM_CODE", "");
-    // Emit translated Zig into project tree for inspection
-    const translated_out = xlate.getOutput();
-    const install_translated = b.addInstallFile(translated_out, "src/core/mas_arm_translated.zig");
-    translate_c_step.dependOn(&install_translated.step);
+    // Add mixer implementation: ASM .o, pure Zig, or C
+    // if (use_asm_mixer) {
+    //     xm_exe.addObjectFile(b.path("maxmod/build/gba/source/gba/mixer_asm.s.o"));
+    // } else if (use_zig_mixer) {
+    //     // Pure Zig mixer - imported via comptime in maxmod.zig
+    //     // No additional setup needed
+    // } else {
+    //     // C mixer
+    //     xm_exe.addCSourceFile(.{
+    //         .file = b.path("src/mixer_decomp.c"),
+    //         .flags = &.{"-std=c11"},
+    //     });
+    // }
 
     // Hook into top-level steps and install artifacts
     xm_step.dependOn(&xm_create_soundbank.step);
