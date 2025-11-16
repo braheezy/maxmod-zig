@@ -396,6 +396,9 @@ pub fn logMixHash(frame_idx: u32) void {
         const src_val = @as(u32, @truncate(ch.src));
         if ((src_val & 0x8000_0000) != 0) {
             src_rel = 0x8000_0000;
+            if (frame_idx == 12) {
+                debugPrint("[HASH_STOP] frame=12 ch={d} src=0x{x:0>8}\n", .{ i, src_val });
+            }
         } else {
             const src_usize = @as(usize, @intCast(src_val));
             if (src_usize >= bank_base)

@@ -104,9 +104,6 @@ const build_options = @import("build_options");
 var left_frames_static: [1056]i32 linksection(".iwram") = undefined;
 var right_frames_static: [1056]i32 linksection(".iwram") = undefined;
 
-// Static frame counter for debug correlation
-var debug_mixer_frame: u32 = 0;
-
 pub export fn mmMixerMix(sample_count: u32) linksection(".iwram") callconv(.C) void {
     if (sample_count == 0) {
         return;
@@ -121,24 +118,6 @@ pub export fn mmMixerMix(sample_count: u32) linksection(".iwram") callconv(.C) v
         }
     }
 
-    if (build_options.xm_debug) {
-        const gba = @import("gba");
-        debug_mixer_frame +%= 1;
-        _ = gba.debug.print("[MIXER_ENTRY] frame={d} sample_count={d} ratescale=0x{x}\n", .{ debug_mixer_frame, sample_count, mm_ratescale }) catch {};
-
-        // Log all channel states at entry
-        var ch_idx: usize = 0;
-        var channel: [*c]volatile mm_mixer_channel = mm_mix_channels;
-        while (channel < mm_mixch_end) : (channel += 1) {
-            const src: u32 = channel.*.src;
-            const freq: u32 = channel.*.freq;
-            if ((src & 0x80000000) == 0 and freq > 0) {
-                _ = gba.debug.print("[CH{d}] src=0x{x:0>8} read=0x{x:0>8} vol={d:0>3} pan={d:0>3} freq=0x{x:0>8}\n",
-                    .{ ch_idx, src, channel.*.read, channel.*.vol, channel.*.pan, freq }) catch {};
-            }
-            ch_idx += 1;
-        }
-    }
 
     const left_frames = &left_frames_static;
     const right_frames = &right_frames_static;
@@ -181,44 +160,6 @@ pub export fn mmMixerMix(sample_count: u32) linksection(".iwram") callconv(.C) v
 
             const left_volume: u32 = ((256 -% pan) *% volume) >> 8;
             const right_volume: u32 = (pan *% volume) >> 8;
-
-            // Debug: detailed sample header info for first few frames
-            if (build_options.xm_debug) {
-                const ch_idx: usize = @intFromPtr(channel) - @intFromPtr(mm_mix_channels);
-                const ch_num = ch_idx / @sizeOf(mm_mixer_channel);
-
-                // Only log first few frames and select channels for verbosity
-                if (debug_mixer_frame <= 3) {
-                    const gba = @import("gba");
-
-                    // Get header offsets
-                    const data_addr = @intFromPtr(sample_data);
-                    const len_addr = data_addr -% 12;
-                    const loop_addr = data_addr -% 8;
-
-                    // Read header values
-                    const len_ptr: [*]const u32 = @ptrFromInt(len_addr);
-                    const loop_ptr: [*]const i32 = @ptrFromInt(loop_addr);
-                    const sample_len_raw: u32 = len_ptr[0];
-                    const loop_len_raw: i32 = loop_ptr[0];
-
-                    _ = gba.debug.print("[SAMP_HDR] ch={d} freq=0x{x:0>2} step=0x{x:0>8} data=0x{x:0>8} len_val={d} loop_val={d}\n",
-                        .{ ch_num, frequency, step, data_addr, sample_len_raw, loop_len_raw }) catch {};
-                } else if (ch_num == 5) {
-                    // Always log channel 5 for detailed analysis
-                    const gba = @import("gba");
-                    const data_addr = @intFromPtr(sample_data);
-                    const len_addr = data_addr -% 12;
-                    const loop_addr = data_addr -% 8;
-                    const len_ptr: [*]const u32 = @ptrFromInt(len_addr);
-                    const loop_ptr: [*]const i32 = @ptrFromInt(loop_addr);
-                    const sample_len_raw: u32 = len_ptr[0];
-                    const loop_len_raw: i32 = loop_ptr[0];
-
-                    _ = gba.debug.print("[CH5] freq=0x{x:0>2} step=0x{x:0>8} data=0x{x:0>8} len_val={d} loop_val={d} sample_len_fp=0x{x:0>8}\n",
-                        .{ frequency, step, data_addr, sample_len_raw, loop_len_raw, sample_length_fp }) catch {};
-                }
-            }
             total_left_volume +%= left_volume;
             total_right_volume +%= right_volume;
             const neutral_left: u32 = neutral_contribution(left_volume);
@@ -299,15 +240,6 @@ pub export fn mmMixerMix(sample_count: u32) linksection(".iwram") callconv(.C) v
             }
             channel.*.read = read_position;
 
-            // Debug: check if read position looks corrupted
-            if (build_options.xm_debug) {
-                const ch_idx = (@intFromPtr(channel) - @intFromPtr(mm_mix_channels)) / @sizeOf(mm_mixer_channel);
-                if (ch_idx == 5) {
-                    const gba = @import("gba");
-                    _ = gba.debug.print("[ZIG_MIX_CH5] read=0x{x} src=0x{x} vol={d} pan={d} freq={d}\n", .{ channel.*.read, channel.*.src, channel.*.vol, channel.*.pan, channel.*.freq }) catch {};
-                }
-            }
-
             if ((loop_length_fp == 0) and (frame_index < frame_count)) {
                 const remaining: u32 = frame_count -% frame_index;
                 if (left_volume != 0) {
@@ -336,8 +268,10 @@ pub export fn mmMixerMix(sample_count: u32) linksection(".iwram") callconv(.C) v
     const words_to_output: u32 = padded_output_frames >> 1;
     const prvol_left: i32 = @as(i32, @intCast((total_left_volume >> 1) << 3));
     const prvol_right: i32 = @as(i32, @intCast((total_right_volume >> 1) << 3));
+
     var left_cursor: [*c]u16 = mp_writepos;
     var right_cursor: [*c]u16 = mp_writepos + mm_mixlen;
+
 
     var pair: u32 = 0;
     while (pair < words_to_output) : (pair += 1) {
@@ -357,28 +291,19 @@ pub export fn mmMixerMix(sample_count: u32) linksection(".iwram") callconv(.C) v
         const left_byte1: u8 = @as(u8, @bitCast(@as(i8, @truncate(clamp_pcm8(left1)))));
         const right_byte0: u8 = @as(u8, @bitCast(@as(i8, @truncate(clamp_pcm8(right0)))));
         const right_byte1: u8 = @as(u8, @bitCast(@as(i8, @truncate(clamp_pcm8(right1)))));
-        (blk: {
-            const ref = &left_cursor;
-            const tmp = ref.*;
-            ref.* += 1;
-            break :blk tmp;
-        }).* = @as(u16, @bitCast(@as(c_short, @truncate(@as(c_int, @bitCast(@as(c_uint, left_byte0))) | (@as(c_int, @bitCast(@as(c_uint, @as(u16, @bitCast(@as(c_ushort, left_byte1)))))) << 8)))));
-        (blk: {
-            const ref = &right_cursor;
-            const tmp = ref.*;
-            ref.* += 1;
-            break :blk tmp;
-        }).* = @as(u16, @bitCast(@as(c_short, @truncate(@as(c_int, @bitCast(@as(c_uint, right_byte0))) | (@as(c_int, @bitCast(@as(c_uint, @as(u16, @bitCast(@as(c_ushort, right_byte1)))))) << 8)))));
+        // Pack two 8-bit samples into one 16-bit word for output
+        const left_word: u16 = @as(u16, left_byte0) | (@as(u16, left_byte1) << 8);
+        const right_word: u16 = @as(u16, right_byte0) | (@as(u16, right_byte1) << 8);
+
+
+        left_cursor[0] = left_word;
+        left_cursor += 1;
+        right_cursor[0] = right_word;
+        right_cursor += 1;
         const left_word_index: u32 = pair << 1;
         mix_words[left_word_index] = (@as(u32, @intCast(left_frames[frame1] & 0xFFFF)) << 16) | @as(u32, @intCast(left_frames[frame0] & 0xFFFF));
         mix_words[left_word_index + 1] = (@as(u32, @intCast(right_frames[frame1] & 0xFFFF)) << 16) | @as(u32, @intCast(right_frames[frame0] & 0xFFFF));
     }
 
     mp_writepos = left_cursor;
-
-    // Debug: log exit summary
-    if (build_options.xm_debug) {
-        const gba = @import("gba");
-        _ = gba.debug.print("[MIXER_EXIT] frame={d} padded_frames={d} words_output={d}\n", .{ debug_mixer_frame, padded_frames, words_to_output }) catch {};
-    }
 }

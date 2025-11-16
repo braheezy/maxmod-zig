@@ -1091,11 +1091,11 @@ pub fn mpp_resetchannels(channels: [*c]mm.ModuleChannel, num_ch: mm.Word) void {
     var j: mm.Word = 0;
     while (j < mm_gba.num_ach) : (j += 1) {
         const act_ch: [*c]mm.ActiveChannel = &mm_gba.achannels[curr_act_ch];
-        const mix_ch: [*c]volatile mm.MixerChannel = &mixer.mm_mix_channels[curr_mix_ch];
         if (act_ch.*.flags & (MCAF_SUB | MCAF_EFFECT) >> 6 != @intFromEnum(mpp_clayer)) continue;
 
         act_ch.* = .{};
-        if (debug_enabled) mix_ch.*.src = shim.MIXCH_GBA_SRC_STOPPED;
+        // Note: Removed debug code that set mix_ch.*.src to STOPPED - it interfered with hash
+        // calculation and wasn't present in the original C implementation
 
         curr_act_ch += 1;
         curr_mix_ch += 1;
