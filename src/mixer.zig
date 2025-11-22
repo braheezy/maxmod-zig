@@ -45,9 +45,9 @@ inline fn sample_length_from_data(data: [*c]const u8) u32 {
     const offset: usize = @intFromPtr(data) - 12;
     const bytes: [*]const u8 = @ptrFromInt(offset);
     return @as(u32, bytes[0]) |
-           (@as(u32, bytes[1]) << 8) |
-           (@as(u32, bytes[2]) << 16) |
-           (@as(u32, bytes[3]) << 24);
+        (@as(u32, bytes[1]) << 8) |
+        (@as(u32, bytes[2]) << 16) |
+        (@as(u32, bytes[3]) << 24);
 }
 inline fn loop_length_from_data(data: [*c]const u8) i32 {
     // Sample header: offset -8 is loop length (i32, little-endian)
@@ -55,9 +55,9 @@ inline fn loop_length_from_data(data: [*c]const u8) i32 {
     const offset: usize = @intFromPtr(data) - 8;
     const bytes: [*]const u8 = @ptrFromInt(offset);
     const unsigned: u32 = @as(u32, bytes[0]) |
-                          (@as(u32, bytes[1]) << 8) |
-                          (@as(u32, bytes[2]) << 16) |
-                          (@as(u32, bytes[3]) << 24);
+        (@as(u32, bytes[1]) << 8) |
+        (@as(u32, bytes[2]) << 16) |
+        (@as(u32, bytes[3]) << 24);
     return @bitCast(unsigned);
 }
 pub fn copy_mix_words(dst: [*c]i32, src: [*c]const i32, count: usize) callconv(.c) void {
@@ -264,7 +264,6 @@ pub export fn mmMixerMix(sample_count: u32) linksection(".iwram") callconv(.C) v
             }
         }
     }
-
     var frames_to_output: u32 = frame_count;
     if (frames_to_output > mm_mixlen) {
         frames_to_output = mm_mixlen;
@@ -286,19 +285,16 @@ pub export fn mmMixerMix(sample_count: u32) linksection(".iwram") callconv(.C) v
     while (pair < words_to_output) : (pair += 1) {
         var frame0: u32 = pair << 1;
         var frame1: u32 = frame0 + 1;
-
         if (frame0 >= padded_frames) {
             frame0 = padded_frames - 1;
         }
         if (frame1 >= padded_frames) {
             frame1 = if (padded_frames > 0) padded_frames - 1 else frame0;
         }
-
         const left0: i32 = (left_frames[frame0] - prvol_left) >> 3;
         const left1: i32 = (left_frames[frame1] - prvol_left) >> 3;
         const right0: i32 = (right_frames[frame0] - prvol_right) >> 3;
         const right1: i32 = (right_frames[frame1] - prvol_right) >> 3;
-
         const left_byte0: u8 = @as(u8, @bitCast(@as(i8, @truncate(clamp_pcm8(left0)))));
         const left_byte1: u8 = @as(u8, @bitCast(@as(i8, @truncate(clamp_pcm8(left1)))));
         const right_byte0: u8 = @as(u8, @bitCast(@as(i8, @truncate(clamp_pcm8(right0)))));

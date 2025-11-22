@@ -2048,22 +2048,36 @@ pub fn mpp_Update_ACHN_notest_update_mix(layer: [*c]mm.LayerInfo, act_ch: [*c]mm
             const sample: [*c]align(1) SampleInfo = mpp_SamplePointer(layer, act_ch.*.sample);
             dbg_msl_id = @intCast(sample.*.msl_id);
             // Compute MAS GBA header address without relying on aligned struct loads
-            var hdr_addr: usize = 0;
+            var src_addr: usize = 0;
             if (sample.*.msl_id == 0xFFFF) {
-                // Embedded sample in module: header starts at sample->data
-                hdr_addr = @intCast(@intFromPtr(sample.*.data()));
+                // Embedded sample in module: sample->data() already adds 12 to skip the header
+                src_addr = @intFromPtr(sample.*.data());
+                dbg_sample_offset = 0xFFFFFFFF; // embedded
             } else {
                 // External sample in bank: mp_solution base + sampleTable[msl_id] + MAS prefix
-                const samp_tbl_words: [*]const mm.Word = mm_gba.getSampleTable();
-                const samp_tbl_bytes: [*]const u8 = @ptrCast(samp_tbl_words);
+                // The sample table stores u32 values, but they represent u16 offsets
+                // Just use the low 16 bits directly
+                const samp_tbl: [*]const u32 = mm_gba.getSampleTable();
                 const idx: usize = @intCast(sample.*.msl_id);
-                const p: [*]const u8 = samp_tbl_bytes + (idx * 4);
-                const off: usize = @intCast(std.mem.readInt(u32, p[0..4], .little));
+                const table_val: u32 = samp_tbl[idx];
+                const off: usize = table_val & 0xFFFF;
                 dbg_sample_offset = @intCast(off);
-                hdr_addr = (@as(usize, @intCast(@intFromPtr(mm_gba.bank_base))) + off) + @sizeOf(Prefix);
+                const bank_base_addr: usize = @intFromPtr(mm_gba.bank_base);
+                const hdr_addr = bank_base_addr + off + @sizeOf(Prefix);
+                // data starts 12 bytes after header
+                src_addr = hdr_addr + 12;
+
+                // Debug: log sample calculation for first few channels
+                const debug_enabled_val = @import("build_options").xm_debug;
+                if (debug_enabled_val and channel < 6) {
+                    _ = gba.debug.print("[MAS_SMP] ch={d} msl={d} table=0x{x} off=0x{x} src=0x{x}\n", .{
+                        channel, sample.*.msl_id, table_val, off, src_addr
+                    }) catch {};
+                }
             }
-            // initialize read pointer and source to header+12
-            mix_ch.*.src = hdr_addr + 12;
+            // initialize read pointer and source
+            mix_ch.*.src = @intCast(src_addr);
+
             did_bind = true;
             // initialize read pointer
             mix_ch.*.read = @as(u32, mpp_vars.sampoff) << (MP_SAMPFRAC + 8);
@@ -2272,4 +2286,18 @@ const Prefix = extern struct {
     type: mm.Byte = 0,
     version: mm.Byte = 0,
     reserved: mm.Hword = 0,
+};
+
+const MasGbaSample = extern struct {
+    length: mm.Word align(4) = 0,
+    loop_length: mm.Word = 0,
+    format: mm.Byte = 0,
+    reserved: mm.Byte = 0,
+    default_frequency: mm.Hword = 0,
+
+    pub fn data(self: anytype) std.zig.c_translation.FlexibleArrayType(@TypeOf(self), u8) {
+        const Intermediate = std.zig.c_translation.FlexibleArrayType(@TypeOf(self), u8);
+        const ReturnType = std.zig.c_translation.FlexibleArrayType(@TypeOf(self), u8);
+        return @as(ReturnType, @ptrCast(@alignCast(@as(Intermediate, @ptrCast(self)) + 12)));
+    }
 };

@@ -140,8 +140,10 @@ pub fn end() bool {
 var idx: usize = 0;
 pub var mix_stop_pending: [32]bool = [_]bool{false} ** 32;
 // Work routine, user _must_ call this every frame.
+var frame_counter: u32 = 0;
 pub fn frame() void {
     if (!initialized) return;
+    frame_counter += 1;
     sfx.updateEffects();
     // Sub layer has 60hz accuracy
     mas.mppUpdateSub();
@@ -156,7 +158,9 @@ pub fn frame() void {
     // Skip processing if disabled (and just mix samples)
     if (layer_p.*.isplaying == 0) {
         // Main layer isn't active, mix full amount
+        logMixerChannels("BEFORE");
         mmMixerMix(mm_mixlen);
+        logMixerChannels("AFTER");
         return;
     }
     // mixlen is divisible by 2
@@ -174,18 +178,62 @@ pub fn frame() void {
         layer_p.*.tick_data.sampcount = 0;
         // subtract from #samples to mix
         remaining_len -= sample_num;
+        logMixerChannels("BEFORE");
         mmMixerMix(sample_num);
+        logMixerChannels("AFTER");
         debugLogMix("loop", sample_num);
         mas.mppProcessTick();
     }
     layer_p.*.tick_data.sampcount +%= @intCast(remaining_len);
     if (debug_enabled) shim.debug_state.tick_data_sampcount = @intCast(layer_p.*.tick_data.sampcount);
+    logMixerChannels("BEFORE_FINAL");
     mmMixerMix(remaining_len);
+    logMixerChannels("AFTER_FINAL");
+}
+
+fn logMixerChannels(stage: []const u8) void {
+    if (!debug_enabled) return;
+    // Log every 10 frames starting at frame 10
+    if (frame_counter < 10 or frame_counter % 10 != 0) return;
+    // Stop after frame 300 to catch the bug
+    if (frame_counter > 300) return;
+
+    const mix_channels = mixer.mm_mix_channels;
+    if (mix_channels == null) return;
+
+    // Log channel 5
+    const ch5 = mix_channels[5];
+
+    // Get sample properties if channel is active
+    if ((ch5.src & 0x80000000) == 0 and ch5.src != 0) {
+        const sample_data: [*]const u8 = @ptrFromInt(ch5.src);
+        const sample_len = @as([*]const u32, @ptrCast(@alignCast(sample_data - 12)))[0];
+        const loop_len = @as([*]const i32, @ptrCast(@alignCast(sample_data - 8)))[0];
+        const sample_len_fp = sample_len << 12;
+
+        const gba = @import("gba");
+        gba.debug.print("[{s}] f={d} ch5: src=0x{x:0>8} read=0x{x:0>8} (int={d}) len={d} loop={d} freq={d}", .{
+            stage,
+            frame_counter,
+            ch5.src,
+            ch5.read,
+            ch5.read >> 12,
+            sample_len,
+            loop_len,
+            ch5.freq,
+        }) catch {};
+
+        // Detect if past end
+        if (ch5.read >= sample_len_fp) {
+            gba.debug.print(" PAST_END!", .{}) catch {};
+        }
+        gba.debug.print("\n", .{}) catch {};
+    }
 }
 pub fn getModuleTable() [*]const mm.Word {
     return @ptrCast(module_table);
 }
-pub fn getSampleTable() [*]const mm.Word {
+pub fn getSampleTable() [*]const u32 {
     return @ptrCast(sample_table);
 }
 pub fn getSampleCount() mm.Word {

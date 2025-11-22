@@ -127,10 +127,12 @@ pub fn effectEx(sound: [*c]SoundEffect) mm.Sfxhand {
         if (tmp >= 0) break :blk mixer.mm_mix_channels + @as(usize, @intCast(tmp)) else break :blk mixer.mm_mix_channels - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
     }).*;
     // Set sample data address
-    const sample_offset: usize = @as(usize, @intCast(mm_gba.getSampleTable()[sound.*.sample_data.id & 65535]));
+    // The sample table stores u32 values, but they represent u16 offsets - use low 16 bits
+    const samp_tbl: [*]const u32 = mm_gba.getSampleTable();
+    const sample_offset: usize = @as(usize, @intCast(samp_tbl[sound.*.sample_data.id & 65535] & 0xFFFF));
     const sample_addr: [*c]mm.Byte = @as([*c]mm.Byte, @ptrCast(@alignCast(mm_gba.mp_solution))) + sample_offset;
     const sample: [*c]MasGbaSample = @as([*c]MasGbaSample, @ptrCast(@alignCast(sample_addr + @sizeOf(MasPrefix))));
-    mix_ch.*.src = @intFromPtr(&sample.*.data()[0]);
+    mix_ch.*.src = @intFromPtr(sample.*.data());
     // set pitch to original * pitch
     mix_ch.*.freq = (sound.*.rate * sample.*.default_frequency) >> (10 - 2);
     // reset read position
