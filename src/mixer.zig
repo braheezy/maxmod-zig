@@ -118,153 +118,163 @@ pub export fn mmMixerMix(sample_count: u32) linksection(".iwram") callconv(.C) v
         }
     }
 
-
     const left_frames = &left_frames_static;
     const right_frames = &right_frames_static;
+
     var frame_count: u32 = sample_count;
     if (frame_count > 1056) {
         frame_count = 1056;
     }
-    const padded_frames: u32 = (frame_count +% 1) & ~@as(u32, 1);
+
+    const padded_frames: u32 = (frame_count + 1) & ~@as(u32, 1);
     const words_per_channel: u32 = padded_frames >> 1;
-    const total_words: u32 = words_per_channel *% 2;
-    var mix_words: [*c]u32 = @as([*c]u32, @ptrCast(@alignCast(mm_mixbuffer)));
+    const total_words: usize = @intCast(words_per_channel * 2);
+
+    var mix_words: [*c]u32 = @ptrCast(@alignCast(mm_mixbuffer));
     zero_u32(mix_words, total_words);
 
-    zero_i32(@ptrCast(&left_frames[0]), padded_frames);
-    zero_i32(@ptrCast(&right_frames[0]), padded_frames);
+    zero_i32(@ptrCast(left_frames), @intCast(padded_frames));
+    zero_i32(@ptrCast(right_frames), @intCast(padded_frames));
+
     var total_left_volume: u32 = 0;
     var total_right_volume: u32 = 0;
-    {
-        var channel: [*c]volatile mm_mixer_channel = mm_mix_channels;
-        while (channel < mm_mixch_end) : (channel += 1) {
-            const src: u32 = channel.*.src;
-            if ((src & 0x80000000) != 0) {
-                continue;
-            }
-            const frequency: u32 = channel.*.freq;
-            if (frequency == 0) {
-                continue;
-            }
-            const step: u32 = mix_step(frequency);
-            if (step == 0) {
-                continue;
-            }
-            const sample_data: [*c]u8 = resolve_sample_data(src);
-            const sample_length: u32 = sample_length_from_data(sample_data);
-            const loop_length: i32 = loop_length_from_data(sample_data);
-            const sample_length_fp: u32 = sample_length << 12;
-            var loop_length_fp: u32 = 0;
-            const pan: u32 = channel.*.pan;
-            const volume: u32 = channel.*.vol;
 
-            const left_volume: u32 = ((256 -% pan) *% volume) >> 8;
-            const right_volume: u32 = (pan *% volume) >> 8;
-            total_left_volume +%= left_volume;
-            total_right_volume +%= right_volume;
-            const neutral_left: u32 = neutral_contribution(left_volume);
-            const neutral_right: u32 = neutral_contribution(right_volume);
-            var read_position: u32 = channel.*.read;
-            if (sample_length_fp == 0) {
-                channel.*.src = 0x80000000;
-                channel.*.read = 0;
-                continue;
-            }
-            if ((loop_length > 0) and (@as(u32, @intCast(loop_length)) <= sample_length)) {
-                loop_length_fp = @as(u32, @intCast(loop_length)) << 12;
-            }
-            var frame_index: u32 = 0;
-            // const is_centered: bool = left_volume == right_volume;
-            // var is_mono: bool = (left_volume == @as(u32, @bitCast(@as(c_int, 0)))) or (right_volume == @as(u32, @bitCast(@as(c_int, 0))));
-            while (frame_index < frame_count) {
-                if (read_position >= sample_length_fp) {
-                    if (loop_length_fp == 0) {
-                        channel.*.src = 0x80000000;
-                        read_position = 0;
-                        break;
-                    }
-                    // Loop the read position back: subtract loop_length_fp until within bounds
-                    // Use saturating subtraction to avoid infinite loops from underflow
-                    while (read_position >= sample_length_fp and loop_length_fp > 0) {
-                        if (read_position >= loop_length_fp) {
-                            read_position -= loop_length_fp;
-                        } else {
-                            // If read_position < loop_length_fp, we'd underflow, so stop looping
-                            break;
-                        }
-                    }
+    var channel: [*c]volatile mm_mixer_channel = mm_mix_channels;
+    while (channel < mm_mixch_end) : (channel += 1) {
+        const src: u32 = channel.*.src;
+        if ((src & 0x80000000) != 0) {
+            continue;
+        }
+
+        const frequency: u32 = channel.*.freq;
+        if (frequency == 0) {
+            continue;
+        }
+
+        const step: u32 = mix_step(frequency);
+        if (step == 0) {
+            continue;
+        }
+
+        const sample_data: [*c]u8 = resolve_sample_data(src);
+        const sample_length: u32 = sample_length_from_data(sample_data);
+        const loop_length: i32 = loop_length_from_data(sample_data);
+        const sample_length_fp: u32 = sample_length << 12;
+        var loop_length_fp: u32 = 0;
+
+        const pan: u32 = channel.*.pan;
+        const volume: u32 = channel.*.vol;
+        const left_volume: u32 = ((256 - pan) * volume) >> 8;
+        const right_volume: u32 = (pan * volume) >> 8;
+
+        total_left_volume += left_volume;
+        total_right_volume += right_volume;
+
+        const neutral_left: u32 = neutral_contribution(left_volume);
+        const neutral_right: u32 = neutral_contribution(right_volume);
+
+        var read_position: u32 = channel.*.read;
+
+        if (sample_length_fp == 0) {
+            channel.*.src = 0x80000000;
+            channel.*.read = 0;
+            continue;
+        }
+
+        if (loop_length > 0 and @as(u32, @intCast(loop_length)) <= sample_length) {
+            loop_length_fp = @as(u32, @intCast(loop_length)) << 12;
+        }
+
+        var frame_index: u32 = 0;
+        const is_centered = left_volume == right_volume;
+        const is_mono = (left_volume == 0 or right_volume == 0);
+
+        while (frame_index < frame_count) {
+            if (read_position >= sample_length_fp) {
+                if (loop_length_fp == 0) {
+                    channel.*.src = 0x80000000;
+                    read_position = 0;
+                    break;
                 }
-                const remaining_samples_fp: u32 = sample_length_fp -% read_position;
-                const frames_until_end: u32 = ((remaining_samples_fp +% step) -% 1) / step;
-                const frames_available: u32 = frame_count -% frame_index;
-                var frames_to_mix: u32 = if (frames_until_end < frames_available) frames_until_end else frames_available;
-                while (frames_to_mix >= 8) {
-                    var i: u32 = 0;
-                    while (i < 4) : (i += 1) {
-                        // Read two samples and advance position
-                        const s0: u32 = sample_data[read_position >> 12];
-                        read_position +%= step;
-                        const s1: u32 = sample_data[read_position >> 12];
-                        read_position +%= step;
-                        const dual_samples: u32 = s0 | (s1 << 16);
-
-                        const fidx: u32 = frame_index;
-                        const sample0: u32 = dual_samples & 0xFF;
-                        const sample1: u32 = (dual_samples >> 16) & 0xFF;
-                        if (left_volume > 0) {
-                            left_frames[fidx] += @as(i32, @bitCast((sample0 *% left_volume) >> 5));
-                            left_frames[fidx + 1] += @as(i32, @bitCast((sample1 *% left_volume) >> 5));
-                        }
-                        if (right_volume > 0) {
-                            right_frames[fidx] += @as(i32, @bitCast((sample0 *% right_volume) >> 5));
-                            right_frames[fidx + 1] += @as(i32, @bitCast((sample1 *% right_volume) >> 5));
-                        }
-                        frame_index +%= 2;
-                    }
-
-                    frames_to_mix -%= 8;
-                }
-                while (frames_to_mix > 0) {
-                    const sample_offset: u32 = read_position >> 12;
-                    const sample_value: u8 = sample_data[sample_offset];
-                    if (left_volume != 0) {
-                        left_frames[frame_index] += @as(i32, @bitCast((@as(u32, @bitCast(@as(c_uint, sample_value))) *% left_volume) >> 5));
-                    }
-                    if (right_volume != 0) {
-                        right_frames[frame_index] += @as(i32, @bitCast((@as(u32, @bitCast(@as(c_uint, sample_value))) *% right_volume) >> 5));
-                    }
-                    read_position +%= step;
-                    frame_index +%= 1;
-                    frames_to_mix -%= 1;
+                while (read_position >= sample_length_fp) {
+                    read_position -= loop_length_fp;
                 }
             }
-            channel.*.read = read_position;
 
-            if ((loop_length_fp == 0) and (frame_index < frame_count)) {
-                const remaining: u32 = frame_count -% frame_index;
+            const remaining_samples_fp: u32 = sample_length_fp - read_position;
+            const frames_until_end: u32 = (remaining_samples_fp + step - 1) / step;
+            const frames_available: u32 = frame_count - frame_index;
+            var frames_to_mix: u32 = if (frames_until_end < frames_available) frames_until_end else frames_available;
+
+            while (frames_to_mix >= 8) {
+                var i: u32 = 0;
+                while (i < 4) : (i += 1) {
+                    const dual_samples = read_dual_samples(sample_data, &read_position, step);
+                    const fidx = frame_index;
+
+                    if (is_centered and left_volume > 0) {
+                        mix_dual_mono(left_frames, fidx, dual_samples, left_volume);
+                        mix_dual_mono(right_frames, fidx, dual_samples, left_volume);
+                    } else if (!is_mono and left_volume > 0 and right_volume > 0) {
+                        mix_dual_mono(left_frames, fidx, dual_samples, left_volume);
+                        mix_dual_mono(right_frames, fidx, dual_samples, right_volume);
+                    } else if (left_volume > 0) {
+                        mix_dual_mono(left_frames, fidx, dual_samples, left_volume);
+                    } else if (right_volume > 0) {
+                        mix_dual_mono(right_frames, fidx, dual_samples, right_volume);
+                    }
+
+                    frame_index += 2;
+                }
+                frames_to_mix -= 8;
+            }
+
+            while (frames_to_mix > 0) {
+                const sample_offset: u32 = read_position >> 12;
+                const sample_value: u8 = sample_data[sample_offset];
+
                 if (left_volume != 0) {
-                    var i: u32 = 0;
-                    while (i < remaining) : (i +%= 1) {
-                        left_frames[frame_index +% i] += @as(i32, @bitCast(neutral_left));
-                    }
+                    left_frames[frame_index] += @as(i32, @intCast((@as(u32, sample_value) * left_volume) >> 5));
                 }
                 if (right_volume != 0) {
-                    var i: u32 = 0;
-                    while (i < remaining) : (i +%= 1) {
-                        right_frames[frame_index +% i] += @as(i32, @bitCast(neutral_right));
-                    }
+                    right_frames[frame_index] += @as(i32, @intCast((@as(u32, sample_value) * right_volume) >> 5));
+                }
+
+                read_position += step;
+                frame_index += 1;
+                frames_to_mix -= 1;
+            }
+        }
+
+        channel.*.read = read_position;
+
+        if (loop_length_fp == 0 and frame_index < frame_count) {
+            const remaining: u32 = frame_count - frame_index;
+            if (left_volume != 0) {
+                var i: u32 = 0;
+                while (i < remaining) : (i += 1) {
+                    left_frames[frame_index + i] += @as(i32, @intCast(neutral_left));
+                }
+            }
+            if (right_volume != 0) {
+                var i: u32 = 0;
+                while (i < remaining) : (i += 1) {
+                    right_frames[frame_index + i] += @as(i32, @intCast(neutral_right));
                 }
             }
         }
     }
+
     var frames_to_output: u32 = frame_count;
     if (frames_to_output > mm_mixlen) {
         frames_to_output = mm_mixlen;
     }
-    var padded_output_frames: u32 = (frames_to_output +% 1) & ~@as(u32, 1);
+
+    var padded_output_frames: u32 = (frames_to_output + 1) & ~@as(u32, 1);
     if (padded_output_frames > padded_frames) {
         padded_output_frames = padded_frames;
     }
+
     const words_to_output: u32 = padded_output_frames >> 1;
     const prvol_left: i32 = @as(i32, @intCast((total_left_volume >> 1) << 3));
     const prvol_right: i32 = @as(i32, @intCast((total_right_volume >> 1) << 3));
@@ -272,34 +282,36 @@ pub export fn mmMixerMix(sample_count: u32) linksection(".iwram") callconv(.C) v
     var left_cursor: [*c]u16 = mp_writepos;
     var right_cursor: [*c]u16 = mp_writepos + mm_mixlen;
 
-
     var pair: u32 = 0;
     while (pair < words_to_output) : (pair += 1) {
         var frame0: u32 = pair << 1;
         var frame1: u32 = frame0 + 1;
+
         if (frame0 >= padded_frames) {
             frame0 = padded_frames - 1;
         }
         if (frame1 >= padded_frames) {
             frame1 = if (padded_frames > 0) padded_frames - 1 else frame0;
         }
+
         const left0: i32 = (left_frames[frame0] - prvol_left) >> 3;
         const left1: i32 = (left_frames[frame1] - prvol_left) >> 3;
         const right0: i32 = (right_frames[frame0] - prvol_right) >> 3;
         const right1: i32 = (right_frames[frame1] - prvol_right) >> 3;
+
         const left_byte0: u8 = @as(u8, @bitCast(@as(i8, @truncate(clamp_pcm8(left0)))));
         const left_byte1: u8 = @as(u8, @bitCast(@as(i8, @truncate(clamp_pcm8(left1)))));
         const right_byte0: u8 = @as(u8, @bitCast(@as(i8, @truncate(clamp_pcm8(right0)))));
         const right_byte1: u8 = @as(u8, @bitCast(@as(i8, @truncate(clamp_pcm8(right1)))));
-        // Pack two 8-bit samples into one 16-bit word for output
+
         const left_word: u16 = @as(u16, left_byte0) | (@as(u16, left_byte1) << 8);
         const right_word: u16 = @as(u16, right_byte0) | (@as(u16, right_byte1) << 8);
-
 
         left_cursor[0] = left_word;
         left_cursor += 1;
         right_cursor[0] = right_word;
         right_cursor += 1;
+
         const left_word_index: u32 = pair << 1;
         mix_words[left_word_index] = (@as(u32, @intCast(left_frames[frame1] & 0xFFFF)) << 16) | @as(u32, @intCast(left_frames[frame0] & 0xFFFF));
         mix_words[left_word_index + 1] = (@as(u32, @intCast(right_frames[frame1] & 0xFFFF)) << 16) | @as(u32, @intCast(right_frames[frame0] & 0xFFFF));
