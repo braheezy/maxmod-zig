@@ -211,9 +211,9 @@ pub fn mmPlayModule(address: usize, mode: mm.Word, layer: LayerType) void {
     const samp_tbl_ptr: [*]const u32 = tables_ptr + instr_count;
     const patt_tbl_ptr: [*]const u32 = tables_ptr + instr_count + sampl_count;
     // Save pointers to the beginning of each offsets table region
-    layer_info.*.insttable = @constCast(@ptrCast(inst_tbl_ptr));
-    layer_info.*.samptable = @constCast(@ptrCast(samp_tbl_ptr));
-    layer_info.*.patttable = @constCast(@ptrCast(patt_tbl_ptr));
+    layer_info.*.insttable = @ptrCast(@constCast(inst_tbl_ptr));
+    layer_info.*.samptable = @ptrCast(@constCast(samp_tbl_ptr));
+    layer_info.*.patttable = @ptrCast(@constCast(patt_tbl_ptr));
 
     if (debug_enabled) {
         shim.debug_state.num_instr = instr_count;
@@ -307,18 +307,18 @@ pub const SampleInfo = extern struct {
     global_volume: mm.Byte = 0,
     av_rate: mm.Hword = 0,
     msl_id: mm.Hword = 0,
-    pub fn data(self: anytype) @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), u8) {
-        const Intermediate = @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), u8);
-        const ReturnType = @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), u8);
+    pub fn data(self: anytype) @import("std").zig.c_translation.helpers.FlexibleArrayType(@TypeOf(self), u8) {
+        const Intermediate = @import("std").zig.c_translation.helpers.FlexibleArrayType(@TypeOf(self), u8);
+        const ReturnType = @import("std").zig.c_translation.helpers.FlexibleArrayType(@TypeOf(self), u8);
         return @as(ReturnType, @ptrCast(@alignCast(@as(Intermediate, @ptrCast(self)) + 12)));
     }
 };
 // Pattern header + data
 pub const Pattern = packed struct {
     row_count: mm.Byte = 0,
-    pub fn pattern_data(self: anytype) @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), u8) {
-        const Intermediate = @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), u8);
-        const ReturnType = @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), u8);
+    pub fn pattern_data(self: anytype) @import("std").zig.c_translation.helpers.FlexibleArrayType(@TypeOf(self), u8) {
+        const Intermediate = @import("std").zig.c_translation.helpers.FlexibleArrayType(@TypeOf(self), u8);
+        const ReturnType = @import("std").zig.c_translation.helpers.FlexibleArrayType(@TypeOf(self), u8);
         return @as(ReturnType, @ptrCast(@alignCast(@as(Intermediate, @ptrCast(self)) + 1)));
     }
 };
@@ -939,7 +939,7 @@ pub fn mpp_Channel_NewNote(module_channel: [*c]mm.ModuleChannel, layer: [*c]mm.L
 pub inline fn mpp_SamplePointer(layer: [*c]mm.LayerInfo, sampleN: mm.Word) [*c]SampleInfo {
     var base: [*c]mm.Byte = @as([*c]mm.Byte, @ptrCast(@alignCast(layer.*.songadr)));
     const idx: usize = @as(usize, @intCast(sampleN -% @as(mm.Word, @bitCast(@as(i32, 1)))));
-    const off_ptr: [*]u8 = @constCast(@ptrCast(@alignCast(&base[@as(usize, 0)])));
+    const off_ptr: [*]u8 = @ptrCast(@alignCast(@constCast(&base[@as(usize, 0)])));
     const samptbl_bytes: [*]const u8 = @ptrCast(@alignCast(layer.*.samptable));
     const p: [*]const u8 = samptbl_bytes + (idx * 4);
     const off: usize = @as(usize, @intCast(std.mem.readInt(u32, p[0..4], .little)));

@@ -46,27 +46,27 @@ const mp_bpm_divisors = struct {
     const static: [8]mm.Word = [8]mm.Word{ 20302, 26280, 33447, 39420, 45393, 52560, 66895, 78840 };
 };
 
-const FIFO_A_ADDR = gba.mem.io + 0x00A0;
+const FIFO_A_ADDR = gba.mem.io_address + 0x00A0;
 const fifo_a_ptr: *volatile u32 = @ptrFromInt(FIFO_A_ADDR);
-const FIFO_B_ADDR = gba.mem.io + 0x00A4;
+const FIFO_B_ADDR = gba.mem.io_address + 0x00A4;
 const fifo_b_ptr: *volatile u32 = @ptrFromInt(FIFO_B_ADDR);
-const SOUNDCNT_H_ADDR = gba.mem.io + 0x0082;
+const SOUNDCNT_H_ADDR = gba.mem.io_address + 0x0082;
 const soundcnt_h_ptr: *volatile u16 = @ptrFromInt(SOUNDCNT_H_ADDR);
-const SOUNDCNT_X_ADDR = gba.mem.io + 0x0084;
+const SOUNDCNT_X_ADDR = gba.mem.io_address + 0x0084;
 const soundcnt_x_ptr: *volatile u16 = @ptrFromInt(SOUNDCNT_X_ADDR);
-const DMA1SAD_ADDR = gba.mem.io + 0x00BC;
+const DMA1SAD_ADDR = gba.mem.io_address + 0x00BC;
 const dma1sad_ptr: *volatile u32 = @ptrFromInt(DMA1SAD_ADDR);
-const DMA1DAD_ADDR = gba.mem.io + 0x00C0;
+const DMA1DAD_ADDR = gba.mem.io_address + 0x00C0;
 const dma1dad_ptr: *volatile u32 = @ptrFromInt(DMA1DAD_ADDR);
-const DMA1CNT_ADDR = gba.mem.io + 0x00C4;
+const DMA1CNT_ADDR = gba.mem.io_address + 0x00C4;
 const dma1cnt_ptr: *volatile u32 = @ptrFromInt(DMA1CNT_ADDR);
-const DMA2SAD_ADDR = gba.mem.io + 0x00C8;
+const DMA2SAD_ADDR = gba.mem.io_address + 0x00C8;
 const dma2sad_ptr: *volatile u32 = @ptrFromInt(DMA2SAD_ADDR);
-const DMA2DAD_ADDR = gba.mem.io + 0x00CC;
+const DMA2DAD_ADDR = gba.mem.io_address + 0x00CC;
 const dma2dad_ptr: *volatile u32 = @ptrFromInt(DMA2DAD_ADDR);
-const DMA2CNT_ADDR = gba.mem.io + 0x00D0;
+const DMA2CNT_ADDR = gba.mem.io_address + 0x00D0;
 const dma2cnt_ptr: *volatile u32 = @ptrFromInt(DMA2CNT_ADDR);
-const TM0CNT_ADDR = gba.mem.io + 0x0100;
+const TM0CNT_ADDR = gba.mem.io_address + 0x0100;
 const tm0cnt_ptr: *volatile u32 = @ptrFromInt(TM0CNT_ADDR);
 
 // VBL wrapper, used to reset DMA. It needs the highest priority.

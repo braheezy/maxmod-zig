@@ -1,11 +1,8 @@
 .{
     .name = .maxmod_zig,
-
     .version = "0.0.0",
-
     .fingerprint = 0x21ae6f34b1699440, // Changing this has security and trust implications.
-
-    .minimum_zig_version = "0.14.1",
+    .minimum_zig_version = "0.16.0-dev.1262+be4eaed7c",
 
     .dependencies = .{
         // .ziggba = .{
@@ -15,6 +12,11 @@
         // Using local module import for my-ZigGBA to avoid running its build script
         .mmutil_zig = .{
             .path = "../mmutil-zig",
+        },
+        .ziggba = .{
+            .path = "../pine-ziggba",
+            // .url = "git+https://github.com/braheezy/ziggba.git#669e2c52edcbfd63c8dc7df972cb7fc4ef0d33c6",
+            // .hash = "ziggba-0.0.0-t2qCXt7MCAC6JciwgLCd0Qwmlc5jS8Jl4ORlnOYM2QB0",
         },
     },
     .paths = .{
