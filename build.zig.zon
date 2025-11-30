@@ -5,18 +5,12 @@
     .minimum_zig_version = "0.16.0-dev.1262+be4eaed7c",
 
     .dependencies = .{
-        // .ziggba = .{
-        //     .url = "git+https://github.com/braheezy/ZigGBA.git#13fd985c13881a46d0b2fd8c54c9ff8a45eef798",
-        //     .hash = "ziggba-0.0.0-t2qCXqEFBACiS7kFT28YBRkvZWo6JsZ2HEGRRcn1Poqc",
-        // },
-        // Using local module import for my-ZigGBA to avoid running its build script
         .mmutil_zig = .{
             .path = "../mmutil-zig",
         },
         .ziggba = .{
-            .path = "../pine-ziggba",
-            // .url = "git+https://github.com/braheezy/ziggba.git#669e2c52edcbfd63c8dc7df972cb7fc4ef0d33c6",
-            // .hash = "ziggba-0.0.0-t2qCXt7MCAC6JciwgLCd0Qwmlc5jS8Jl4ORlnOYM2QB0",
+            .url = "git+https://github.com/braheezy/ziggba.git#a7d2f2bd4b3683367ca9a42cf85a767eecba29a5",
+            .hash = "ziggba-0.0.0-t2qCXogpDwCRWhEy1jq72ybHrqhOOA5JTlY_pNAkbqFa",
         },
     },
     .paths = .{
