@@ -21,3 +21,7 @@ TBD. See [`examples`](./examples/) for now.
 ## Showcase
 
 **XM**
+
+https://github.com/user-attachments/assets/14470f19-78bb-4a6f-a6bd-f25bc7c5f9b8
+
+https://github.com/user-attachments/assets/7150353a-7fc0-476f-bac0-658f01ab42d6
