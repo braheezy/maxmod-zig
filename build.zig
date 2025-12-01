@@ -30,7 +30,7 @@ pub fn build(b: *std.Build) void {
 
     // Handle file argument
     const file_args = b.args orelse &[_][]const u8{};
-    const selected_xm_file: []const u8 = if (file_args.len > 0) file_args[0] else "bad_apple.xm";
+    const selected_xm_file: []const u8 = if (file_args.len > 0) file_args[0] else "assets/bad_apple.xm";
 
     createXmExample(
         b,
