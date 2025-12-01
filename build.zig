@@ -1,5 +1,5 @@
 const std = @import("std");
-const ziggba = @import("my-ZigGBA/src/build/build.zig");
+const ziggba = @import("ziggba");
 
 const gba_thumb_target_query = blk: {
     var t = std.Target.Query{
@@ -19,13 +19,6 @@ pub fn build(b: *std.Build) void {
 
     // Get dependencies
     const mmutil_dep = b.dependency("mmutil_zig", .{});
-    // Avoid executing my-ZigGBA's top-level build (which builds its examples)
-    // by wiring the GBA module directly from the local source tree.
-    const gba_mod = b.createModule(.{
-        .root_source_file = b.path("my-ZigGBA/src/gba/gba.zig"),
-        .target = gba_target,
-        .optimize = optimize,
-    });
 
     // Setup maxmod
     const maxmod_zig = b.addModule("maxmod", .{
@@ -33,7 +26,7 @@ pub fn build(b: *std.Build) void {
         .target = gba_target,
         .optimize = optimize,
     });
-    maxmod_zig.addImport("gba", gba_mod);
+    maxmod_zig.addObjectFile(b.path("src/mixer_asm.o"));
 
     // Handle file argument
     const file_args = b.args orelse &[_][]const u8{};
@@ -41,8 +34,6 @@ pub fn build(b: *std.Build) void {
 
     createXmExample(
         b,
-        optimize,
-        gba_mod,
         mmutil_dep,
         selected_xm_file,
         maxmod_zig,
@@ -51,8 +42,6 @@ pub fn build(b: *std.Build) void {
 
 fn createXmExample(
     b: *std.Build,
-    optimize: std.builtin.OptimizeMode,
-    gba_mod: *std.Build.Module,
     mmutil_dep: *std.Build.Dependency,
     selected_xm_file: []const u8,
     maxmod_zig: *std.Build.Module,
@@ -68,10 +57,17 @@ fn createXmExample(
         "-oexamples/xm/soundbank.bin",
     });
 
-    // XM ROM
-    const xm_exe = ziggba.addGBAExecutable(b, gba_mod, "xm", "examples/xm/main.zig");
+    const gba_b = ziggba.GbaBuild.create(b);
 
-    xm_exe.root_module.addImport("maxmod", maxmod_zig);
+    // XM ROM
+    const xm_exe = gba_b.addExecutable(.{
+        .name = "xm",
+        .root_source_file = b.path("examples/xm/main.zig"),
+    });
+
+    xm_exe.step.root_module.addImport("maxmod", maxmod_zig);
+    // Use the same gba module that addExecutable uses internally
+    maxmod_zig.addImport("gba", xm_exe.gba_module);
 
     const xm_opts = b.addOptions();
     xm_opts.addOption([]const u8, "xm_name", std.fs.path.basename(selected_xm_file));
@@ -80,20 +76,11 @@ fn createXmExample(
     const build_options_mod = xm_opts.createModule();
     maxmod_zig.addImport("build_options", build_options_mod);
 
-    xm_exe.root_module.addImport("build_options", build_options_mod);
-
-    const mod_maxmod_zig = b.createModule(.{ .root_source_file = b.path("src/maxmod.zig"), .target = gba_target, .optimize = optimize });
-    mod_maxmod_zig.addImport("gba", gba_mod);
-    mod_maxmod_zig.addImport("build_options", build_options_mod);
-
-    // Link ASM mixer if requested, otherwise Zig mixer is used
-    if (use_asm_mixer) {
-        xm_exe.addObjectFile(b.path("mixer_asm.o"));
-    }
+    xm_exe.step.root_module.addImport("build_options", build_options_mod);
 
     // Hook into top-level steps and install artifacts
     xm_step.dependOn(&xm_create_soundbank.step);
-    xm_step.dependOn(&xm_exe.step);
+    xm_step.dependOn(&xm_exe.step.step);
 
     xm_step.dependOn(b.default_step);
 }
