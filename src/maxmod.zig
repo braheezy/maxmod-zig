@@ -4,6 +4,12 @@ pub const gba = @import("gba/main_gba.zig");
 pub const mixer = @import("gba/mixer.zig");
 pub const shim = @import("shim.zig");
 
+// Zig replacements for weak symbols in mixer_asm.o
+// Importing this ensures the strong symbols get linked
+comptime {
+    _ = @import("gba/mixer_interop.zig");
+}
+
 pub const Word = u32;
 pub const Hword = u16;
 pub const Sword = i32;
