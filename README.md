@@ -10,8 +10,12 @@ This is a WIP Zig port of the [MaxMod](https://github.com/blocksds/maxmod) GBA a
 # Build the library
 zig build
 
-# Build and run SFX example with custom WAV
-zig build xm -- your_audio.xm
+# Build and run a single asset (XM, MOD, or WAV) and embed it in the
+# unified ROM. The asset type is derived from the file extension.
+# Add `-Dassetdebug=true` to keep the debug instrumentation enabled.
+zig build -- your_audio.xm
+zig build -- your_audio.mod
+zig build -- your_audio.wav
 ```
 
 ### In Your Project

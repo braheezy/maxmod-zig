@@ -4,7 +4,7 @@ const shim = @import("../shim.zig");
 const gba = @import("gba");
 
 // Debug configuration - can be toggled at build time
-const debug_enabled = @import("build_options").xm_debug;
+const debug_enabled = @import("build_options").asset_debug;
 var set_debug_budget: u32 = 64;
 const dbg_vblank = false;
 

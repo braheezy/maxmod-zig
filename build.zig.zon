@@ -9,8 +9,9 @@
             .path = "../mmutil-zig",
         },
         .ziggba = .{
-            .url = "git+https://github.com/braheezy/ziggba.git#a7d2f2bd4b3683367ca9a42cf85a767eecba29a5",
-            .hash = "ziggba-0.0.0-t2qCXogpDwCRWhEy1jq72ybHrqhOOA5JTlY_pNAkbqFa",
+            .path = "../pine-ziggba",
+            // .url = "git+https://github.com/braheezy/ziggba.git#a7d2f2bd4b3683367ca9a42cf85a767eecba29a5",
+            // .hash = "ziggba-0.0.0-t2qCXogpDwCRWhEy1jq72ybHrqhOOA5JTlY_pNAkbqFa",
         },
     },
     .paths = .{

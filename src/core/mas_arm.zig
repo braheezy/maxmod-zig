@@ -4,7 +4,7 @@ const mm_gba = @import("../gba/main_gba.zig");
 const mas = @import("mas.zig");
 const tables = @import("tables.zig");
 
-const debug_enabled = @import("build_options").xm_debug;
+const debug_enabled = @import("build_options").asset_debug;
 const COMPR_FLAG_NOTE: mm.Word = 1;
 const COMPR_FLAG_INSTR: mm.Word = 1 << 1;
 const COMPR_FLAG_VOLC: mm.Word = 1 << 2;

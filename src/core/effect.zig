@@ -36,9 +36,9 @@ const MasGbaSample = extern struct {
     reserved: mm.Byte = 0,
     default_frequency: mm.Hword = 0,
 
-    pub fn data(self: anytype) @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), u8) {
-        const Intermediate = @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), u8);
-        const ReturnType = @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), u8);
+    pub fn data(self: anytype) @import("std").zig.c_translation.helpers.FlexibleArrayType(@TypeOf(self), u8) {
+        const Intermediate = @import("std").zig.c_translation.helpers.FlexibleArrayType(@TypeOf(self), u8);
+        const ReturnType = @import("std").zig.c_translation.helpers.FlexibleArrayType(@TypeOf(self), u8);
         return @as(ReturnType, @ptrCast(@alignCast(@as(Intermediate, @ptrCast(self)) + 12)));
     }
 };
@@ -79,8 +79,8 @@ pub fn effect(sample_ID: mm.Word) mm.Sfxhand {
 ///! Play sound effect with specified parameters
 pub fn effectEx(sound: [*c]SoundEffect) mm.Sfxhand {
     if (sound.*.sample_data.id >= mm_gba.getSampleCount()) return 0;
-    const sfx_channel = -1;
-    var mix_channel = 255;
+    var sfx_channel: i32 = -1;
+    var mix_channel: i32 = 255;
     var sfx_count: mm.Byte = undefined;
     var reused_handle: bool = false;
     if (sound.*.handle != 0) {
@@ -102,13 +102,19 @@ pub fn effectEx(sound: [*c]SoundEffect) mm.Sfxhand {
         sfx_count = sfx_counter;
         sfx_counter +%= 1;
     }
+    if (sfx_channel < 0) return 0;
     // Generate new handle and register SFX information
-    const handle: mm.Sfxhand = (sfx_count << 8) | (sfx_channel + 1);
-    const sfx_channel_idx = @as(usize, @intCast(sfx_channel));
-    sfx_channels[sfx_channel_idx].mix_channel = mix_channel + 1;
+    const sfx_channel_index: u5 = @intCast(sfx_channel);
+    const sfx_channel_word: mm.Word = @as(mm.Word, sfx_channel_index);
+    const handle_bits: mm.Word = (@as(mm.Word, sfx_count) << 8) | (sfx_channel_word + 1);
+    const handle: mm.Sfxhand = @intCast(handle_bits);
+    const sfx_channel_idx = @as(usize, sfx_channel_index);
+    const mix_channel_byte: mm.Byte = @intCast(mix_channel + 1);
+    sfx_channels[sfx_channel_idx].mix_channel = mix_channel_byte;
     sfx_channels[sfx_channel_idx].counter = sfx_count;
     // Mark sfx channel as used
-    sfx_bitmask |= 1 << sfx_channel;
+    const sfx_bit_flag = @as(mm.Word, 1) << sfx_channel_index;
+    sfx_bitmask |= sfx_bit_flag;
     // Setup active channel
     const act_ch: [*c]mm.ActiveChannel = &(blk: {
         const tmp = mix_channel;
@@ -127,15 +133,17 @@ pub fn effectEx(sound: [*c]SoundEffect) mm.Sfxhand {
         if (tmp >= 0) break :blk mixer.mm_mix_channels + @as(usize, @intCast(tmp)) else break :blk mixer.mm_mix_channels - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
     }).*;
     // Set sample data address
-    const sample_offset: usize = @as(usize, @intCast(mm_gba.getSampleTable()[sound.*.sample_data.id & 65535]));
-    const sample_addr: [*c]mm.Byte = @as([*c]mm.Byte, @ptrCast(@alignCast(mm_gba.mp_solution))) + sample_offset;
+    const sample_index = sound.*.sample_data.id & 65535;
+    const sample_offset: usize = @as(usize, @intCast(mm_gba.getSampleTable()[sample_index]));
+    const bank_base_addr = @as(usize, @intCast(@intFromPtr(mm_gba.bank_base)));
+    const sample_addr: [*c]mm.Byte = @as([*c]mm.Byte, @ptrFromInt(bank_base_addr + sample_offset));
     const sample: [*c]MasGbaSample = @as([*c]MasGbaSample, @ptrCast(@alignCast(sample_addr + @sizeOf(MasPrefix))));
     mix_ch.*.src = @intFromPtr(&sample.*.data()[0]);
     // set pitch to original * pitch
     mix_ch.*.freq = (sound.*.rate * sample.*.default_frequency) >> (10 - 2);
     // reset read position
     mix_ch.*.read = 0;
-    mix_ch.*.vol = (sound.*.volume * sfx_mastervolume) >> 10;
+    mix_ch.*.vol = @intCast((sound.*.volume * sfx_mastervolume) >> 10);
     mix_ch.*.pan = sound.*.panning;
     return handle;
 }
@@ -182,8 +190,8 @@ pub fn effectCancel(handle: mm.Sfxhand) mm.Word {
     }).*;
     act_ch.*._type = 2;
     act_ch.*.fvol = 0;
-    const sfx_channel: mm.Word = (handle & 255) - 1;
-    clearSfxChannel(@intCast(sfx_channel));
+    const sfx_channel: mm.Word = @as(mm.Word, handle & 255) - 1;
+    clearSfxChannel(sfx_channel);
     mixer.stopChannel(mix_channel);
     return 1;
 }
@@ -196,7 +204,7 @@ pub fn effectRelease(handle: mm.Sfxhand) void {
         if (tmp >= 0) break :blk mm_gba.achannels + @as(usize, @intCast(tmp)) else break :blk mm_gba.achannels - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) +% -1));
     }).*;
     act_ch.*._type = 2;
-    const sfx_channel: mm.Word = (handle & 255) - 1;
+    const sfx_channel: mm.Word = @as(mm.Word, handle & 255) - 1;
     clearSfxChannel(sfx_channel);
 }
 ///! Set effect volume (0..255)
@@ -250,17 +258,19 @@ pub fn resetEffects() void {
 pub fn updateEffects() void {
     var new_bitmask: mm.Word = 0;
 
-    var i: usize = 0;
-    while (i < EFFECT_CHANNELS) : (i += 1) {
-        if ((sfx_bitmask & (@as(usize, 1) << @intCast(i))) == 0) continue;
-        const mix_channel = sfx_channels[i].mix_channel - 1;
+    var i: u5 = 0;
+    while (i < EFFECT_CHANNEL_LIMIT) : (i += 1) {
+        const sfx_idx = @as(usize, i);
+        const active_mask = @as(mm.Word, 1) << i;
+        if ((sfx_bitmask & active_mask) == 0) continue;
+        const mix_channel = sfx_channels[sfx_idx].mix_channel - 1;
         if (mix_channel < 0) continue;
         const mix_ch: [*c]volatile mm.MixerChannel = &(blk: {
             const tmp = mix_channel;
             if (tmp >= 0) break :blk mixer.mm_mix_channels + @as(usize, @intCast(tmp)) else break :blk mixer.mm_mix_channels - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) - 1));
         }).*;
         if ((mix_ch.*.src & shim.MIXCH_GBA_SRC_STOPPED) == 0) {
-            new_bitmask |= @as(usize, 1) << @intCast(i);
+            new_bitmask |= @as(mm.Word, 1) << i;
             continue;
         }
         const act_ch: [*c]mm.ActiveChannel = &(blk: {
@@ -269,8 +279,8 @@ pub fn updateEffects() void {
         }).*;
         act_ch.*._type = 0;
         act_ch.*.flags = 0;
-        sfx_channels[i].counter = 0;
-        sfx_channels[i].mix_channel = 0;
+        sfx_channels[sfx_idx].counter = 0;
+        sfx_channels[sfx_idx].mix_channel = 0;
     }
     shim.debug_state.new_bitmask = new_bitmask;
 
@@ -290,22 +300,24 @@ pub fn getMixChannelIndex(handle: mm.Sfxhand) i32 {
     return state.*.mix_channel - 1;
 }
 ///! Clear sfx channel entry and bitmask
-pub fn clearSfxChannel(sfx_channel: u32) void {
-    sfx_channels[sfx_channel].counter = 0;
-    sfx_channels[sfx_channel].mix_channel = 0;
-    const bit_flag: mm.Word = 1 << sfx_channel;
+pub fn clearSfxChannel(sfx_channel: mm.Word) void {
+    const sfx_channel_index: u5 = @intCast(sfx_channel);
+    const sfx_channel_idx = @as(usize, sfx_channel_index);
+    sfx_channels[sfx_channel_idx].counter = 0;
+    sfx_channels[sfx_channel_idx].mix_channel = 0;
+    const bit_flag: mm.Word = @as(mm.Word, 1) << sfx_channel_index;
     sfx_bitmask &= ~bit_flag;
 }
 ///! Return index to free effect channel. If no channels are free, it returns -1.
 pub fn getFreeSfxChannel() i32 {
-    {
-        var i = 0;
-        while (i < EFFECT_CHANNELS) : (i += 1) {
-            if ((sfx_bitmask & (1 << i)) != 0) continue;
-            return i;
-        }
+    var i: u5 = 0;
+    while (i < EFFECT_CHANNEL_LIMIT) : (i += 1) {
+        const mask = @as(mm.Word, 1) << i;
+        if ((sfx_bitmask & mask) != 0) continue;
+        return @as(i32, i);
     }
     return -1;
 }
 
 const EFFECT_CHANNELS = 16;
+const EFFECT_CHANNEL_LIMIT: u5 = @as(u5, EFFECT_CHANNELS);

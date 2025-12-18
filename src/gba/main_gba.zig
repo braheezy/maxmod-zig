@@ -6,7 +6,7 @@ const mas = @import("../core/mas.zig");
 const mixer = @import("mixer.zig");
 
 // Debug configuration - can be toggled at build time
-const debug_enabled = @import("build_options").xm_debug;
+const debug_enabled = @import("build_options").asset_debug;
 
 pub export var mm_ch_mask: u32 = 0;
 pub extern fn mmMixerMix(samples_count: mm.Word) void;

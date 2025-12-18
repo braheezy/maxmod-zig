@@ -115,7 +115,7 @@ pub const UpdEvent = struct {
     bits: u32,
 };
 // Debug configuration - can be toggled at build time
-const debug_enabled = @import("build_options").xm_debug;
+const debug_enabled = @import("build_options").asset_debug;
 const spv_log_enabled = false;
 const umix_log_enabled = false;
 const umix_trace_channel: u8 = 0;

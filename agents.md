@@ -17,7 +17,7 @@
 - Logs must be overwritten in place (`c.log`, `zig.log`, etc.).
 
 ## Debug scaffolding status
-- Release builds contain **zero** debug side-effects; every capture helper bails when `xm_debug` is false, so normal playback timing matches the C loop.
+- Release builds contain **zero** debug side-effects; every capture helper bails when `asset_debug` is false, so normal playback timing matches the C loop.
 - Debug builds (`-Dxmdebug`) emit 90-frame `[MXSUM]` mixer hashes plus `[MXCH]` dumps for the first three frames. Hashing normalises mixer sources relative to the MAS bank and preserves STOP markers, so C/Zig logs can be diffed frame-by-frame.
 - The Zig main loop now gates each frame on `gba.display.naiveVSync()`, mirroring the C reference’s `VBlankIntrWait` cadence without relying on print overhead.
 
@@ -32,12 +32,12 @@
    - Follow the call chain from `mm_gba.frame()` down through `mppProcessTick`, `mpp_Update_ACHN_notest_*`, and `mmMixerMix` and note where the Zig path diverges from the C variables (especially `mix_ch[0].src/read/vol`).
 2. **Patch the Zig runtime**
    - Focus on the channel-stop path in `src/core/mas.zig`/`src/core/mas_arm.zig` and ensure the STOP sentinel is written exactly like the C mixer when `volume==0 && !KEYON` or when the mixer loop sees the sample end.
-   - Keep all debug writes behind `xm_debug` guards; trim or relocate once the fix is verified.
+- Keep all debug writes behind `asset_debug` guards; trim or relocate once the fix is verified.
 3. **Validate**
    - Rebuild release (`zig build xm`), run the ROM, and confirm the hashes stay aligned through frame 110 with no audible tick.
    - Remove any temporary logging once parity is confirmed, then rerun on additional XM samples.
 
 ## Reminders
-- Never rely on hidden formatting or capture work in release builds—check `xm_debug` before touching buffers.
+- Never rely on hidden formatting or capture work in release builds—check `asset_debug` before touching buffers.
 - If the CLI shell reports unexpected filesystem changes or denied access (outside the known `/Users/michaelbraha/.cache/` warnings), stop and ask for guidance.
 - Keep the mgba runtime under 3 seconds unless the user explicitly asks for longer captures.
