@@ -7,7 +7,7 @@ const tables = @import("tables.zig");
 const gba = @import("gba");
 const std = @import("std");
 // Debug configuration - can be toggled at build time
-const debug_enabled = @import("build_options").xm_debug;
+const debug_enabled = @import("build_options").asset_debug;
 
 inline fn readLe32(ptr: anytype) u32 {
     const bytes: [*]const u8 = @ptrCast(ptr);

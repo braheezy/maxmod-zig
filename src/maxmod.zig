@@ -1,3 +1,4 @@
+pub const asset_defs = @import("asset_type.zig");
 pub const sfx = @import("core/effect.zig");
 pub const mas = @import("core/mas.zig");
 pub const gba = @import("gba/main_gba.zig");
@@ -85,9 +86,9 @@ pub const MasHead = extern struct {
     channel_panning: [32]Byte = @import("std").mem.zeroes([32]Byte),
     sequence: [200]Byte = @import("std").mem.zeroes([200]Byte),
 
-    pub fn tables(self: anytype) @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), ?*anyopaque) {
-        const Intermediate = @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), u8);
-        const ReturnType = @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), ?*anyopaque);
+    pub fn tables(self: anytype) @import("std").zig.c_translation.helpers.FlexibleArrayType(@TypeOf(self), ?*anyopaque) {
+        const Intermediate = @import("std").zig.c_translation.helpers.FlexibleArrayType(@TypeOf(self), u8);
+        const ReturnType = @import("std").zig.c_translation.helpers.FlexibleArrayType(@TypeOf(self), ?*anyopaque);
         return @as(ReturnType, @ptrCast(@alignCast(@as(Intermediate, @ptrCast(self)) + 276)));
     }
 };
