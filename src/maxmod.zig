@@ -4,6 +4,12 @@ pub const gba = @import("gba/main_gba.zig");
 pub const mixer = @import("gba/mixer.zig");
 pub const shim = @import("shim.zig");
 
+// Zig replacements for weak symbols in mixer_asm.o
+// Importing this ensures the strong symbols get linked
+comptime {
+    _ = @import("gba/mixer_interop.zig");
+}
+
 pub const Word = u32;
 pub const Hword = u16;
 pub const Sword = i32;
@@ -37,7 +43,7 @@ pub const LayerInfo = extern struct {
     // table of offsets (from MasHead base) to pattern data
     patttable: [*c]Word = @import("std").mem.zeroes([*c]Word),
     // pointer to the current MAS module being played
-    songadr: [*c]MasHead = @import("std").mem.zeroes([*c]MasHead),
+    songadr: *const MasHead = undefined,
 
     flags: Byte = 0,
     oldeffects: Byte = 0,

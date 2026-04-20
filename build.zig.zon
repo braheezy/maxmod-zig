@@ -9,8 +9,8 @@
             .path = "../mmutil-zig",
         },
         .ziggba = .{
-            .url = "git+https://github.com/braheezy/ziggba.git#a7d2f2bd4b3683367ca9a42cf85a767eecba29a5",
-            .hash = "ziggba-0.0.0-t2qCXogpDwCRWhEy1jq72ybHrqhOOA5JTlY_pNAkbqFa",
+            .url = "git+https://github.com/braheezy/ziggba.git#800ae0705e81e0f9c7a22efcf11059925f45f9cd",
+            .hash = "ziggba-0.0.0-t2qCXlT9DQCrwE0YzBgm2oxJgtCWZZqbaQT0_2LVo43h",
         },
     },
     .paths = .{
