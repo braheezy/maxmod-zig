@@ -43,7 +43,7 @@ pub const LayerInfo = extern struct {
     // table of offsets (from MasHead base) to pattern data
     patttable: [*c]Word = @import("std").mem.zeroes([*c]Word),
     // pointer to the current MAS module being played
-    songadr: [*c]MasHead = @import("std").mem.zeroes([*c]MasHead),
+    songadr: *const MasHead = undefined,
 
     flags: Byte = 0,
     oldeffects: Byte = 0,

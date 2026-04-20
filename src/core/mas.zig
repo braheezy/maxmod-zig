@@ -177,7 +177,7 @@ pub fn mmSetModulePitch(pitch: mm.Word) void {
     mm_masterpitch = local_pitch;
 }
 pub fn mmPlayModule(address: usize, mode: mm.Word, layer: LayerType) void {
-    const header: [*c]mm.MasHead = @ptrFromInt(address + @sizeOf(Prefix));
+    const header: *const mm.MasHead = @ptrFromInt(address + @sizeOf(Prefix));
     mpp_clayer = layer;
     var layer_info: [*c]mm.LayerInfo = undefined;
     var channels: [*c]mm.ModuleChannel = undefined;
@@ -196,8 +196,8 @@ pub fn mmPlayModule(address: usize, mode: mm.Word, layer: LayerType) void {
     mpp_resetchannels(channels, num_ch);
 
     // Read MAS header fields byte-wise to avoid layout drift
-    const instr_count: u8 = header.*.instr_count;
-    const sampl_count: u8 = header.*.sampl_count;
+    const instr_count: u8 = header.instr_count;
+    const sampl_count: u8 = header.sampl_count;
 
     // Setup instrument, sample and pattern tables using the 32-bit offsets
     // stored in MasHead->tables[]. The layout is:
@@ -436,7 +436,7 @@ pub fn mppProcessTick() linksection(".iwram") void {
 }
 pub fn mpp_Process_VolumeCommand(layer: [*c]mm.LayerInfo, act_ch: ?[*c]mm.ActiveChannel, channel: [*c]mm.ModuleChannel, period: mm.Word) mm.Word {
     const tick: mm.Byte = layer.*.tick;
-    const header: [*c]mm.MasHead = layer.*.songadr;
+    const header: *const mm.MasHead = layer.*.songadr;
     var volcmd: mm.Byte = channel.*.volcmd;
     // XM commands
     if ((header.*.flags & MAS_HEADER_FLAG_XM_MODE) != 0) {
@@ -449,7 +449,7 @@ pub fn mpp_Process_VolumeCommand(layer: [*c]mm.LayerInfo, act_ch: ?[*c]mm.Active
             // Volume slide
             if (tick == 0) return period;
             var volume: i32 = @intCast(channel.*.volume);
-            const mem: mm.Byte = channel.*.memory[MPP_XM_VCMD_MEM_VS];
+            const mem: mm.Byte = channel[0].memory[MPP_XM_VCMD_MEM_VS];
             if (volcmd < 112) {
                 volcmd -%= 96;
                 var delta: i32 = undefined;
@@ -457,7 +457,7 @@ pub fn mpp_Process_VolumeCommand(layer: [*c]mm.LayerInfo, act_ch: ?[*c]mm.Active
                     delta = mem & 15;
                 } else {
                     delta = volcmd;
-                    channel.*.memory[MPP_XM_VCMD_MEM_VS] = (mem & ~@as(u8, 15)) | volcmd;
+                    channel[0].memory[MPP_XM_VCMD_MEM_VS] = (mem & ~@as(u8, 15)) | volcmd;
                 }
                 volume -= @intCast(delta);
                 if (volume < 0) {
@@ -471,7 +471,7 @@ pub fn mpp_Process_VolumeCommand(layer: [*c]mm.LayerInfo, act_ch: ?[*c]mm.Active
                     delta = mem >> 4;
                 } else {
                     delta = volcmd;
-                    channel.*.memory[MPP_XM_VCMD_MEM_VS] = (volcmd << 4) | (mem & 15);
+                    channel[0].memory[MPP_XM_VCMD_MEM_VS] = (volcmd << 4) | (mem & 15);
                 }
                 volume += delta;
                 if (volume > 64) {
@@ -483,7 +483,7 @@ pub fn mpp_Process_VolumeCommand(layer: [*c]mm.LayerInfo, act_ch: ?[*c]mm.Active
             // Fine volume slide
             if (tick != 0) return period;
             var volume: i32 = @intCast(channel.*.volume);
-            const mem: mm.Byte = channel.*.memory[MPP_XM_VCMD_MEM_FVS];
+            const mem: mm.Byte = channel[0].memory[MPP_XM_VCMD_MEM_FVS];
             if (volcmd < 144) {
                 // mppuv_xm_volslide_down
                 volcmd -%= 128;
@@ -492,7 +492,7 @@ pub fn mpp_Process_VolumeCommand(layer: [*c]mm.LayerInfo, act_ch: ?[*c]mm.Active
                     delta = mem & 15;
                 } else {
                     delta = volcmd;
-                    channel.*.memory[MPP_XM_VCMD_MEM_FVS] = (mem & ~@as(u8, 15)) | volcmd;
+                    channel[0].memory[MPP_XM_VCMD_MEM_FVS] = (mem & ~@as(u8, 15)) | volcmd;
                 }
                 volume -= delta;
                 if (volume < 0) {
@@ -506,7 +506,7 @@ pub fn mpp_Process_VolumeCommand(layer: [*c]mm.LayerInfo, act_ch: ?[*c]mm.Active
                     delta = mem >> 4;
                 } else {
                     delta = volcmd;
-                    channel.*.memory[MPP_XM_VCMD_MEM_FVS] = (volcmd << 4) | (mem & 15);
+                    channel[0].memory[MPP_XM_VCMD_MEM_FVS] = (volcmd << 4) | (mem & 15);
                 }
                 volume += delta;
                 if (volume > 64) {
@@ -546,7 +546,7 @@ pub fn mpp_Process_VolumeCommand(layer: [*c]mm.LayerInfo, act_ch: ?[*c]mm.Active
             // Panning slide
             if (tick == 0) return period;
             var panning: i32 = @as(i32, @bitCast(@as(usize, channel.*.panning)));
-            const mem: mm.Byte = channel.*.memory[MPP_XM_VCMD_MEM_PANSL];
+            const mem: mm.Byte = channel[0].memory[MPP_XM_VCMD_MEM_PANSL];
             if (volcmd < 224) {
                 // mppuv_xm_panslide_left
                 volcmd -%= 208;
@@ -554,7 +554,7 @@ pub fn mpp_Process_VolumeCommand(layer: [*c]mm.LayerInfo, act_ch: ?[*c]mm.Active
                 if (volcmd == 0) {
                     delta = mem >> 4;
                 } else {
-                    channel.*.memory[MPP_XM_VCMD_MEM_PANSL] = (mem & 15) | (volcmd << 4);
+                    channel[0].memory[MPP_XM_VCMD_MEM_PANSL] = (mem & 15) | (volcmd << 4);
                     delta = volcmd & 15;
                 }
                 delta <<= 2;
@@ -571,7 +571,7 @@ pub fn mpp_Process_VolumeCommand(layer: [*c]mm.LayerInfo, act_ch: ?[*c]mm.Active
                     delta = mem & 15;
                 } else {
                     delta = volcmd;
-                    channel.*.memory[MPP_XM_VCMD_MEM_PANSL] = volcmd | (mem & 15);
+                    channel[0].memory[MPP_XM_VCMD_MEM_PANSL] = volcmd | (mem & 15);
                 }
                 delta <<= 2;
                 panning += delta;
@@ -586,9 +586,9 @@ pub fn mpp_Process_VolumeCommand(layer: [*c]mm.LayerInfo, act_ch: ?[*c]mm.Active
             if (tick == 0) return period;
             volcmd = (volcmd - 240) << 4;
             if (volcmd != 0) {
-                channel.*.memory[MPP_XM_VCMD_MEM_GLIS] = volcmd;
+                channel[0].memory[MPP_XM_VCMD_MEM_GLIS] = volcmd;
             }
-            volcmd = channel.*.memory[MPP_XM_VCMD_MEM_GLIS];
+            volcmd = channel[0].memory[MPP_XM_VCMD_MEM_GLIS];
             return mppe_glis_backdoor(volcmd, period, act_ch, channel, layer);
         }
     } else {
@@ -603,9 +603,9 @@ pub fn mpp_Process_VolumeCommand(layer: [*c]mm.LayerInfo, act_ch: ?[*c]mm.Active
             if (volcmd < 75) {
                 volcmd -= 65;
                 if (volcmd == 0) {
-                    volcmd = channel.*.memory[MPP_IT_VCMD_MEM];
+                    volcmd = channel[0].memory[MPP_IT_VCMD_MEM];
                 } else {
-                    channel.*.memory[MPP_IT_VCMD_MEM] = volcmd;
+                    channel[0].memory[MPP_IT_VCMD_MEM] = volcmd;
                 }
                 volume += volcmd;
                 if (volume > 64) {
@@ -616,9 +616,9 @@ pub fn mpp_Process_VolumeCommand(layer: [*c]mm.LayerInfo, act_ch: ?[*c]mm.Active
                 // 75-84 ==> 0-9
                 volcmd -= 75;
                 if (volcmd == 0) {
-                    volcmd = channel.*.memory[MPP_IT_VCMD_MEM];
+                    volcmd = channel[0].memory[MPP_IT_VCMD_MEM];
                 } else {
-                    channel.*.memory[MPP_IT_VCMD_MEM] = volcmd;
+                    channel[0].memory[MPP_IT_VCMD_MEM] = volcmd;
                 }
                 volume -= volcmd;
                 if (volume < 0) {
@@ -634,9 +634,9 @@ pub fn mpp_Process_VolumeCommand(layer: [*c]mm.LayerInfo, act_ch: ?[*c]mm.Active
                 // 85-94 ==> 0-9
                 volcmd -= 85;
                 if (volcmd == 0) {
-                    volcmd = channel.*.memory[MPP_IT_VCMD_MEM];
+                    volcmd = channel[0].memory[MPP_IT_VCMD_MEM];
                 } else {
-                    channel.*.memory[MPP_IT_VCMD_MEM] = volcmd;
+                    channel[0].memory[MPP_IT_VCMD_MEM] = volcmd;
                 }
                 volume += volcmd;
                 if (volume > 64) {
@@ -647,9 +647,9 @@ pub fn mpp_Process_VolumeCommand(layer: [*c]mm.LayerInfo, act_ch: ?[*c]mm.Active
                 // 95-104 ==> 0-9
                 volcmd -= 95;
                 if (volcmd == 0) {
-                    volcmd = channel.*.memory[MPP_IT_VCMD_MEM];
+                    volcmd = channel[0].memory[MPP_IT_VCMD_MEM];
                 } else {
-                    channel.*.memory[MPP_IT_VCMD_MEM] = volcmd;
+                    channel[0].memory[MPP_IT_VCMD_MEM] = volcmd;
                 }
                 volume -= volcmd;
                 if (volume < 0) {
@@ -665,17 +665,17 @@ pub fn mpp_Process_VolumeCommand(layer: [*c]mm.LayerInfo, act_ch: ?[*c]mm.Active
                 // F: mppuv_porta_up
                 volcmd = (volcmd - 115) << 2;
                 if (volcmd == 0) {
-                    volcmd = channel.*.memory[MPP_IT_PORTA];
+                    volcmd = channel[0].memory[MPP_IT_PORTA];
                 }
-                channel.*.memory[MPP_IT_PORTA] = volcmd;
+                channel[0].memory[MPP_IT_PORTA] = volcmd;
                 r0 = mpph_PitchSlide_Up(channel.*.period, volcmd, layer);
             } else {
                 // E: mppuv_porta_down
                 volcmd = (volcmd - 105) << 2;
                 if (volcmd == 0) {
-                    volcmd = channel.*.memory[MPP_IT_PORTA];
+                    volcmd = channel[0].memory[MPP_IT_PORTA];
                 }
-                channel.*.memory[MPP_IT_PORTA] = volcmd;
+                channel[0].memory[MPP_IT_PORTA] = volcmd;
                 r0 = mpph_PitchSlide_Down(channel.*.period, volcmd, layer);
             }
             const r1: mm.Word = channel.*.period;
@@ -703,20 +703,20 @@ pub fn mpp_Process_VolumeCommand(layer: [*c]mm.LayerInfo, act_ch: ?[*c]mm.Active
                 // When this flag is enabled, link effect G's memory with the
                 // memory used by effects E/F
                 if (glis == 0) {
-                    glis = channel.*.memory[MPP_IT_PORTA];
+                    glis = channel[0].memory[MPP_IT_PORTA];
                 }
                 // E/F memory
-                channel.*.memory[MPP_IT_PORTA] = @intCast(glis);
-                channel.*.memory[MPP_XM_IT_GLIS] = @intCast(glis);
-                const mem: mm.Byte = channel.*.memory[MPP_XM_IT_GLIS];
+                channel[0].memory[MPP_IT_PORTA] = @intCast(glis);
+                channel[0].memory[MPP_XM_IT_GLIS] = @intCast(glis);
+                const mem: mm.Byte = channel[0].memory[MPP_XM_IT_GLIS];
                 return mppe_glis_backdoor(mem, period, act_ch, channel, layer);
             } else {
                 // Single Gxx
                 if (glis == 0) {
-                    glis = @as(mm.Word, @bitCast(@as(usize, channel.*.memory[MPP_XM_IT_GLIS])));
+                    glis = @as(mm.Word, @bitCast(@as(usize, channel[0].memory[MPP_XM_IT_GLIS])));
                 }
-                channel.*.memory[MPP_XM_IT_GLIS] = @intCast(glis);
-                const mem: mm.Byte = channel.*.memory[MPP_XM_IT_GLIS];
+                channel[0].memory[MPP_XM_IT_GLIS] = @intCast(glis);
+                const mem: mm.Byte = channel[0].memory[MPP_XM_IT_GLIS];
                 return mppe_glis_backdoor(mem, period, act_ch, channel, layer);
             }
         } else if (volcmd <= 212) {
@@ -937,7 +937,7 @@ pub fn mpp_Channel_NewNote(module_channel: [*c]mm.ModuleChannel, layer: [*c]mm.L
     }
 }
 pub inline fn mpp_SamplePointer(layer: [*c]mm.LayerInfo, sampleN: mm.Word) [*c]SampleInfo {
-    var base: [*c]mm.Byte = @as([*c]mm.Byte, @ptrCast(@alignCast(layer.*.songadr)));
+    const base: [*]const mm.Byte = @ptrCast(layer.*.songadr);
     const idx: usize = @as(usize, @intCast(sampleN -% @as(mm.Word, @bitCast(@as(i32, 1)))));
     const off_ptr: [*]u8 = @ptrCast(@alignCast(@constCast(&base[@as(usize, 0)])));
     const samptbl_bytes: [*]const u8 = @ptrCast(@alignCast(layer.*.samptable));
@@ -946,16 +946,16 @@ pub inline fn mpp_SamplePointer(layer: [*c]mm.LayerInfo, sampleN: mm.Word) [*c]S
     return @as([*c]SampleInfo, @ptrCast(@alignCast(off_ptr + off)));
 }
 pub inline fn instrumentPointer(layer: [*c]mm.LayerInfo, instN: mm.Word) ?*Instrument {
-    const base: [*c]mm.Byte = @as([*c]mm.Byte, @ptrCast(@alignCast(layer.*.songadr)));
+    const base: [*]const mm.Byte = @ptrCast(layer.*.songadr);
     const idx: usize = @as(usize, @intCast(instN -% @as(mm.Word, @bitCast(@as(i32, 1)))));
     const insttbl_bytes: [*]const u8 = @ptrCast(@alignCast(layer.*.insttable));
     const p: [*]const u8 = insttbl_bytes + (idx * 4);
     const off: usize = @as(usize, @intCast(std.mem.readInt(u32, p[0..4], .little)));
-    const ptr: [*]u8 = @ptrCast(@alignCast(base + off));
+    const ptr: [*]u8 = @ptrCast(@alignCast(@constCast(base + off)));
     return @ptrCast(@alignCast(ptr));
 }
 pub inline fn mpp_PatternPointer(layer: [*c]mm.LayerInfo, entry: mm.Word) [*c]Pattern {
-    const base: [*c]mm.Byte = @ptrCast(@alignCast(layer.*.songadr));
+    const base: [*c]mm.Byte = @ptrCast(@alignCast(@constCast(layer.*.songadr)));
     const idx: usize = @intCast(entry);
     // Read LE32 offset to pattern via raw bytes to avoid alignment issues
     const patttbl_bytes: [*]const u8 = @ptrCast(@alignCast(layer.*.patttable));
@@ -1119,7 +1119,7 @@ pub fn mppStop() void {
 }
 pub fn mpp_setposition(layer_info: [*c]mm.LayerInfo, position: mm.Word) void {
     var pos = position;
-    const header: [*c]mm.MasHead = layer_info.*.songadr;
+    const header = layer_info.*.songadr;
     var entry: mm.Byte = undefined;
     while (true) {
         layer_info.*.position = @as(mm.Byte, @bitCast(@as(u8, @truncate(pos))));
@@ -1300,11 +1300,11 @@ pub fn mpp_Channel_ExchangeMemory(effect: mm.Byte, param: mm.Byte, channel: [*c]
     const table_entry_index: usize = @intCast(table_entry);
     if (param == 0) {
         // If the parameter is empty, load it from memory
-        channel.*.param = channel.*.memory[table_entry_index];
+        channel.*.param = channel[0].memory[table_entry_index];
         return channel.*.param;
     } else {
         // If the parameter isn't empty, save it to memory
-        channel.*.memory[table_entry_index] = param;
+        channel[0].memory[table_entry_index] = param;
         return param;
     }
     return 0;
@@ -1454,23 +1454,23 @@ pub fn mppe_Glissando(param: mm.Word, period: mm.Word, act_ch: ?[*c]mm.ActiveCha
         if ((layer.*.flags & MAS_HEADER_FLAG_LINK_GXX) != 0) {
             // Gxx is shared, IT MODE ONLY!!
             if (par == 0) {
-                par = channel.*.memory[MPP_IT_PORTA];
+                par = channel[0].memory[MPP_IT_PORTA];
                 channel.*.param = @intCast(par);
             }
-            channel.*.memory[MPP_IT_PORTA] = @intCast(par);
+            channel[0].memory[MPP_IT_PORTA] = @intCast(par);
             // For simplification later
-            channel.*.memory[MPP_XM_IT_GLIS] = @intCast(par);
+            channel[0].memory[MPP_XM_IT_GLIS] = @intCast(par);
         } else {
             // Gxx is separate
             if (par == 0) {
-                par = channel.*.memory[MPP_XM_IT_GLIS];
+                par = channel[0].memory[MPP_XM_IT_GLIS];
                 channel.*.param = @intCast(par);
             }
-            channel.*.memory[MPP_XM_IT_GLIS] = @intCast(par);
+            channel[0].memory[MPP_XM_IT_GLIS] = @intCast(par);
             return period;
         }
     }
-    par = channel.*.memory[MPP_XM_IT_GLIS];
+    par = channel[0].memory[MPP_XM_IT_GLIS];
     per = mppe_glis_backdoor(par, per, act_ch, channel, layer);
     return per;
 }
@@ -1528,7 +1528,7 @@ pub fn mppe_VibratoVolume(param: mm.Word, period: mm.Word, channel: [*c]mm.Modul
     return new_period;
 }
 pub fn mppe_PortaVolume(param: mm.Word, period: mm.Word, act_ch: ?[*c]mm.ActiveChannel, channel: [*c]mm.ModuleChannel, layer: [*c]mm.LayerInfo) mm.Word {
-    const mem: mm.Word = channel.*.memory[0];
+    const mem: mm.Word = channel[0].memory[0];
     const per = mppe_Glissando(mem, period, act_ch, channel, layer);
     mppe_VolumeSlide(param, channel, layer);
     return per;
