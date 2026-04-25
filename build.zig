@@ -13,18 +13,15 @@ const gba_thumb_target_query = blk: {
 var gba_target: std.Build.ResolvedTarget = undefined;
 
 pub fn build(b: *std.Build) void {
-    const optimize = b.standardOptimizeOption(.{});
+    const xm_debug = b.option(bool, "xmdebug", "Enable XM debug mode") orelse false;
 
     gba_target = b.resolveTargetQuery(gba_thumb_target_query);
-
-    // Get dependencies
-    const mmutil_dep = b.dependency("mmutil_zig", .{});
 
     // Setup maxmod
     const maxmod_zig = b.addModule("maxmod", .{
         .root_source_file = b.path("src/maxmod.zig"),
         .target = gba_target,
-        .optimize = optimize,
+        .optimize = .ReleaseFast,
     });
     maxmod_zig.addObjectFile(b.path("src/mixer_asm.o"));
 
@@ -32,23 +29,29 @@ pub fn build(b: *std.Build) void {
     const file_args = b.args orelse &[_][]const u8{};
     const selected_xm_file: []const u8 = if (file_args.len > 0) file_args[0] else "bad_apple.xm";
 
-    createXmExample(
-        b,
-        mmutil_dep,
-        selected_xm_file,
-        maxmod_zig,
-    );
+    const xm_opts = b.addOptions();
+    xm_opts.addOption([]const u8, "xm_name", std.fs.path.basename(selected_xm_file));
+    xm_opts.addOption(bool, "xm_debug", xm_debug);
+    const build_options_mod = xm_opts.createModule();
+    maxmod_zig.addImport("build_options", build_options_mod);
+
+    // createXmExample(
+    //     b,
+    //     mmutil_dep,
+    //     selected_xm_file,
+    //     maxmod_zig,
+    // );
 }
 
 fn createXmExample(
     b: *std.Build,
-    mmutil_dep: *std.Build.Dependency,
     selected_xm_file: []const u8,
     maxmod_zig: *std.Build.Module,
+    build_options_mod: *std.Build.Module,
 ) void {
-    const xm_debug = b.option(bool, "xmdebug", "Enable XM debug mode") orelse false;
-    const xm_step = b.step("xm", "Build XM demo ROM");
+    const mmutil_dep = b.dependency("mmutil_zig", .{});
 
+    const xm_step = b.step("xm", "Build XM demo ROM");
     // Create XM soundbank generation step using mmutil
     const xm_create_soundbank = b.addRunArtifact(mmutil_dep.artifact("mmutil-zig"));
     xm_create_soundbank.addArgs(&.{
@@ -67,12 +70,6 @@ fn createXmExample(
     xm_exe.step.root_module.addImport("maxmod", maxmod_zig);
     // Use the same gba module that addExecutable uses internally
     maxmod_zig.addImport("gba", xm_exe.gba_module);
-
-    const xm_opts = b.addOptions();
-    xm_opts.addOption([]const u8, "xm_name", std.fs.path.basename(selected_xm_file));
-    xm_opts.addOption(bool, "xm_debug", xm_debug);
-    const build_options_mod = xm_opts.createModule();
-    maxmod_zig.addImport("build_options", build_options_mod);
 
     xm_exe.step.root_module.addImport("build_options", build_options_mod);
 
