@@ -5,12 +5,13 @@
     .minimum_zig_version = "0.16.0-dev.1262+be4eaed7c",
 
     .dependencies = .{
-        .mmutil_zig = .{
-            .path = "../mmutil-zig",
-        },
         .ziggba = .{
             .url = "git+https://github.com/braheezy/ziggba.git#800ae0705e81e0f9c7a22efcf11059925f45f9cd",
             .hash = "ziggba-0.0.0-t2qCXlT9DQCrwE0YzBgm2oxJgtCWZZqbaQT0_2LVo43h",
+        },
+        .mmutil_zig = .{
+            .url = "git+https://github.com/braheezy/mmutil-zig#e92b5fe3638ea1e39891356de07d68c0927f188f",
+            .hash = "mmutil_zig-0.0.0-y590hZAJAABq_AMp0EERZvf34RbJaQYmt8w2ie-QyqT5",
         },
     },
     .paths = .{

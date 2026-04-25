@@ -77,8 +77,7 @@ fn createXmExample(
     xm_exe.step.root_module.addImport("build_options", build_options_mod);
 
     // Hook into top-level steps and install artifacts
-    xm_step.dependOn(&xm_create_soundbank.step);
-    xm_step.dependOn(&xm_exe.step.step);
+    b.default_step.dependOn(&xm_create_soundbank.step);
 
-    xm_step.dependOn(b.default_step);
+    b.default_step.dependOn(xm_step);
 }
