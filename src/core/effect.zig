@@ -29,16 +29,15 @@ const SoundEffect = extern struct {
     panning: mm.Byte = 0,
 };
 const MasGbaSample = extern struct {
-    // TODO: Use LoopData
     length: mm.Word align(4) = 0,
     loop_length: mm.Word = 0,
     format: mm.Byte = 0,
     reserved: mm.Byte = 0,
     default_frequency: mm.Hword = 0,
 
-    pub fn data(self: anytype) @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), u8) {
-        const Intermediate = @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), u8);
-        const ReturnType = @import("std").zig.c_translation.FlexibleArrayType(@TypeOf(self), u8);
+    pub fn data(self: anytype) @import("std").zig.c_translation.helpers.FlexibleArrayType(@TypeOf(self), u8) {
+        const Intermediate = @import("std").zig.c_translation.helpers.FlexibleArrayType(@TypeOf(self), u8);
+        const ReturnType = @import("std").zig.c_translation.helpers.FlexibleArrayType(@TypeOf(self), u8);
         return @as(ReturnType, @ptrCast(@alignCast(@as(Intermediate, @ptrCast(self)) + 12)));
     }
 };
@@ -79,8 +78,8 @@ pub fn effect(sample_ID: mm.Word) mm.Sfxhand {
 ///! Play sound effect with specified parameters
 pub fn effectEx(sound: [*c]SoundEffect) mm.Sfxhand {
     if (sound.*.sample_data.id >= mm_gba.getSampleCount()) return 0;
-    const sfx_channel = -1;
-    var mix_channel = 255;
+    var sfx_channel: i32 = -1;
+    var mix_channel: i32 = 255;
     var sfx_count: mm.Byte = undefined;
     var reused_handle: bool = false;
     if (sound.*.handle != 0) {
@@ -103,12 +102,12 @@ pub fn effectEx(sound: [*c]SoundEffect) mm.Sfxhand {
         sfx_counter +%= 1;
     }
     // Generate new handle and register SFX information
-    const handle: mm.Sfxhand = (sfx_count << 8) | (sfx_channel + 1);
+    const handle: mm.Sfxhand = (@as(mm.Sfxhand, sfx_count) << 8) | @as(mm.Sfxhand, @intCast(sfx_channel + 1));
     const sfx_channel_idx = @as(usize, @intCast(sfx_channel));
-    sfx_channels[sfx_channel_idx].mix_channel = mix_channel + 1;
+    sfx_channels[sfx_channel_idx].mix_channel = @intCast(mix_channel + 1);
     sfx_channels[sfx_channel_idx].counter = sfx_count;
     // Mark sfx channel as used
-    sfx_bitmask |= 1 << sfx_channel;
+    sfx_bitmask |= @as(mm.Word, 1) << @intCast(sfx_channel);
     // Setup active channel
     const act_ch: [*c]mm.ActiveChannel = &(blk: {
         const tmp = mix_channel;
@@ -128,14 +127,14 @@ pub fn effectEx(sound: [*c]SoundEffect) mm.Sfxhand {
     }).*;
     // Set sample data address
     const sample_offset: usize = @as(usize, @intCast(mm_gba.getSampleTable()[sound.*.sample_data.id & 65535]));
-    const sample_addr: [*c]mm.Byte = @as([*c]mm.Byte, @ptrCast(@alignCast(mm_gba.mp_solution))) + sample_offset;
-    const sample: [*c]MasGbaSample = @as([*c]MasGbaSample, @ptrCast(@alignCast(sample_addr + @sizeOf(MasPrefix))));
-    mix_ch.*.src = @intFromPtr(&sample.*.data()[0]);
+    const sample_addr: [*c]const mm.Byte = @ptrCast(@alignCast(mm_gba.bank_base + sample_offset));
+    const sample: [*c]const MasGbaSample = @ptrCast(@alignCast(sample_addr + @sizeOf(MasPrefix)));
+    mix_ch.*.src = @intFromPtr(sample.*.data());
     // set pitch to original * pitch
-    mix_ch.*.freq = (sound.*.rate * sample.*.default_frequency) >> (10 - 2);
+    mix_ch.*.freq = (@as(mm.Word, sound.*.rate) * @as(mm.Word, sample.*.default_frequency)) >> (10 - 2);
     // reset read position
     mix_ch.*.read = 0;
-    mix_ch.*.vol = (sound.*.volume * sfx_mastervolume) >> 10;
+    mix_ch.*.vol = @intCast((@as(mm.Word, sound.*.volume) * sfx_mastervolume) >> 10);
     mix_ch.*.pan = sound.*.panning;
     return handle;
 }
@@ -253,8 +252,9 @@ pub fn updateEffects() void {
     var i: usize = 0;
     while (i < EFFECT_CHANNELS) : (i += 1) {
         if ((sfx_bitmask & (@as(usize, 1) << @intCast(i))) == 0) continue;
-        const mix_channel = sfx_channels[i].mix_channel - 1;
-        if (mix_channel < 0) continue;
+        const state = sfx_channels[i];
+        if (state.mix_channel == 0) continue;
+        const mix_channel: i32 = @as(i32, @intCast(state.mix_channel)) - 1;
         const mix_ch: [*c]volatile mm.MixerChannel = &(blk: {
             const tmp = mix_channel;
             if (tmp >= 0) break :blk mixer.mm_mix_channels + @as(usize, @intCast(tmp)) else break :blk mixer.mm_mix_channels - ~@as(usize, @bitCast(@as(isize, @intCast(tmp)) - 1));
@@ -278,31 +278,36 @@ pub fn updateEffects() void {
 }
 ///! Expose the current mixer channel pointer so other modules can unify usage
 pub fn getMixChannelIndex(handle: mm.Sfxhand) i32 {
-    const sfx_channel = (handle & 255) - 1;
+    if (handle == 0) return -1;
 
-    const handle_counter = handle >> 8;
+    const sfx_channel_id = handle & 255;
+    if (sfx_channel_id == 0) return -1;
 
-    if (sfx_channel < 0) return -1;
+    const sfx_channel: usize = @intCast(sfx_channel_id - 1);
     if (sfx_channel >= EFFECT_CHANNELS) return -1;
-    const state: [*c]sfx_channel_state = &sfx_channels[sfx_channel];
 
+    const handle_counter: mm.Byte = @intCast(handle >> 8);
+    const state: [*c]sfx_channel_state = &sfx_channels[sfx_channel];
+    if (state.*.mix_channel == 0) return -1;
     if (state.*.counter != handle_counter) return -1;
-    return state.*.mix_channel - 1;
+
+    return @as(i32, @intCast(state.*.mix_channel)) - 1;
 }
 ///! Clear sfx channel entry and bitmask
 pub fn clearSfxChannel(sfx_channel: u32) void {
+    if (sfx_channel >= EFFECT_CHANNELS) return;
     sfx_channels[sfx_channel].counter = 0;
     sfx_channels[sfx_channel].mix_channel = 0;
-    const bit_flag: mm.Word = 1 << sfx_channel;
+    const bit_flag: mm.Word = @as(mm.Word, 1) << @intCast(sfx_channel);
     sfx_bitmask &= ~bit_flag;
 }
 ///! Return index to free effect channel. If no channels are free, it returns -1.
 pub fn getFreeSfxChannel() i32 {
     {
-        var i = 0;
+        var i: u5 = 0;
         while (i < EFFECT_CHANNELS) : (i += 1) {
-            if ((sfx_bitmask & (1 << i)) != 0) continue;
-            return i;
+            if ((sfx_bitmask & (@as(mm.Word, 1) << i)) != 0) continue;
+            return @intCast(i);
         }
     }
     return -1;

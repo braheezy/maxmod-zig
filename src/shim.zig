@@ -433,7 +433,7 @@ pub fn logMixChannels(frame_idx: u32) void {
     }
 }
 pub fn print() void {
-    gba.debug.write("BEGIN debug_state=================>") catch {};
+    gba.debug.write("BEGIN debug_state=================>");
 
     debugPrint("[initDefault] soundbank=0x{x} nch={d}", .{ debug_state.soundbank_addr, debug_state.number_of_channels });
     debugPrint("[init] sampleCount={d} moduleCount={d}\n", .{ debug_state.sample_count, debug_state.module_count });
@@ -471,7 +471,7 @@ pub fn print() void {
             );
         }
     }
-    gba.debug.write("END debug_state=================>") catch {};
+    gba.debug.write("END debug_state=================>");
     debug_state.t0_len = 0;
     debug_state.spv_len = 0;
     debug_state.dap_len = 0;

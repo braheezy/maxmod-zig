@@ -1,71 +1,87 @@
-const std = @import("std");
 const gba = @import("gba");
-const mmgba = @import("maxmod_gba");
-const build_options = @import("build_options");
-const text = gba.text;
+const mm = @import("maxmod");
 
-export var header linksection(".gbaheader") = gba.initHeader("SFXDEMO", "SFXZ", "00", 0);
+const mixer = mm.mixer;
+const mm_gba = mm.gba;
 
-// Embed the converted asset
-const sample_data: []const u8 = @embedFile("sample.mmraw");
+export var header linksection(".gbaheader") = gba.Header.init("SFXDEMO", "SFXZ", "00", 0);
 
-var flash_counter: u32 = 0;
-var name_buf: [30]u16 = [_]u16{0} ** 30;
-var flash_ticks: u16 = 0; // frames remaining to flash file name after replay
+const bank_data align(4) = @embedFile("soundbank.bin");
 
-pub export fn main() void {
-    // Basic display
+const ButtonBinding = struct {
+    key: gba.input.Key,
+    sample_id: mm.Word,
+    label: []const u8,
+};
+
+const bindings = [_]ButtonBinding{
+    .{ .key = .A, .sample_id = 0, .label = "A      sample 0" },
+    .{ .key = .B, .sample_id = 1, .label = "B      sample 1" },
+    .{ .key = .L, .sample_id = 2, .label = "L      sample 2" },
+    .{ .key = .R, .sample_id = 3, .label = "R      sample 3" },
+    .{ .key = .up, .sample_id = 4, .label = "Up     sample 4" },
+    .{ .key = .down, .sample_id = 5, .label = "Down   sample 5" },
+    .{ .key = .left, .sample_id = 6, .label = "Left   sample 6" },
+    .{ .key = .right, .sample_id = 7, .label = "Right  sample 7" },
+};
+
+fn vblank_isr(_: gba.interrupt.InterruptFlags) callconv(.c) void {
+    mixer.vBlank();
+}
+
+fn drawUi(sample_count: mm.Word) void {
+    const surface = gba.display.getMode3Surface();
+    const draw = surface.draw();
+    const title = gba.ColorRgb555.yellow;
+    const ready = gba.ColorRgb555.white;
+    const disabled = gba.ColorRgb555.rgb(15, 15, 15);
+
+    draw.fill(gba.ColorRgb555.black);
+    draw.text("Maxmod SFX Demo", .init(title), .{ .x = 24, .y = 16 });
+    draw.print("Samples in bank: {d}", .{sample_count}, .init(ready), .{ .x = 24, .y = 32 });
+
+    inline for (bindings, 0..) |binding, i| {
+        const color = if (binding.sample_id < sample_count) ready else disabled;
+        const x: u32 = if (i < 4) 24 else 128;
+        const y: u32 = 56 + ((i % 4) * 18);
+        draw.text(binding.label, .init(color), .{ .x = x, .y = y });
+    }
+}
+
+fn playSample(sample_id: mm.Word, handle_slot: *mm.Sfxhand) void {
+    if (sample_id >= mm_gba.getSampleCount()) return;
+    if (handle_slot.* != 0) {
+        _ = mm.sfx.effectCancel(handle_slot.*);
+    }
+    handle_slot.* = mm.sfx.effect(sample_id);
+}
+
+export fn main() void {
+    gba.debug.init();
     gba.interrupt.init();
-    _ = gba.interrupt.add(.vblank, null);
-    gba.display.ctrl.* = gba.display.Control{
-        .bg2 = .enable,
-        .mode = .mode3,
+    gba.display.ctrl.* = .initMode3(.{});
+    gba.interrupt.isr_default_redirect = vblank_isr;
+
+    mm_gba.initDefault(@ptrCast(@constCast(&bank_data[0])), 32) catch |e| {
+        gba.debug.print("Failed to initialize Maxmod: {any}\n", .{@errorName(e)}) catch {};
+        unreachable;
     };
-    text.initBmpDefault(3);
-    // Show file name and label using text engine
-    text.write("#{P:72,64}Press A to replay");
-    // File name in white by default
-    const white_val: u16 = @as(u16, @bitCast(gba.Color.white));
-    const magenta_val: u16 = @as(u16, @bitCast(gba.Color.magenta));
-    text.printf("#{{P:72,80;ci:{d}}}", .{white_val});
-    text.write(build_options.sfx_name);
 
-    // Init audio
-    mmgba.init();
-    mmgba.disableAllDma();
+    drawUi(mm_gba.getSampleCount());
 
-    // Load and play
-    if (mmgba.loadMmraw(sample_data)) |_| {
-        mmgba.play();
-    } else |_| {}
-
-    // Colors prepared above
+    var input: gba.input.BufferedKeysState = .{};
+    var active_handles = [_]mm.Sfxhand{0} ** bindings.len;
 
     while (true) {
-        gba.display.vSync();
-        _ = gba.input.poll();
+        input.poll();
 
-        if (gba.input.isKeyJustPressed(.A)) {
-            flash_counter = 0;
-            flash_ticks = 60; // ~1s at 60 FPS
-            mmgba.stop();
-            var n: u32 = 5000;
-            while (n > 0) : (n -= 1) {}
-            mmgba.play();
-        }
-        // If flashing active, toggle file name color between magenta and white
-        if (flash_ticks > 0) {
-            const color = if ((flash_counter & 8) == 0) magenta_val else white_val;
-            text.printf("#{{P:72,80;ci:{d}}}", .{color});
-            text.write(build_options.sfx_name);
-            flash_ticks -%= 1;
-            if (flash_ticks == 0) {
-                // Ensure we end on white
-                text.printf("#{{P:72,80;ci:{d}}}", .{white_val});
-                text.write(build_options.sfx_name);
+        inline for (bindings, 0..) |binding, i| {
+            if (input.isJustPressed(binding.key)) {
+                playSample(binding.sample_id, &active_handles[i]);
             }
         }
-        flash_counter +%= 1;
-        mmgba.tick();
+
+        mm_gba.frame();
+        gba.bios.vblankIntrWait();
     }
 }

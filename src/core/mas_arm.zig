@@ -57,7 +57,7 @@ pub fn updateChannel_T0(module_channel: [*c]mm.ModuleChannel, mpp_layer: [*c]mm.
                 const note = channelStartACHN(module_channel, act_ch.?, mpp_layer, channel_counter);
                 if (act_ch.?.*.sample != 0) {
                     const sample: [*c]mas.SampleInfo = mas.mpp_SamplePointer(mpp_layer, @as(mm.Word, @intCast(act_ch.?.*.sample)));
-                    module_channel.*.period = getPeriod(mpp_layer, sample.*.frequency << 2, note);
+                    module_channel.*.period = getPeriod(mpp_layer, @as(mm.Word, sample.*.frequency) << 2, note);
                     act_ch.?.*.flags |= mas.MCAF_START;
                 }
                 const actp: ?*const mm.ActiveChannel = @as(*const mm.ActiveChannel, @ptrCast(act_ch.?));
@@ -303,15 +303,15 @@ fn determineInitialState(module_channel: [*c]mm.ModuleChannel, mpp_layer: [*c]mm
     }
 
     if ((mpp_layer.*.flags & mas.MAS_HEADER_FLAG_XM_MODE) != 0) {
-        // XM effects - Glissando is 193..202
-        if ((module_channel.*.volcmd < mas.GLISSANDO_IT_VOLCMD_START) or
-            (module_channel.*.volcmd > mas.GLISSANDO_IT_VOLCMD_END))
-        {
+        // XM volume-column glissando is Fx.
+        if (module_channel.*.volcmd < mas.GLISSANDO_MX_VOLCMD_START) {
             return .start;
         }
     } else {
-        // IT effects - Glissando is Fx
-        if (module_channel.*.volcmd < mas.GLISSANDO_MX_VOLCMD_START) {
+        // IT volume-column glissando is Gx, encoded as 193..202.
+        if ((module_channel.*.volcmd < mas.GLISSANDO_IT_VOLCMD_START) or
+            (module_channel.*.volcmd > mas.GLISSANDO_IT_VOLCMD_END))
+        {
             return .start;
         }
     }

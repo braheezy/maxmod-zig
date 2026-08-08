@@ -32,7 +32,7 @@ pub const MpvActiveInfo = extern struct {
     sampoff: mm.Byte = 0,
     volplus: mm.Sbyte = @import("std").mem.zeroes(mm.Sbyte),
     notedelay: mm.Byte = 0,
-    panplus: mm.Hword = 0,
+    panplus: mm.Shword = 0,
     reserved2: mm.Hword = 0,
 };
 
@@ -866,6 +866,17 @@ pub fn mpp_Update_ACHN_notest(layer: [*c]mm.LayerInfo, act_ch: [*c]mm.ActiveChan
     mpp_Update_ACHN_notest_disable_and_panning(clipped_vol, act_ch, mix_ch);
     return new_period;
 }
+fn instrumentMapEntry(instrument: *Instrument, note: mm.Byte) mm.Hword {
+    const raw_map = instrument.*.note_map_offset;
+    if ((raw_map & 0x8000) != 0) {
+        return @as(mm.Hword, note) | ((raw_map & 0x00FF) << 8);
+    }
+    const inst_bytes: [*]const u8 = @ptrCast(instrument);
+    const map_bytes: [*]const u8 = inst_bytes + @as(usize, raw_map);
+    const idx = @as(usize, note) * 2;
+    return @as(mm.Hword, map_bytes[idx]) | (@as(mm.Hword, map_bytes[idx + 1]) << 8);
+}
+
 pub fn mpp_Channel_NewNote(module_channel: [*c]mm.ModuleChannel, layer: [*c]mm.LayerInfo) linksection(".iwram") void {
     if (module_channel.*.inst == 0) return;
 
@@ -876,22 +887,16 @@ pub fn mpp_Channel_NewNote(module_channel: [*c]mm.ModuleChannel, layer: [*c]mm.L
         need_alloc = true;
     } else {
         const instrument: *Instrument = instrumentPointer(layer, module_channel.*.inst) orelse return;
+        const nna = MCH_BFLAGS_NNA_GET(module_channel.*.bflags);
+        if (nna == IT_NNA_CUT) return;
 
         var do_dca: bool = false;
         const dct: mm.Byte = instrument.*.dct & 3;
         if (dct == 1) {
-            // DCT Note
-            const inst_bytes: [*]u8 = @ptrCast(@alignCast(instrument));
-            const nm_ptr_bytes: [*]u8 = inst_bytes + instrument.*.note_map_offset;
-            const note_map: [*]mm.Hword = @ptrCast(@alignCast(nm_ptr_bytes));
-            const note: mm.Byte = @as(mm.Byte, @truncate(note_map[module_channel.*.note - 1] & 0xFF));
+            const note: mm.Byte = @truncate(instrumentMapEntry(instrument, module_channel.*.pnoter));
             if (note == module_channel.*.note) do_dca = true;
         } else if (dct == 2) {
-            // DCT Sample
-            const inst_bytes: [*]u8 = @ptrCast(@alignCast(instrument));
-            const nm_ptr_bytes: [*]u8 = inst_bytes + instrument.*.note_map_offset;
-            const note_map: [*]mm.Hword = @ptrCast(@alignCast(nm_ptr_bytes));
-            const sample_from_map: mm.Byte = @as(mm.Byte, @truncate(note_map[module_channel.*.note - 1] >> 8));
+            const sample_from_map: mm.Byte = @truncate(instrumentMapEntry(instrument, module_channel.*.pnoter) >> 8);
             if (sample_from_map == act_ch.*.sample) do_dca = true;
         } else if (dct == 3) {
             // DCT Instrument
@@ -913,10 +918,7 @@ pub fn mpp_Channel_NewNote(module_channel: [*c]mm.ModuleChannel, layer: [*c]mm.L
                 need_alloc = true;
             }
         } else {
-            const nna = MCH_BFLAGS_NNA_GET(module_channel.*.bflags);
-            if (nna == IT_NNA_CUT) {
-                return; // use same channel
-            } else if (nna == IT_NNA_CONT) {
+            if (nna == IT_NNA_CONT) {
                 act_ch.*._type = ACHN_BACKGROUND;
                 need_alloc = true;
             } else if (nna == IT_NNA_OFF) {
@@ -981,7 +983,7 @@ pub fn mppe_DoVibrato(period: mm.Word, channel: [*c]mm.ModuleChannel, layer: [*c
 pub fn mppe_glis_backdoor(param: mm.Word, period: mm.Word, act_ch: ?[*c]mm.ActiveChannel, channel: [*c]mm.ModuleChannel, layer: [*c]mm.LayerInfo) mm.Word {
     if (act_ch == null) return period;
     const sample: [*c]SampleInfo = mpp_SamplePointer(layer, act_ch.?.*.sample);
-    const target_period: mm.Word = arm.getPeriod(layer, sample.*.frequency * 4, channel.*.note);
+    const target_period: mm.Word = arm.getPeriod(layer, @as(mm.Word, sample.*.frequency) * 4, channel.*.note);
     var new_period: mm.Word = undefined;
     if (layer.*.flags & MAS_HEADER_FLAG_FREQ_MODE != 0) {
         if (channel.*.period < target_period) {
@@ -1018,7 +1020,7 @@ pub fn mppe_glis_backdoor(param: mm.Word, period: mm.Word, act_ch: ?[*c]mm.Activ
     return period +% @as(mm.Word, @bitCast(delta));
 }
 pub fn mpp_Update_ACHN(layer: [*c]mm.LayerInfo, act_ch: [*c]mm.ActiveChannel, period: mm.Word, ch: mm.Word) void {
-    if (act_ch.*.flags & MCAF_EFFECT != 0) return;
+    if ((act_ch.*.flags & MCAF_UPDATED) != 0) return;
     _ = mpp_Update_ACHN_notest(layer, act_ch, period, ch);
 }
 pub fn mpp_setbpm(layer_info: [*c]mm.LayerInfo, bpm: mm.Word) void {
@@ -1032,6 +1034,9 @@ pub fn mpp_setbpm(layer_info: [*c]mm.LayerInfo, bpm: mm.Word) void {
         layer_info.*.tickrate = @intCast((bpm << 15) / 149);
     }
     if (debug_enabled) shim.debug_state.tickrate = layer_info.*.tickrate;
+}
+inline fn activeChannelLayer(flags: mm.Byte) mm.Word {
+    return (@as(mm.Word, flags) & (MCAF_SUB | MCAF_EFFECT)) >> 6;
 }
 pub fn mpp_suspend(layer: mm_layer_type) void {
     var act_ch: [*c]mm.ActiveChannel = &mm_gba.achannels[0];
@@ -1054,7 +1059,7 @@ pub fn mpp_suspend(layer: mm_layer_type) void {
             break :blk_1 tmp;
         };
     }) {
-        if (act_ch.*.flags & (MCAF_SUB | MCAF_EFFECT) >> 6 != @intFromEnum(layer)) continue;
+        if (activeChannelLayer(act_ch.*.flags) != @intFromEnum(layer)) continue;
         mix_ch.*.freq = 0;
     }
 }
@@ -1091,7 +1096,7 @@ pub fn mpp_resetchannels(channels: [*c]mm.ModuleChannel, num_ch: mm.Word) void {
     while (j < mm_gba.num_ach) : (j += 1) {
         const act_ch: [*c]mm.ActiveChannel = &mm_gba.achannels[curr_act_ch];
         const mix_ch: [*c]volatile mm.MixerChannel = &mixer.mm_mix_channels[curr_mix_ch];
-        if (act_ch.*.flags & (MCAF_SUB | MCAF_EFFECT) >> 6 != @intFromEnum(mpp_clayer)) continue;
+        if (activeChannelLayer(act_ch.*.flags) != @intFromEnum(mpp_clayer)) continue;
 
         act_ch.* = .{};
         if (debug_enabled) mix_ch.*.src = shim.MIXCH_GBA_SRC_STOPPED;
@@ -1973,7 +1978,7 @@ pub fn mpp_Update_ACHN_notest_envelopes(layer: [*c]mm.LayerInfo, act_ch: [*c]mm.
         const env_pan: *Envelope = @ptrCast(@alignCast(env_ptr));
         env_ptr += env_ptr[0];
         _ = mpph_ProcessEnvelope(&act_ch.*.envc_pan, &act_ch.*.envn_pan, env_pan, act_ch, &value_mul_64_pan);
-        mpp_vars.panplus += @as(mm.Hword, @intCast((@as(i32, @intCast(value_mul_64_pan)) >> 4) - 128));
+        mpp_vars.panplus += @as(mm.Shword, @intCast((@as(i32, @intCast(value_mul_64_pan)) >> 4) - 128));
     }
 
     var per = period;
@@ -1998,7 +2003,7 @@ pub fn mpp_Update_ACHN_notest_envelopes(layer: [*c]mm.LayerInfo, act_ch: [*c]mm.
         act_ch.*.fade = @as(mm.Hword, @intCast(value));
     }
 
-    return period;
+    return per;
 }
 pub fn mpp_Update_ACHN_notest_auto_vibrato(layer: [*c]mm.LayerInfo, act_ch: [*c]mm.ActiveChannel, period: mm.Word) mm.Word {
     var per = period;
@@ -2061,7 +2066,7 @@ pub fn mpp_Update_ACHN_notest_update_mix(layer: [*c]mm.LayerInfo, act_ch: [*c]mm
                 dbg_sample_offset = @intCast(off);
                 hdr_addr = (@as(usize, @intCast(@intFromPtr(mm_gba.bank_base))) + off) + @sizeOf(Prefix);
             }
-            // initialize read pointer and source to header+12
+            // GBA sample data begins after the 12-byte MAS sample header.
             mix_ch.*.src = hdr_addr + 12;
             did_bind = true;
             // initialize read pointer
@@ -2088,7 +2093,7 @@ pub fn mpp_Update_ACHN_notest_set_pitch_volume(
     const sample: [*c]SampleInfo = mpp_SamplePointer(layer, act_ch.*.sample);
     if ((layer.*.flags & MAS_HEADER_FLAG_FREQ_MODE) != 0) {
         // Linear frequencies
-        const speed: mm.Hword = sample.*.frequency;
+        const speed: mm.Word = sample.*.frequency;
         var value: mm.Word = ((period >> 8) * (speed << 2)) >> 8;
         if (mpp_clayer == .main) {
             value = (value * mm_masterpitch) >> 10;
