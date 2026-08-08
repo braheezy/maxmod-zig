@@ -5,6 +5,9 @@ const shim = @import("../shim.zig");
 const mas = @import("../core/mas.zig");
 const mixer = @import("mixer.zig");
 
+pub const Runtime = @import("runtime.zig").Runtime;
+pub const RuntimeConfig = @import("runtime.zig").RuntimeConfig;
+
 // Debug configuration - can be toggled at build time
 const debug_enabled = @import("build_options").xm_debug;
 
@@ -244,7 +247,7 @@ const MixLen = enum(u16) {
     _31khz = 2112,
 };
 
-const MixMode = enum(u8) {
+pub const MixMode = enum(u8) {
     _8khz,
     _10khz,
     _13khz,
@@ -254,3 +257,16 @@ const MixMode = enum(u8) {
     _27khz,
     _31khz,
 };
+
+pub fn mixingBufferByteLen(mode: MixMode) usize {
+    return switch (mode) {
+        ._8khz => @intFromEnum(MixLen._8khz),
+        ._10khz => @intFromEnum(MixLen._10khz),
+        ._13khz => @intFromEnum(MixLen._13khz),
+        ._16khz => @intFromEnum(MixLen._16khz),
+        ._18khz => @intFromEnum(MixLen._18khz),
+        ._21khz => @intFromEnum(MixLen._21khz),
+        ._27khz => @intFromEnum(MixLen._27khz),
+        ._31khz => @intFromEnum(MixLen._31khz),
+    };
+}

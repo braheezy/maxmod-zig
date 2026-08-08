@@ -75,6 +75,16 @@ pub fn effect(sample_ID: mm.Word) mm.Sfxhand {
     };
     return effectEx(&eff);
 }
+
+/// Play a sound effect and set its volume if playback succeeds.
+///
+/// `volume` uses MaxMod's usual 0-255 effect-volume scale. A return value of
+/// zero means no effect channel was available or `sample_ID` was invalid.
+pub fn playAtVolume(sample_ID: mm.Word, volume: mm.Word) mm.Sfxhand {
+    const handle = effect(sample_ID);
+    if (handle != 0) effectVolume(handle, volume);
+    return handle;
+}
 ///! Play sound effect with specified parameters
 pub fn effectEx(sound: [*c]SoundEffect) mm.Sfxhand {
     if (sound.*.sample_data.id >= mm_gba.getSampleCount()) return 0;
